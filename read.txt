@@ -1,0 +1,70 @@
+讀取 `CODEX_PROJECT_BOOTSTRAP.md` 與 `CAPABILITY_REGISTRY.md`，並執行 **Existing Project Bootstrap**。
+
+先偵測現有 Repository 架構、Authoritative Source Roots、Generated/Build/Vendor Roots 與實際技術棧；不要假設 framework、語言、資料庫或目錄結構，也不要重構或修改產品程式碼。
+
+完成核心 Tooling：
+
+* Serena semantic navigation
+* Graphify dependency / blast-radius discovery
+* 低 Token workflow
+* Build verification
+* Test verification
+* ignore/source-root rules
+* `CAPABILITY_REGISTRY.md` 狀態更新
+
+Serena 與 Graphify 必須只索引 authoritative source、tests、schema/migrations；排除已確認的 bundled、generated、minified、build、vendor 與 raw generated asset outputs。
+
+Serena smoke test 必須從 authoritative source root 選擇 named class、named function、exported symbol 或 service/module；不要使用 anonymous IIFE、bundled symbol、minified symbol 或 generated artifact。
+
+若存在 Generic Asset Bootstrap 文件：
+
+* `ASSET_RECIPE_SCHEMA.md`
+* `ASSET_GENERATION_PIPELINE.md`
+* `ASSET_MANIFEST.md`
+* `asset_manifest.schema.json`
+
+請只導入並驗證 **Asset Pipeline Specification**，回報：
+
+```text
+ASSET_PIPELINE_APPLICABLE
+ASSET_PIPELINE_SPEC_READY
+ASSET_PIPELINE_RUNTIME_READY
+```
+
+不要因為資產文件存在，就自動安裝 ComfyUI、Pixelorama、imagededup、Docker、模型或其他大型 optional dependencies。
+
+只有目前 Task 真正需要某項 capability 時，才依 `CAPABILITY_REGISTRY.md` 的 Install Policy 處理：
+
+```text
+AUTO_SAFE
+ON_DEMAND
+MACHINE_CHANGE_REQUIRES_APPROVAL
+EXTERNAL_COST_REQUIRES_APPROVAL
+```
+
+任何 machine-wide change，例如 Docker Desktop、WSL、系統服務、驅動或 machine-wide runtime，必須先取得我的授權。
+
+任何可能產生外部 API、cloud、hosted inference 或付費服務成本的方案，也必須先取得我的授權。
+
+完成核心 Bootstrap 後執行 Repository Audit，但不要開始 implementation。
+
+最後只回報：
+
+* Project Mode
+* Detected Stack
+* Authoritative Source Roots
+* Ignored Generated/Build Roots
+* Serena status / backend / smoke test
+* Graphify status / graph / smoke test
+* Build status
+* Test status
+* Repository Audit summary
+* `PROJECT_TOOLING_READY`
+* `ASSET_PIPELINE_APPLICABLE`
+* `ASSET_PIPELINE_SPEC_READY`
+* `ASSET_PIPELINE_RUNTIME_READY`
+* Optional capabilities detected / missing
+* Files added or modified
+* Blockers
+
+不要開始產品功能實作。
