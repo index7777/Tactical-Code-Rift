@@ -1,35 +1,184 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import type { ClashPair } from '../../core/battle/BattleTypes';
 
-export interface VisualActor { root: Phaser.GameObjects.Container; x: number; y: number }
+export interface VisualActor {
+  root: Phaser.GameObjects.Container;
+  x: number;
+  y: number;
+  sprite?: Phaser.GameObjects.Sprite;
+}
 
 export class ClashPresenter {
-  constructor(private scene: Phaser.Scene, private players: Map<string, VisualActor>, private enemies: Map<string, VisualActor>) {}
-  private move(o: Phaser.GameObjects.Container,x:number,y:number,d=220){return new Promise<void>(r=>this.scene.tweens.add({targets:o,x,y,duration:d,ease:'Quad.easeInOut',onComplete:()=>r()}))}
-  private wait(ms:number){return new Promise<void>(r=>this.scene.time.delayedCall(ms,r))}
-  async play(c:ClashPair){
-    const p=this.players.get(c.player.actorId)!,e=this.enemies.get(c.enemy.actorId)!;
-    const dim=this.scene.add.rectangle(640,230,1280,390,0x020611,.5).setDepth(40);
-    p.root.setDepth(50);e.root.setDepth(50);
-    const pair=this.scene.add.text(640,82,`${c.player.actorId}  ↔  ${c.enemy.actorId}`,{fontFamily:'sans-serif',fontSize:'17px',fontStyle:'bold',color:'#fff',backgroundColor:'#050912dd',padding:{x:14,y:6}}).setOrigin(.5).setDepth(80);
-    await Promise.all([this.move(p.root,720,235,260),this.move(e.root,560,235,260)]);
-    const pc=this.scene.add.text(740,120,`${c.player.card.name}\n威力 ${c.playerPower}`,{fontFamily:'sans-serif',fontSize:'19px',fontStyle:'bold',align:'center',color:'#dffaff',backgroundColor:'#155268',padding:{x:18,y:10}}).setOrigin(.5).setDepth(70);
-    const ec=this.scene.add.text(540,120,`${c.enemy.enemySkill!.name}\n威力 ${c.enemyPower}`,{fontFamily:'sans-serif',fontSize:'19px',fontStyle:'bold',align:'center',color:'#fff0f2',backgroundColor:'#713142',padding:{x:18,y:10}}).setOrigin(.5).setDepth(70);
-    await this.wait(260);
-    await Promise.all([this.move(p.root,660,235,150),this.move(e.root,620,235,150)]);
-    const impact=this.scene.add.star(640,220,8,12,34,0xfff0a6,1).setDepth(90);
-    this.scene.cameras.main.shake(120,.009);this.scene.time.timeScale=.25;await this.wait(70);this.scene.time.timeScale=1;
-    pc.setAlpha(c.winner==='enemy'?.3:1);ec.setAlpha(c.winner==='player'?.3:1);
-    const result=this.scene.add.text(640,180,c.winner==='tie'?'平手｜雙方行動取消':c.winner==='player'?`${c.enemy.actorId} 行動取消`:`${c.player.actorId} 行動取消`,{fontFamily:'sans-serif',fontSize:'18px',fontStyle:'bold',color:'#fff5b8',backgroundColor:'#050912ee',padding:{x:16,y:7}}).setOrigin(.5).setDepth(90);
-    await this.wait(300);impact.destroy();
-    if(c.winner!=='tie'){
-      const winner=c.winner==='player'?p:e,loser=c.winner==='player'?e:p;
-      const follow=this.scene.add.text(640,265,'勝方追擊',{fontFamily:'sans-serif',fontSize:'16px',fontStyle:'bold',color:'#ffe38c'}).setOrigin(.5).setDepth(90);
-      await this.move(winner.root,loser.root.x+(c.winner==='player'?55:-55),loser.root.y,180);
-      const hit=this.scene.add.star(loser.root.x,loser.root.y,6,8,27,0xffffff,1).setDepth(90);this.scene.cameras.main.shake(100,.007);await this.wait(190);hit.destroy();follow.destroy();
+  constructor(
+    private scene: Phaser.Scene,
+    private players: Map<string, VisualActor>,
+    private enemies: Map<string, VisualActor>,
+    private combatLayer: Phaser.GameObjects.Container,
+  ) {}
+
+  private move(target: Phaser.GameObjects.Container, x: number, y: number, duration = 220, ease = 'Quad.easeInOut') {
+    return new Promise<void>((resolve) => this.scene.tweens.add({ targets: target, x, y, duration, ease, onComplete: () => resolve() }));
+  }
+
+  private wait(ms: number) {
+    return new Promise<void>((resolve) => this.scene.time.delayedCall(ms, resolve));
+  }
+
+  private sound(key: string, volume: number) {
+    this.scene.sound.play(key, { volume });
+  }
+
+  private slash(x: number, y: number, flipX: boolean) {
+    const fx = this.scene.add.image(x, y, 'slash-fx').setDepth(100).setScale(.25).setFlipX(flipX).setAlpha(0); this.combatLayer.add(fx);
+    this.scene.tweens.add({ targets: fx, alpha: 1, scale: .72, angle: flipX ? -12 : 12, duration: 80, yoyo: true, hold: 55, onComplete: () => fx.destroy() });
+  }
+
+  private focusCamera(x: number, y: number, zoom = 1.14) {
+    this.scene.cameras.main.pan(x, y, 190, 'Sine.easeInOut');
+    this.scene.cameras.main.zoomTo(zoom, 190, 'Sine.easeInOut');
+  }
+
+  private resetCamera() {
+    this.scene.cameras.main.pan(640, 360, 250, 'Sine.easeInOut');
+    this.scene.cameras.main.zoomTo(1, 250, 'Sine.easeInOut');
+  }
+
+  private burst(x: number, y: number, color: number, count = 10) {
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count;
+      const shard = this.scene.add.rectangle(x, y, 18, 4, color, 1).setRotation(angle).setDepth(105); this.combatLayer.add(shard);
+      this.scene.tweens.add({ targets: shard, x: x + Math.cos(angle) * 75, y: y + Math.sin(angle) * 48, alpha: 0, scaleX: .25, duration: 260, ease: 'Quad.easeOut', onComplete: () => shard.destroy() });
     }
-    pc.destroy();ec.destroy();result.destroy();pair.destroy();
-    await Promise.all([this.move(p.root,p.x,p.y,240),this.move(e.root,e.x,e.y,240)]);
-    p.root.setDepth(0);e.root.setDepth(0);dim.destroy();
+  }
+
+  private cancelFx(actor: VisualActor) {
+    const ring = this.scene.add.ellipse(actor.root.x, actor.root.y, 58, 92, 0x82909c, .12).setStrokeStyle(4, 0xbcc8d0, .9).setDepth(96); this.combatLayer.add(ring);
+    this.scene.tweens.add({ targets: ring, scale: 1.65, alpha: 0, duration: 260, onComplete: () => ring.destroy() });
+    this.scene.tweens.add({ targets: actor.root, alpha: .25, duration: 65, yoyo: true, repeat: 2 });
+  }
+
+  private async weaponStagger(actor:VisualActor,direction:number){
+    const x=actor.root.x,y=actor.root.y-10;
+    const guard=this.scene.add.ellipse(x,y,54,82,0xffffff,.04).setStrokeStyle(3,0xd9edf2,.9).setDepth(98);this.combatLayer.add(guard);
+    this.scene.tweens.add({targets:guard,scaleX:1.45,scaleY:.72,alpha:0,duration:230,ease:'Cubic.easeOut',onComplete:()=>guard.destroy()});
+    for(let i=0;i<5;i++){
+      const shard=this.scene.add.rectangle(x,y-18+i*9,13,3,0xd9edf2,1).setRotation(-.7+i*.3).setDepth(102);this.combatLayer.add(shard);
+      this.scene.tweens.add({targets:shard,x:x+direction*(34+i*7),y:y-34+i*17,angle:direction*55,alpha:0,duration:260,onComplete:()=>shard.destroy()})
+    }
+    await Promise.all([
+      this.move(actor.root,actor.root.x+direction*24,actor.root.y,85,'Back.easeOut'),
+      new Promise<void>(resolve=>this.scene.tweens.add({targets:actor.root,angle:direction*7,duration:85,ease:'Back.easeOut',onComplete:()=>resolve()})),
+    ]);
+    await this.wait(150)
+  }
+
+  private async recoil(actor: VisualActor, direction: number) {
+    const start = actor.root.x;
+    await this.move(actor.root, start + direction * 34, actor.root.y, 75, 'Quad.easeOut');
+    await this.move(actor.root, start, actor.root.y, 130, 'Back.easeOut');
+  }
+
+  async play(clash: ClashPair, holdForRelay = false) {
+    const player = this.players.get(clash.player.actorId)!;
+    const enemy = this.enemies.get(clash.enemy.actorId)!;
+    const protectedActor = this.players.get(clash.enemy.enemySkill!.targetId);
+    const clashY = Phaser.Math.Clamp((player.root.y + enemy.root.y) / 2, 205, 345);
+    player.root.setDepth(55);
+    enemy.root.setDepth(55);
+    this.focusCamera((player.root.x + enemy.root.x) / 2, (player.root.y + enemy.root.y) / 2, 1.08);
+
+    if (clash.source === 'intercept' && protectedActor) {
+      const guardX = protectedActor.root.x - 105;
+      const guardY = protectedActor.root.y;
+      const interceptLabel = this.scene.add.text(guardX, guardY - 92, '掩護\n攔截', {
+        fontFamily: 'sans-serif', fontSize: '16px', fontStyle: 'bold', align: 'center', color: '#dffaff', backgroundColor: '#155268dd', padding: { x: 12, y: 6 },
+      }).setOrigin(.5).setDepth(85);
+      this.combatLayer.add(interceptLabel);
+      await this.move(player.root, guardX, guardY, 190, 'Back.easeOut');
+      this.burst(guardX, guardY + 12, 0x62ddff, 8);
+      this.scene.cameras.main.shake(80, .004);
+      await this.wait(170);
+      interceptLabel.destroy();
+    }
+
+    await Promise.all([
+      this.move(player.root, 720, clashY, clash.source === 'intercept' ? 210 : 280),
+      this.move(enemy.root, 560, clashY, 280),
+    ]);
+    this.focusCamera(640, clashY, 1.16);
+
+    const playerCard = this.scene.add.text(740, clashY - 112, `${clash.player.card.name}\n威力 ${clash.playerPower}`, {
+      fontFamily: 'sans-serif', fontSize: '19px', fontStyle: 'bold', align: 'center', color: '#dffaff', backgroundColor: '#155268', padding: { x: 18, y: 10 },
+    }).setOrigin(.5).setDepth(70).setAlpha(0).setScale(.86);
+    this.combatLayer.add(playerCard);
+    const enemyCard = this.scene.add.text(540, clashY - 112, `${clash.enemy.enemySkill!.name}\n威力 ${clash.enemyPower}`, {
+      fontFamily: 'sans-serif', fontSize: '19px', fontStyle: 'bold', align: 'center', color: '#fff0f2', backgroundColor: '#713142', padding: { x: 18, y: 10 },
+    }).setOrigin(.5).setDepth(70).setAlpha(0).setScale(.86);
+    this.combatLayer.add(enemyCard);
+
+    this.scene.tweens.add({ targets: [playerCard, enemyCard], alpha: 1, scale: 1, duration: 170, ease: 'Back.easeOut' });
+    await this.wait(420);
+    this.sound('sword-swish', .55);
+    await Promise.all([this.move(player.root, 656, clashY, 135, 'Cubic.easeIn'), this.move(enemy.root, 624, clashY, 135, 'Cubic.easeIn')]);
+    this.sound('sword-impact', .72);
+    this.slash(640, clashY - 13, false);
+    if (clash.winner === 'tie') this.slash(640, clashY - 13, true);
+    this.burst(640, clashY - 13, 0xffed9c, 12);
+    this.scene.cameras.main.shake(130, .011);
+    this.scene.time.timeScale = .35;
+    await this.wait(55);
+    this.scene.time.timeScale = 1;
+
+    // Skill cards are a reveal phase, not a persistent result HUD. Retire the
+    // same instances at impact so they cannot be read as a second card pair.
+    this.scene.tweens.add({ targets: [playerCard, enemyCard], alpha: 0, y: clashY - 126, duration: 110, ease: 'Quad.easeIn' });
+    await this.wait(120);
+    playerCard.destroy();
+    enemyCard.destroy();
+    const result = this.scene.add.text(640, clashY - 55, clash.winner === 'tie' ? '相殺' : '崩解', {
+      fontFamily: 'sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#fff5b8', backgroundColor: '#050912ee', padding: { x: 16, y: 7 },
+    }).setOrigin(.5).setDepth(90).setAlpha(0).setScale(.9);
+    this.combatLayer.add(result);
+    this.scene.tweens.add({ targets: result, alpha: 1, scale: 1, duration: 120, ease: 'Back.easeOut' });
+    await this.wait(clash.winner==='tie'?260:120);
+    result.destroy();
+    if (clash.winner !== 'tie') {
+      const playerWon = clash.winner === 'player';
+      const winner = playerWon ? player : enemy;
+      const loser = playerWon ? enemy : player;
+      const direction = playerWon ? -1 : 1;
+      await this.weaponStagger(loser,direction);
+      this.cancelFx(loser);
+      this.burst(loser.root.x, loser.root.y, 0xff4f70, 14);
+      const windupX = winner.root.x - direction * 45;
+      await this.move(winner.root, windupX, winner.root.y, 100, 'Quad.easeOut');
+      this.sound('sword-swish', .72);
+      await this.move(winner.root, loser.root.x - direction * 48, loser.root.y, 125, 'Cubic.easeIn');
+      this.slash(loser.root.x, loser.root.y - 5, !playerWon);
+      this.burst(loser.root.x, loser.root.y - 5, playerWon ? 0x67e8ff : 0xff6b78, 16);
+      this.sound('sword-impact', .9);
+      this.scene.cameras.main.shake(170, .014);
+      await this.recoil(loser, direction);
+      loser.root.setAngle(0);
+      await this.wait(90);
+    } else {
+      this.burst(640, clashY - 13, 0xffffff, 18);
+      await Promise.all([
+        this.move(player.root, player.root.x + 28, player.root.y, 80, 'Back.easeOut'),
+        this.move(enemy.root, enemy.root.x - 28, enemy.root.y, 80, 'Back.easeOut'),
+      ]);
+      if (holdForRelay) return;
+    }
+
+    await Promise.all([this.move(player.root, player.x, player.y, 260), this.move(enemy.root, enemy.x, enemy.y, 260)]);
+    this.resetCamera();
+    player.root.setDepth(0); enemy.root.setDepth(0);
+  }
+
+  async release(clash: ClashPair) {
+    const player=this.players.get(clash.player.actorId)!;
+    const enemy=this.enemies.get(clash.enemy.actorId)!;
+    await Promise.all([this.move(player.root,player.x,player.y,230,'Quad.easeOut'),this.move(enemy.root,enemy.x,enemy.y,230,'Quad.easeOut')]);
+    this.resetCamera();player.root.setDepth(0);enemy.root.setDepth(0)
   }
 }

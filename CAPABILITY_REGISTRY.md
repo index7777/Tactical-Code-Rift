@@ -17,8 +17,8 @@ GENERATED_BUILD_VENDOR_ROOTS = dist, node_modules
 
 | Capability | Provider | Policy | Status | Evidence |
 |---|---|---|---|---|
-| semantic_navigation | Serena | AUTO_SAFE | PENDING | 已有 authoritative source；待以 `generatePrototypeRoute` 作 named-symbol smoke test |
-| dependency_graph | Graphify | AUTO_SAFE | PENDING | 已有 source dependency；待建立並查詢 dependency 與 affected/blast radius |
+| semantic_navigation | Serena 1.7.0 | AUTO_SAFE | READY | `Tactical-Code-Rift` 已激活；TypeScript LSP ready。`BootScene`、`resolveBattleBeats`、`applyPlannedInitiative` 命名符號及引用查詢成功；`BootScene.ts` diagnostics 無 error/warning。 |
+| dependency_graph | Graphify CLI | AUTO_SAFE | READY_WITH_WARNING | 權威範圍限定 `src`；`graphify extract src --code-only --no-cluster --out .` 建立 112 nodes／279 edges。dependency 與 `affected resolveBattleBeats` 查詢成功。`BootScene.ts` 高度單行壓縮造成 AST partial-extraction warning，待格式化／拆分。 |
 | exact_search | rg / native | AUTO_SAFE | READY | 精確專案文字查詢成功 |
 | build_verification | project-native | AUTO_SAFE | READY | Canonical command: `npm run build` |
 | test_verification | project-native | AUTO_SAFE | READY | Canonical command: `npm run test`; ATB、input、route tests |
@@ -27,7 +27,7 @@ GENERATED_BUILD_VENDOR_ROOTS = dist, node_modules
 
 | Capability | Provider | Policy | Status |
 |---|---|---|---|
-| asset_generation_local | ComfyUI / equivalent | ON_DEMAND | NOT_INSTALLED |
+| asset_generation_local | deterministic Python/Pillow generator | ON_DEMAND | READY_FOR_PROTOTYPE_FX |
 | sprite_cleanup | Pixelorama / equivalent | ON_DEMAND | NOT_INSTALLED |
 | asset_dedup | imagededup / equivalent | ON_DEMAND | NOT_INSTALLED |
 | live_postgresql | project-local PostgreSQL/container | ON_DEMAND | NOT_APPLICABLE |
@@ -57,6 +57,7 @@ Runtime evidence:
 - `assets/ASSET_PROVENANCE.md` 記錄展示版角色、敵人、戰場、FX 與音效的來源與 CC0 授權。
 - 核准 runtime 檔位於 `public/assets/battle/`；原始下載與解壓候選保留於 `assets/candidates/`。
 - 本次未使用 Canva、生成式圖片、Emoji 美術或電子合成音效，亦未安裝額外資產工具。
+- `tools/generate_yokai_fx.py` 已可重現產出 noise 與 8-frame 煙霧 flipbook；GLSL 原型與跨引擎參數規格已建立。此能力僅代表試作 FX ready，不代表正式角色／場景資產完成。
 
 ## Readiness
 
@@ -64,7 +65,7 @@ Runtime evidence:
 PROJECT_TOOLING_READY = PARTIAL
 ```
 
-原因：Web 技術棧、source、build 與 test surface 已建立；平台封裝與 Serena／Graphify source smoke test 尚未執行。
+原因：Web 技術棧、source、build、test、Serena 與 Graphify smoke test 已建立；但 `BootScene` 圖譜抽取仍有單行壓縮警告，且平台封裝尚未執行。
 
 ## Resolution Rules
 

@@ -1,2 +1,70 @@
-﻿import type {ActionNode,BattleBeat,ClashPair,PlayerCommand} from './BattleTypes';
-export function resolveBattleBeats(timeline:ActionNode[],commands:Map<string,PlayerCommand|null>):BattleBeat[]{const usedEnemy=new Set<string>(),pairedPlayer=new Set<string>();const clashes:ClashPair[]=[];for(const command of [...commands.values()].filter((x):x is PlayerCommand=>Boolean(x))){if(!command.targetNodeId)continue;const enemy=timeline.find(n=>n.id===command.targetNodeId&&n.team==='enemy');if(!enemy?.enemySkill||usedEnemy.has(enemy.id))continue;const playerNode=timeline.find(n=>n.id===command.nodeId)!;const direct=enemy.enemySkill.targetId===command.actorId;const intercept=!direct&&playerNode.speed>enemy.speed;if(!direct&&!intercept)continue;const pp=command.card.clashPower,ep=enemy.enemySkill.clashPower;clashes.push({player:command,enemy,source:direct?'direct':'intercept',playerPower:pp,enemyPower:ep,winner:pp===ep?'tie':pp>ep?'player':'enemy'});usedEnemy.add(enemy.id);pairedPlayer.add(command.nodeId)}const beats:BattleBeat[]=[];for(const node of timeline){if(node.team==='player'){const cmd=commands.get(node.id);if(cmd===null)beats.push({kind:'skip',order:node.order,actorId:node.actorId});else if(cmd&&!pairedPlayer.has(node.id))beats.push({kind:cmd.card.intent==='support'||cmd.card.intent==='defense'?'support':'player-one-sided',order:node.order,command:cmd})}else if(!usedEnemy.has(node.id))beats.push({kind:'enemy-one-sided',order:node.order,enemy:node});const clash=clashes.find(c=>c.enemy.id===node.id||c.player.nodeId===node.id);if(clash&&!beats.some(b=>b.kind==='clash'&&b.clash===clash))beats.push({kind:'clash',order:Math.min(node.order,timeline.find(n=>n.id===clash.player.nodeId)!.order),clash})}return beats.sort((a,b)=>a.order-b.order)}
+import type { ActionNode, BattleBeat, ClashPair, PlayerCommand } from './BattleTypes';
+
+const isHostile = (command: PlayerCommand) => command.card.intent === 'attack' || command.card.intent === 'disruption';
+
+export function resolveBattleBeats(timeline: ActionNode[], commands: Map<string, PlayerCommand | null>): BattleBeat[] {
+  const playerNodes = new Map(timeline.filter((node) => node.team === 'player').map((node) => [node.id, node]));
+  const activeCommands = [...commands.values()].filter((command): command is PlayerCommand => Boolean(command));
+  const usedPlayers = new Set<string>();
+  const usedEnemies = new Set<string>();
+  const clashes: ClashPair[] = [];
+
+  // Pair per enemy, not per command. The original target gets first right to a
+  // direct clash; only then may a faster ally redirect or cover that attack.
+  for (const enemy of timeline.filter((node) => node.team === 'enemy')) {
+    if (!enemy.enemySkill || enemy.enemySkill.unclashable) continue;
+    const incomingTarget = enemy.enemySkill.targetId;
+    const available = activeCommands.filter((command) => !usedPlayers.has(command.nodeId));
+
+    const direct = available.find((command) =>
+      command.actorId === incomingTarget &&
+      ((isHostile(command) && command.targetNodeId === enemy.id) ||
+        (command.card.intent === 'defense' && command.targetActorId === incomingTarget)),
+    );
+
+    const cover = available
+      .filter((command) => {
+        const player = playerNodes.get(command.nodeId);
+        if (!player || (player.initiative ?? player.speed) <= (enemy.initiative ?? enemy.speed)) return false;
+        const attacksEnemy = isHostile(command) && command.targetNodeId === enemy.id;
+        const protectsTarget = command.card.intent === 'defense' && command.targetActorId === incomingTarget;
+        return attacksEnemy || protectsTarget;
+      })
+      .sort((a, b) => (playerNodes.get(b.nodeId)!.initiative ?? playerNodes.get(b.nodeId)!.speed) - (playerNodes.get(a.nodeId)!.initiative ?? playerNodes.get(a.nodeId)!.speed))[0];
+
+    const command = direct ?? cover;
+    if (!command) continue;
+    const playerPower = command.card.clashPower;
+    const enemyPower = enemy.enemySkill.clashPower;
+    clashes.push({
+      player: command,
+      enemy,
+      source: direct ? 'direct' : 'intercept',
+      playerPower,
+      enemyPower,
+      winner: playerPower === enemyPower ? 'tie' : playerPower > enemyPower ? 'player' : 'enemy',
+    });
+    usedPlayers.add(command.nodeId);
+    usedEnemies.add(enemy.id);
+  }
+
+  const beats: BattleBeat[] = [];
+  for (const node of timeline) {
+    if (node.team === 'player') {
+      const command = commands.get(node.id);
+      if (command === null) beats.push({ kind: 'skip', order: node.order, actorId: node.actorId });
+      else if (command && !usedPlayers.has(node.id)) beats.push({
+        kind: command.card.intent === 'support' || command.card.intent === 'defense' ? 'support' : 'player-one-sided',
+        order: node.order,
+        command,
+      });
+    } else if (!usedEnemies.has(node.id)) {
+      beats.push({ kind: 'enemy-one-sided', order: node.order, enemy: node });
+    }
+    const clash = clashes.find((candidate) => candidate.enemy.id === node.id || candidate.player.nodeId === node.id);
+    if (clash && !beats.some((beat) => beat.kind === 'clash' && beat.clash === clash)) {
+      beats.push({ kind: 'clash', order: Math.min(node.order, playerNodes.get(clash.player.nodeId)!.order), clash });
+    }
+  }
+  return beats.sort((a, b) => a.order - b.order);
+}

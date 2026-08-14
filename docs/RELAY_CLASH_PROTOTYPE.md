@@ -13,3 +13,6 @@
 ## 玩法來源定位
 
 本原型的多角色行動編排、攻防卡交鋒與依序結算，主要延伸《Limbus Company》及《Library of Ruina》的高層玩法語彙；本作再加入脈衝時序、共享 AP、三槽連攜與陣型推進。完整邊界見 `GAMEPLAY_INSPIRATIONS.md`。
+# 歷史原型（非現行）
+
+> 本文件保留早期共享 AP 原型脈絡。現行 Demo 不使用共享 AP，請以 `CURRENT_COMBAT_SPEC.md` 為準。

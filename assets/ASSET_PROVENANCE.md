@@ -21,3 +21,15 @@ All assets listed below are approved for the current attack showcase runtime. Ca
 - Attribution is not required by CC0, but this file is retained for auditability and release credits.
 - The current files are approved for the prototype runtime. Any replacement or derivative must receive its own provenance entry.
 - Player and enemy runtime characters now come from the same Slash Knight asset set; the older `enemy-idle.png` and `enemy-attack.png` remain only as unused legacy files.
+
+## Yokai Railway candidate review
+
+| Candidate | Author | License | Source | Decision |
+|---|---|---|---|---|
+| `public/assets/battle/samurai.png` | sebshady | CC0 1.0 | https://opengameart.org/content/samurai-sprites | Approved for gameplay prototype only. The 3/4-view frames are knowingly used as temporary stand-ins. |
+| `public/assets/battle/kamaitachi.png` | Pixel Archer | CC0 1.0 | https://opengameart.org/content/kamaitachi | Approved for gameplay prototype only. Static art is animated through runtime movement and FX. |
+| `public/assets/battle/generated/yokai-noise.png`, `intent-smoke-sheet.png` | Project-generated | Project-owned procedural output | `tools/generate_yokai_fx.py` | Deterministic prototype noise and 8-frame smoke flipbook; safe to regenerate and distribute with the project. |
+
+- Pimen's free VFX samples permit commercial use and modification but prohibit redistribution as standalone assets. They were reviewed but not downloaded or approved in this pass.
+- The CC0 Kamaitachi image on OpenGameArt is a very small static sprite and was not approved for runtime animation.
+- No Japanese train pack was copied into runtime because the free candidates found did not yet match the battle perspective and pixel scale.

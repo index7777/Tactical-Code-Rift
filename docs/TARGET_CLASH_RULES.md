@@ -17,3 +17,6 @@
 ## 玩法來源定位
 
 指定目標、互相交鋒、攔截與攻防意圖的設計，主要延伸《Limbus Company》及《Library of Ruina》的戰術交鋒方向；前排阻擋、同目標分組與 Pulse／AP 整合屬本作延伸。完整邊界見 `GAMEPLAY_INSPIRATIONS.md`。
+# 歷史規格（非現行）
+
+> 本文件保留早期 AP／連攻實驗。現行 Demo 以 `CURRENT_COMBAT_SPEC.md` 為準，不使用共享 AP。

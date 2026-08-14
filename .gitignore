@@ -1,5 +1,10 @@
 node_modules/
 dist/
+graphify-out/
+.serena/
+artifacts/
+assets/candidates/downloads/
+assets/candidates/extracted/
 *.local
 *.tsbuildinfo
 .DS_Store
