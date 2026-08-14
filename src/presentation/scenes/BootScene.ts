@@ -1,17 +1,17 @@
 import Phaser from'phaser';import{createTeamDeckState,refillHand,commitPlayedCards,type BattleCard,type TeamDeckState}from'../../core/cards/BattleCards';import{applyPlannedInitiative,buildRoundTimeline}from'../../core/battle/RoundPlanner';import{resolveBattleBeats}from'../../core/battle/ClashResolver';import{dealEnemySkills}from'../../core/battle/EnemySkills';import type{ActionNode,Fighter,PlayerCommand}from'../../core/battle/BattleTypes';import{standbyPosition}from'../battle/BattleLayout';import{ClashPresenter,type VisualActor}from'../battle/ClashPresenter';import{ActionPresenter}from'../battle/ActionPresenter';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hp:number;shield:number;balance:number;exposed:boolean;broken:boolean;label:Phaser.GameObjects.Text;hpFill:Phaser.GameObjects.Rectangle;hpText:Phaser.GameObjects.Text;shieldMarks:Phaser.GameObjects.Rectangle[];balanceMarks:Phaser.GameObjects.Rectangle[];state:Phaser.GameObjects.Text}
-export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;
+export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
 private visibleHandCount=5;
 private currentPlanner(){return applyPlannedInitiative(this.timeline,this.commands).find(n=>n.team==='player'&&!this.commands.has(n.id))}
 private toolKey?:Phaser.Input.Keyboard.Key;private toolsInitialized=false;
 update(){if(!this.toolKey)this.toolKey=this.input.keyboard?.addKey('T');if(!this.toolsInitialized){this.toolsInitialized=true;this.setDevTools(false)}if(this.toolKey&&Phaser.Input.Keyboard.JustDown(this.toolKey))this.setDevTools(!this.toolsVisible)}
 private setDevTools(visible:boolean){this.toolsVisible=visible;const labels=new Set(['重新開始','P−','P+','E−','E+']);for(const item of this.hudLayer?.list??[]){if(item instanceof Phaser.GameObjects.Text){if(item.text==='戰術編碼：裂痕')item.setText('妖異鐵道｜殺生線試作');if(item.text==='FOCUSED CLASH // SHARED DECK')item.setText('讀取殺意・截斷因果・繼刀崩勢');if(labels.has(item.text))item.setVisible(visible)}}this.phase?.setText(visible?'開發工具｜T 收起':this.phase.text.replace('開發工具｜T 收起',''))}
-preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('slash-fx','assets/battle/slash-fx.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/battle-music.ogg');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.spritesheet('hero','assets/battle/samurai.png',{frameWidth:48,frameHeight:48});this.load.spritesheet('enemy','assets/battle/enemy-knight.png',{frameWidth:64,frameHeight:64});this.load.image('yokai','assets/battle/kamaitachi.png')}
+preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('slash-fx','assets/battle/slash-fx.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.spritesheet('hero','assets/battle/samurai.png',{frameWidth:48,frameHeight:48});this.load.spritesheet('enemy','assets/battle/enemy-knight.png',{frameWidth:64,frameHeight:64});this.load.image('yokai','assets/battle/kamaitachi.png')}
 create(){
     if(!this.anims.exists('hero-idle'))this.anims.create({key:'hero-idle',frames:this.anims.generateFrameNumbers('hero',{start:0,end:3}),frameRate:5,repeat:-1});
     if(!this.anims.exists('hero-ready'))this.anims.create({key:'hero-ready',frames:[{key:'hero',frame:4}]});
     if(!this.anims.exists('enemy-idle'))this.anims.create({key:'enemy-idle',frames:this.anims.generateFrameNumbers('enemy',{start:0,end:3}),frameRate:5,repeat:-1});
-    if(!this.sound.get('battle-music'))this.sound.play('battle-music',{loop:true,volume:.24});
+    this.startBattleMusic();
     this.world=this.add.container();
     this.hudLayer=this.add.container().setDepth(30);
     this.handLayer=this.add.container().setDepth(20);
@@ -31,6 +31,26 @@ create(){
     this.input.keyboard?.on('keydown-S',()=>this.scene.restart({pc:this.pc,ec:Math.min(4,this.ec+1)}));
     this.rebuild()
   }
+private startBattleMusic(){
+  this.battleMusic=this.sound.get('battle-music')??this.sound.add('battle-music',{loop:true,volume:0});
+  if(!this.battleMusic.isPlaying)this.battleMusic.play({loop:true,volume:0});
+  this.fadeBattleMusic(.3,1200);
+  this.game.events.off(Phaser.Core.Events.BLUR,this.onGameBlur,this);
+  this.game.events.off(Phaser.Core.Events.FOCUS,this.onGameFocus,this);
+  this.game.events.on(Phaser.Core.Events.BLUR,this.onGameBlur,this);
+  this.game.events.on(Phaser.Core.Events.FOCUS,this.onGameFocus,this);
+  this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{
+    this.game.events.off(Phaser.Core.Events.BLUR,this.onGameBlur,this);
+    this.game.events.off(Phaser.Core.Events.FOCUS,this.onGameFocus,this);
+  });
+}
+private onGameBlur(){this.fadeBattleMusic(0,500)}
+private onGameFocus(){this.fadeBattleMusic(.3,700)}
+private fadeBattleMusic(volume:number,duration:number){
+  if(!this.battleMusic)return;
+  this.tweens.killTweensOf(this.battleMusic);
+  this.tweens.add({targets:this.battleMusic,volume,duration,ease:'Sine.easeInOut'});
+}
 private makeBackdrop(){const items=[this.add.tileSprite(640,290,1280,520,'bg-sky').setTint(0x273342),this.add.tileSprite(640,305,1280,520,'bg-mountains-1').setTint(0x5a4858).setAlpha(.72),this.add.tileSprite(640,320,1280,520,'bg-mountains-2').setTint(0x25313b).setAlpha(.82),this.add.tileSprite(640,340,1280,520,'bg-trees').setTint(0x15191e)];items.forEach(x=>this.world.add(x));const carriage=this.add.container();carriage.add(this.add.rectangle(640,126,1280,24,0x120d11,.96));carriage.add(this.add.rectangle(640,520,1280,28,0x120d11,.97));for(let x=70;x<1280;x+=190){carriage.add(this.add.rectangle(x,323,14,380,0x1e1418,.95));carriage.add(this.add.rectangle(x+94,139,124,8,0x6e4036,.75))}carriage.add(this.add.rectangle(640,505,1280,5,0x8b4b3f,.65));this.world.add(carriage);this.world.add(this.add.rectangle(640,630,1280,180,0x07101b,.98))}
 private hud(){
     this.phase=this.add.text(22,9,'',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#cbe9ee'}).setVisible(false);
