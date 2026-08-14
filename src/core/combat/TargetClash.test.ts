@@ -1,0 +1,23 @@
+import { describe, expect, it } from 'vitest';
+import { approachDuration, applyFrontlineBlockers, buildCombatBeats, buildEngagements, groupEngagementsByTarget, isMutualAttack, oneSidedPushDistance, type CombatIntent } from './TargetClash';
+const atk=(actorId:string,team:'player'|'enemy',targetId:string,power=3):CombatIntent=>({actorId,team,targetId,type:'ATK',power});
+const def=(actorId:string,team:'player'|'enemy',power=3):CombatIntent=>({actorId,team,type:'DEF',power});
+describe('target-driven engagements',()=>{
+ it('sends three enemies toward three different selected targets',()=>{const e=buildEngagements([], [atk('E-A','enemy','P-A'),atk('E-B','enemy','P-B'),atk('E-C','enemy','P-C')]);expect(e.map(x=>x.attacker.targetId)).toEqual(['P-A','P-B','P-C'])});
+ it('keeps repeated targeting on the same target',()=>{const e=buildEngagements([], [atk('E-A','enemy','P-A'),atk('E-B','enemy','P-A'),atk('E-C','enemy','P-A')]);expect(e.every(x=>x.attacker.targetId==='P-A')).toBe(true)});
+ it('lets B intercept enemy A attacking ally A',()=>{const e=buildEngagements([atk('P-B','player','E-A',4)],[atk('E-A','enemy','P-A',3)]);expect(e[0]).toMatchObject({kind:'intercept',protectedId:'P-A',responder:{actorId:'P-B'}})});
+ it('makes defense self-only and never intercept another target',()=>{const e=buildEngagements([def('P-B','player',9)],[atk('E-A','enemy','P-A',3)]);expect(e[0]?.kind).toBe('one_sided')});
+ it('uses stationary self defense when the defender is the target',()=>{const e=buildEngagements([def('P-A','player',4)],[atk('E-A','enemy','P-A',3)]);expect(e[0]?.kind).toBe('self_defense')});
+ it('serializes multiple attackers assigned to the same enemy target',()=>{const e=buildEngagements([atk('P-A','player','E-A'),atk('P-B','player','E-A'),atk('P-C','player','E-A')],[]);const groups=groupEngagementsByTarget(e);expect(groups).toHaveLength(1);expect(groups[0]).toHaveLength(3)});
+ it('keeps different targets in separate parallel groups',()=>{const e=buildEngagements([atk('P-A','player','E-A'),atk('P-B','player','E-B')],[]);expect(groupEngagementsByTarget(e)).toHaveLength(2)});
+ it('redirects an attack on A to B when B stands in front of A',()=>{const intents=applyFrontlineBlockers([atk('E-A','enemy','P-A')],[{actorId:'P-A',x:1000,y:230},{actorId:'P-B',x:700,y:230}]);expect(intents[0]?.targetId).toBe('P-B')});
+ it('does not redirect when B stands behind A',()=>{const intents=applyFrontlineBlockers([atk('E-A','enemy','P-A')],[{actorId:'P-A',x:700,y:230},{actorId:'P-B',x:1000,y:230}]);expect(intents[0]?.targetId).toBe('P-A')});
+ it('does not redirect through a different horizontal lane',()=>{const intents=applyFrontlineBlockers([atk('E-A','enemy','P-A')],[{actorId:'P-A',x:1000,y:230},{actorId:'P-B',x:700,y:335}]);expect(intents[0]?.targetId).toBe('P-A')});
+ it('lets all three enemies attack the only player without blocking teammates',()=>{const enemies=[atk('E-A','enemy','P-A'),atk('E-B','enemy','P-A'),atk('E-C','enemy','P-A')];const resolved=applyFrontlineBlockers(enemies,[{actorId:'P-A',x:1000,y:230}]);const engagements=buildEngagements([],resolved);expect(resolved.map(intent=>intent.targetId)).toEqual(['P-A','P-A','P-A']);expect(engagements).toHaveLength(3);expect(groupEngagementsByTarget(engagements)).toHaveLength(1)});
+ it('keeps three slots in strict player and enemy order',()=>{const players=[atk('P-A','player','E-C'),atk('P-B','player','E-A'),atk('P-C','player','E-B')];const enemies=[atk('E-A','enemy','P-B'),atk('E-B','enemy','P-C'),atk('E-C','enemy','P-A')];const beats=buildCombatBeats(players,enemies);expect(beats.map(beat=>[beat.player?.actorId,beat.enemy?.actorId])).toEqual([['P-A','E-A'],['P-B','E-B'],['P-C','E-C']])});
+ it('pushes the target backward instead of spreading allied attackers',()=>{expect(oneSidedPushDistance('player')).toBe(-110);expect(oneSidedPushDistance('enemy')).toBe(110)});
+ it('recognizes B versus enemy B as the same mutual clash as A versus enemy A',()=>{expect(isMutualAttack(atk('P-B','player','E-B'),atk('E-B','enemy','P-B'))).toBe(true)});
+ it('recognizes C versus enemy C as a mutual clash',()=>{expect(isMutualAttack(atk('P-C','player','E-C'),atk('E-C','enemy','P-C'))).toBe(true)});
+ it('keeps a one-way pursuit out of mutual clash',()=>{expect(isMutualAttack(atk('P-B','player','E-A'),atk('E-B','enemy','P-B'))).toBe(false)});
+ it('caps long one-sided approach time so actors do not run across the screen forever',()=>{expect(approachDuration(2000)).toBe(520);expect(approachDuration(100)).toBe(260)});
+});

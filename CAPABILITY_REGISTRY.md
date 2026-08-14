@@ -3,25 +3,25 @@
 ## Current Project State
 
 ```text
-PROJECT_MODE = GREENFIELD_PROJECT
-REPOSITORY_STATE = DESIGN_ONLY_NOT_GIT
-DETECTED_STACK = NOT_SELECTED
-AUTHORITATIVE_SOURCE_ROOTS = NONE
-TEST_ROOTS = NONE
-GENERATED_BUILD_VENDOR_ROOTS = NONE_DETECTED
+PROJECT_MODE = GREENFIELD_PROJECT_WITH_SCAFFOLD
+REPOSITORY_STATE = GIT_WORKTREE
+DETECTED_STACK = TYPESCRIPT_PHASER_VITE
+AUTHORITATIVE_SOURCE_ROOTS = src
+TEST_ROOTS = src/**/*.test.ts
+GENERATED_BUILD_VENDOR_ROOTS = dist, node_modules
 ```
 
-目前只有設計文件、Generic Asset Bootstrap 規格、一份 Manifest JSON Schema 與一張視覺參考圖；尚無產品原始碼、引擎專案、依賴、建置或測試命令。
+已建立 HTML-first 的 TypeScript／Phaser／Vite 產品骨架。Capacitor 與 Electron/Steamworks 僅完成架構決策，尚未安裝平台殼。
 
 ## Core Capabilities
 
 | Capability | Provider | Policy | Status | Evidence |
 |---|---|---|---|---|
-| semantic_navigation | Serena | AUTO_SAFE | NOT_APPLICABLE | CLI 可用；沒有 authoritative source 或 named symbol 可作 smoke test |
-| dependency_graph | Graphify | AUTO_SAFE | NOT_APPLICABLE | CLI 可用；沒有程式依賴圖可建立或查詢 blast radius |
+| semantic_navigation | Serena | AUTO_SAFE | PENDING | 已有 authoritative source；待以 `generatePrototypeRoute` 作 named-symbol smoke test |
+| dependency_graph | Graphify | AUTO_SAFE | PENDING | 已有 source dependency；待建立並查詢 dependency 與 affected/blast radius |
 | exact_search | rg / native | AUTO_SAFE | READY | 精確專案文字查詢成功 |
-| build_verification | project-native | AUTO_SAFE | NOT_APPLICABLE | 無 canonical build command |
-| test_verification | project-native | AUTO_SAFE | NOT_APPLICABLE | 無 canonical test command |
+| build_verification | project-native | AUTO_SAFE | READY | Canonical command: `npm run build` |
+| test_verification | project-native | AUTO_SAFE | READY | Canonical command: `npm run test`; ATB、input、route tests |
 
 ## Optional Capabilities
 
@@ -40,8 +40,8 @@ GENERATED_BUILD_VENDOR_ROOTS = NONE_DETECTED
 
 ```text
 ASSET_PIPELINE_APPLICABLE = YES
-ASSET_PIPELINE_SPEC_READY = NO
-ASSET_PIPELINE_RUNTIME_READY = NO
+ASSET_PIPELINE_SPEC_READY = PARTIAL
+ASSET_PIPELINE_RUNTIME_READY = YES_FOR_COMBAT_SHOWCASE
 ```
 
 Specification evidence:
@@ -54,16 +54,17 @@ Specification evidence:
 
 Runtime evidence:
 
-- 目前沒有 Asset Generation Task。
-- 本次未安裝或設定 ComfyUI、Pixelorama、imagededup、Docker、模型或付費服務。
+- `assets/ASSET_PROVENANCE.md` 記錄展示版角色、敵人、戰場、FX 與音效的來源與 CC0 授權。
+- 核准 runtime 檔位於 `public/assets/battle/`；原始下載與解壓候選保留於 `assets/candidates/`。
+- 本次未使用 Canva、生成式圖片、Emoji 美術或電子合成音效，亦未安裝額外資產工具。
 
 ## Readiness
 
 ```text
-PROJECT_TOOLING_READY = NO
+PROJECT_TOOLING_READY = PARTIAL
 ```
 
-原因：引擎／技術棧尚未選定，也沒有 authoritative source、build 或 test surface。Serena 與 Graphify 已安裝不等於完成 source-based smoke test。
+原因：Web 技術棧、source、build 與 test surface 已建立；平台封裝與 Serena／Graphify source smoke test 尚未執行。
 
 ## Resolution Rules
 
