@@ -3,8 +3,11 @@
 ## Task Start
 
 1. Read the current Task and `CAPABILITY_REGISTRY.md`.
-2. Determine only the capabilities required by that Task.
-3. Detect the actual engine, language, authoritative roots, and generated roots; do not infer them from design documents.
+2. Read `docs/README.md` and only the authoritative files it routes to for the current Task.
+3. Never use `docs/archive/` as current design input unless the Task explicitly asks for historical comparison.
+4. Append adopted recommendations, implementation batches, and verification results to `docs/PLANNING_LOG.md`.
+5. Determine only the capabilities required by that Task.
+6. Detect the actual engine, language, authoritative roots, and generated roots; do not infer them from design documents.
 
 ## Tooling Rules
 

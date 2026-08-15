@@ -1,6 +1,7 @@
 import Phaser from'phaser';import{createTeamDeckState,refillHand,commitPlayedCards,type BattleCard,type TeamDeckState}from'../../core/cards/BattleCards';import{applyPlannedInitiative,buildRoundTimeline}from'../../core/battle/RoundPlanner';import{resolveBattleBeats}from'../../core/battle/ClashResolver';import{dealEnemySkills}from'../../core/battle/EnemySkills';import type{ActionNode,Fighter,PlayerCommand}from'../../core/battle/BattleTypes';import{standbyPosition}from'../battle/BattleLayout';import{ClashPresenter,type VisualActor}from'../battle/ClashPresenter';import{ActionPresenter}from'../battle/ActionPresenter';
-interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hp:number;shield:number;balance:number;exposed:boolean;broken:boolean;label:Phaser.GameObjects.Text;hpFill:Phaser.GameObjects.Rectangle;hpText:Phaser.GameObjects.Text;shieldMarks:Phaser.GameObjects.Rectangle[];balanceMarks:Phaser.GameObjects.Rectangle[];state:Phaser.GameObjects.Text}
-export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
+import{FighterHudPresenter,type FighterHudView}from'../battle/FighterHudPresenter';import{IntentLayerController}from'../battle/IntentLayerController';
+interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hp:number;shield:number;balance:number;exposed:boolean;broken:boolean}
+export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
 private visibleHandCount=5;
 private currentPlanner(){return applyPlannedInitiative(this.timeline,this.commands).find(n=>n.team==='player'&&!this.commands.has(n.id))}
 private toolKey?:Phaser.Input.Keyboard.Key;private toolsInitialized=false;
@@ -18,6 +19,8 @@ create(){
     this.timelineLayer=this.add.container().setDepth(30);
     this.makeBackdrop();
     this.intentLayer=this.add.container();
+    this.intentController=new IntentLayerController(this.intentLayer);
+    this.fighterHud=new FighterHudPresenter(this);
     this.combatLayer=this.add.container();
     this.world.add([this.intentLayer,this.combatLayer]);
     const ui=this.cameras.add(0,0,1280,720);
@@ -74,16 +77,8 @@ private addActor(f:Fighter){
     const sprite=this.add.sprite(0,-8,f.team==='player'?'hero':'yokai').setScale(f.team==='player'?1.7:1.9).setFlipX(f.team==='enemy');
     if(f.team==='player')sprite.play('hero-idle');else this.tweens.add({targets:sprite,y:-16,duration:520,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
 
-    // Only combat-critical information travels with the actor. No panel.
-    const hud=this.add.container(0,51);
-    const label=this.add.text(-39,-7,f.id,{fontFamily:'monospace',fontSize:'9px',fontStyle:'bold',color:'#ffffff'}).setOrigin(0,.5);
-    const hpBack=this.add.rectangle(-18,-7,42,3,0x35151d,.9).setOrigin(0,.5);
-    const hpFill=this.add.rectangle(-18,-7,42,3,0xd63f59).setOrigin(0,.5);
-    const hpText=this.add.text(30,-7,'100',{fontFamily:'monospace',fontSize:'9px',fontStyle:'bold',color:'#ff8295'}).setOrigin(1,.5);
-    const shieldMarks=Array.from({length:4},(_,i)=>this.add.rectangle(-18+i*9,2,5,7,0x87e4ee,.95).setRotation(i%2?.1:-.1));
-    const balanceMarks=Array.from({length:5},(_,i)=>this.add.rectangle(-18+i*9,11,7,3,0xd9ad45,1));
-    const state=this.add.text(0,-121,'',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#fff',backgroundColor:'#8b2034',padding:{x:7,y:2}}).setOrigin(.5).setVisible(false);
-    hud.add([label,hpBack,hpFill,hpText,...shieldMarks,...balanceMarks,state]);
+    const hudView=this.fighterHud.create(f.id,f.team);
+    const hud=hudView.root;
 
     const hit=this.add.rectangle(0,0,120,166,0xffffff,.001).setInteractive({useHandCursor:true});
     hit.on('pointerdown',()=>this.target(f.id));
@@ -91,7 +86,7 @@ private addActor(f:Fighter){
     hit.on('pointerout',()=>{this.intentFocus=undefined;this.previewTargetId=undefined;this.renderEnemyIntents()});
     const root=this.add.container(p.x,p.y,[glow,sprite,hud,hit]).setData('actor',true);
     this.world.add(root);
-    const a={root,x:p.x,y:p.y,sprite,hud,hp:100,shield:20,balance:10,exposed:false,broken:false,label,hpFill,hpText,shieldMarks,balanceMarks,state};
+    const a={root,x:p.x,y:p.y,sprite,hud,hudView,hp:100,shield:20,balance:10,exposed:false,broken:false};
     (f.team==='player'?this.players:this.enemies).set(f.id,a);
     this.refreshActor(a)
   }
@@ -139,9 +134,9 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
     this.intentLayer.add([g,label])
   }
   private renderEnemyIntents(){
-    this.intentLayer.removeAll(true);
+    this.intentController.clear();
     if(this.busy)return;
-    this.intentLayer.setVisible(true);
+    if(!this.intentController.canRenderPlanning())this.intentController.beginPlanning();
     const visualCommands=new Map(this.commands);
     const previewPlanner=this.currentPlanner();
     if(this.previewTargetId&&this.selected&&previewPlanner&&(this.selected.intent==='attack'||this.selected.intent==='disruption')){
@@ -298,18 +293,11 @@ private nextRound(){
     this.timeline.sort((a,b)=>b.speed-a.speed||(a.team==='player'?-1:1)).forEach((node,index)=>node.order=index);
     this.planning=this.timeline.filter(n=>n.team==='player').sort((a,b)=>b.speed-a.speed);
     this.commands.clear();this.intentFocus=undefined;this.previewTargetId=undefined;this.planIndex=0;this.selected=undefined;
-    const handBefore=this.deck.hand.length;this.intentLayer.removeAll(true);this.renderEnemyIntents();this.deck=refillHand(this.deck,5);
+    const handBefore=this.deck.hand.length;this.intentController.beginPlanning();this.renderEnemyIntents();this.deck=refillHand(this.deck,5);
     const drawn=this.deck.hand.length-handBefore,finalStart=640-(this.deck.hand.length-1)*106/2;this.visibleHandCount=handBefore;this.renderHand();for(let i=0;i<drawn;i++)this.time.delayedCall(i*170,()=>this.animateCardTravel(245,finalStart+(handBefore+i)*106,0x286174,()=>{this.visibleHandCount++;this.renderHand()}));this.renderTimeline();this.focus()
   }
 private refreshActor(a:Actor){
-    a.hpFill.width=42*a.hp/100;
-    a.hpText.setText(String(Math.max(0,a.hp)));
-    const shieldCount=Math.min(4,Math.ceil(a.shield/5));
-    a.shieldMarks.forEach((mark,index)=>mark.setVisible(index<shieldCount));
-    const stanceCount=Math.min(5,Math.ceil(a.balance/2));
-    a.balanceMarks.forEach((mark,index)=>mark.setFillStyle(index<stanceCount?(a.balance<=3?0xff526b:0xd9ad45):0x30291c).setAlpha(index<stanceCount?1:.35));
-    const status=a.broken?'崩勢':a.exposed?'破綻':'';
-    a.state.setText(status).setBackgroundColor(a.broken?'#a11e36':'#6b2e55').setVisible(Boolean(status))
+    this.fighterHud.refresh(a.hudView,a)
   }
 private damage(a:Actor,n:number,balanceDamage=1){
     const shieldBefore=a.shield,blocked=Math.min(a.shield,n);
@@ -339,7 +327,7 @@ private relayAlly(team:'player'|'enemy',sourceId:string){
     return [...actors.keys()].find(id=>id!==sourceId&&!actors.get(id)!.broken)
   }
 private async resolve(){
-  this.busy=true;this.intentLayer.removeAll(true);this.intentLayer.setVisible(false);this.handLayer.setVisible(false);this.status.setText('');this.players.forEach(a=>{a.root.setAlpha(1);a.hud.setAlpha(1);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)});this.phase.setText('');
+  this.busy=true;this.intentController.beginExecution();this.handLayer.setVisible(false);this.status.setText('');this.players.forEach(a=>{a.root.setAlpha(1);a.hud.setAlpha(1);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)});this.phase.setText('');
   const planned=applyPlannedInitiative(this.timeline,this.commands),beats=resolveBattleBeats(planned,this.commands),presenter=new ClashPresenter(this,this.players,this.enemies,this.combatLayer),actions=new ActionPresenter(this,this.players,this.enemies,this.combatLayer);
   let pursuitTarget='';let pursuitCount=0;
   for(const beat of beats){
@@ -367,6 +355,6 @@ private async resolve(){
       else{const actor=this.players.get(actorId)!,target=this.enemies.get(targetId)!;if(actor.broken){await actions.cancel(actorId);continue}pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText(`${actorId} → ${targetId}${pursuitCount>1?`｜追擊 ${pursuitCount}`:''}${flank?'｜側襲':''}`);await actions.attack(actorId,targetId,beat.command.card,false,flank?'flank':'normal',!beat.command.card.assist);const balance=(beat.command.card.balanceDamage??1)+(pursuitCount>1?1:0)+(flank?2:0);const broke=this.damage(target,beat.command.card.damage??8,balance);if(flank){target.exposed=false;this.refreshActor(target)}if(broke)await actions.cancel(targetId,true);if(beat.command.card.assist)await this.relayAssist(actorId,targetId,actions)}
     }
   }
-  const played=[...this.commands.values()].filter((x):x is PlayerCommand=>Boolean(x)).map(x=>x.card);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();this.handLayer.setVisible(true);played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.status.setText('');this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.busy=false;
+  const played=[...this.commands.values()].filter((x):x is PlayerCommand=>Boolean(x)).map(x=>x.card);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();this.handLayer.setVisible(true);played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.status.setText('');this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();this.busy=false;
 }
 }
