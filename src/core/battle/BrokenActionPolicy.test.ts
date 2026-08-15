@@ -1,0 +1,2 @@
+import{describe,expect,it}from'vitest';import{brokenClashAction}from'./BrokenActionPolicy';
+describe('broken action cancellation',()=>{it('turns a pending clash into a one-sided hit by the actor who still has posture',()=>{expect(brokenClashAction(false,true)).toBe('player-one-sided');expect(brokenClashAction(true,false)).toBe('enemy-one-sided')});it('cancels both pending actions when both actors are broken',()=>{expect(brokenClashAction(true,true)).toBe('cancel-both')})});

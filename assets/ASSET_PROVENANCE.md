@@ -16,10 +16,11 @@ Project-authored journey prototype: `public/assets/journey/world01/train-token-t
 | `battle-music.ogg` | Chiptune Battle Music | pmiller | CC0 1.0 | https://opengameart.org/content/chiptune-battle-music |
 | `../music/world-01/zone1-train-bgm.mp3` | World 01 train-route BGM | User-provided project asset | Provenance/license pending; prototype runtime only | Supplied directly to the project on 2026-08-15 |
 | `../music/world-01/zone1-boss-bgm.mp3` | World 01 boss-battle BGM | User-provided project asset | Provenance/license pending; prototype runtime only | Supplied directly to the project on 2026-08-15 |
+| `heroine-sd-idle-v1.png`, `heroine-sd-ready-v1.png`, `heroine-sd-down-v1.png` | Original heroine SD side-view minimum pose set | Built-in ImageGen + project chroma cleanup／cell extraction scripts | Project-generated candidates; release approval pending | `assets/candidates/characters/heroine/` |
 
 ## Usage notes
 
-- No Canva or generative-image output is used.
+- No Canva output is used. The PA slot now intentionally uses one project-generated heroine candidate for browser scale/composite evaluation; it is not release-approved final art and does not establish provenance for the user's external style references.
 - No emoji is used as runtime art.
 - The selected sounds are recorded weapon swishes, not synthesized electronic UI sounds.
 - Attribution is not required by CC0, but this file is retained for auditability and release credits.

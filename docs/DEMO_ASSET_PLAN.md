@@ -59,7 +59,7 @@
 | 堅守 | 只對自己使用，原地承受攻擊 | 原地架勢弧、受力震動 | 1 組共用 FX |
 | 掩護 | 改寫一條指向隊友的殺生線 | 青白切入線、攔截火花 | 重用移動與交鋒 FX |
 | 接力 | 接在已成立的攻勢後補第二刀 | 交棒殘光、無縫穿入 | 重用攻擊 FX |
-| 整備 | 有成本地處理無效手牌 | 收牌／棄牌／補牌動畫 | 卡背＋紙張音效 |
+| 整備 | 消耗行動後手動選兩張未提交牌換掉 | 被選牌紅框與「棄」標、收牌／棄牌／補牌動畫 | 卡背＋紙張音效 |
 | 牽制 | 延後目標或削弱下一次意圖 | 線上減速脈衝、冷色束縛 | 1 組共用 FX |
 
 卡型規則限制：
@@ -198,7 +198,7 @@ Avoid: front view, three-quarter view, eight-direction sheet, busy accessories t
 
 ### P1／P2 延後項目
 
-- 四名玩家角色：每名預估 `idle / ready / strike / recoil / broken / down` 六姿勢，共 24 張 source pose；角色規則尚未定案，因此目前不生成。
+- 四名玩家角色：每名預估 `idle / ready / strike / recoil / broken / down` 六姿勢，共 24 張 source pose。依使用者最新決定，先解除女主角的 identity／idle 美術母稿試作；角色能力、專屬牌與其餘五姿勢仍等待透明母稿與縮圖驗收，不因先做美術而自行定義玩法。
 - 精英：優先沿用三種怪物其中一型，增加 1 個輪廓附件、1 個規則覆層及 1 個特殊 windup，不重做整套。
 - Boss：等 Boss 規則定案後獨立估算；不得先用大量階段動畫填補未完成設計。
 
@@ -218,6 +218,10 @@ Avoid: front view, three-quarter view, eight-direction sheet, busy accessories t
 
 補充畫風基準：`女主角sample.JPG` 只提供精緻二次元厚塗、乾淨臉部、柔亮髮絲、輪廓光及材質分離的參考；銀髮、螢光綠、近未來緊身服、畫面 UI 與原角色外觀全部不採用。`assets/candidates/concepts/heroine-style-costume-candidate-v1.png` 已驗證黑／朱紅和風鐵道女刀手的轉譯方向，但檔案是 24-bit RGB 且棋盤格已烘入，不具透明 alpha，只能當 identity／服裝概念，不可進 runtime。
 
+第一張側視母稿候選為 `assets/candidates/characters/heroine/heroine-idle-master-candidate-v1.png`。100 px 高縮圖仍能辨認高馬尾、短羽織、紅色內襯與刀，因此輪廓方向通過；但它仍是 24-bit RGB、沒有 alpha，腳部略重疊且刀鞘過寬，只能進入 cleanup／重製階段，不能延伸其他姿勢或接入遊戲。
+
+第二張 `heroine-idle-master-candidate-v2.png` 已修正雙腳、馬尾與刀鞘占幅，並以可重現的邊緣連通清理產出 461×948 RGBA。它只作 PA runtime composite candidate；通過 4V4／1V1 瀏覽器比例、halo、pivot 與畫風一致性檢查前，不得開始其他五姿勢。
+
 ## 共用 FX 素材庫
 
 P0 必須完成：殺生線、快斬、重斬、金屬交鋒、相殺、受擊、破招、崩勢、斷命。
@@ -234,7 +238,7 @@ P1 補充：掩護攔截、接力交棒、取消／瓦解、破甲、牽制、�
 | 堅守 | idle / recoil | 守方原地震動，敵方仍完成原攻擊路徑 |
 | 掩護 | strike / recoil | 敵人沿原意圖攻擊，在抵達前被守方切入攔截 |
 | 崩勢 | broken | 架勢碎片、長僵直、低頻鏡頭衝擊 |
-| 斷命 | down | 停止 idle、生命線斷裂、倒地或溶解 |
+| 斷命 | down | 停止 idle、生命線斷裂、短倒下／崩散後淡出；敵人不留屍體 |
 
 `dying` 是低生命常駐姿勢，不是另一套受擊動畫：降低重心、呼吸幅度變大或武器下垂即可。它只在生命跨過門檻時切換，不增加逐格長度。
 

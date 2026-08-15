@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { ClashPair } from '../../core/battle/BattleTypes';
 import{CombatResultFxPresenter}from'./CombatResultFxPresenter';
+import{playHeroinePose}from'./HeroinePose';
 
 export interface VisualActor {
   root: Phaser.GameObjects.Container;
@@ -130,6 +131,7 @@ export class ClashPresenter {
     this.scene.tweens.add({ targets: [playerCard, enemyCard], alpha: 1, scale: 1, duration: 170, ease: 'Back.easeOut' });
     await this.wait(420);
     this.sound('sword-swish', .55);
+    playHeroinePose(player.sprite,'strike');
     await Promise.all([this.move(player.root, clashX+16, clashY, 135, 'Cubic.easeIn'), this.move(enemy.root, clashX-16, clashY, 135, 'Cubic.easeIn')]);
     this.sound('sword-impact', .72);
     if(player.sprite)player.sprite.setAngle(0);
@@ -167,6 +169,7 @@ export class ClashPresenter {
       const windupX = winner.root.x - direction * 45;
       await this.move(winner.root, windupX, winner.root.y, 100, 'Quad.easeOut');
       this.sound('sword-swish', .72);
+      playHeroinePose(winner.sprite,'strike');
       await this.move(winner.root, loser.root.x - direction * 48, loser.root.y, 125, 'Cubic.easeIn');
       this.slash(loser.root.x, loser.root.y - 5, !playerWon);
       this.burst(loser.root.x, loser.root.y - 5, playerWon ? 0x67e8ff : 0xff6b78, 16);
@@ -200,6 +203,7 @@ export class ClashPresenter {
     }
 
     await Promise.all([this.move(player.root, player.x, player.y, 260), this.move(enemy.root, enemy.x, enemy.y, 260)]);
+    playHeroinePose(player.sprite,'idle');playHeroinePose(enemy.sprite,'idle');
     this.resetCamera();
     player.root.setDepth(0); enemy.root.setDepth(0);
   }

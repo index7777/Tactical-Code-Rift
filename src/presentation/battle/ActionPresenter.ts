@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { BattleCard } from '../../core/cards/BattleCards';
 import type { VisualActor } from './ClashPresenter';
+import{playHeroinePose}from'./HeroinePose';
 
 export class ActionPresenter {
   constructor(private scene: Phaser.Scene, private players: Map<string, VisualActor>, private enemies: Map<string, VisualActor>, private combatLayer: Phaser.GameObjects.Container) {}
@@ -22,6 +23,7 @@ export class ActionPresenter {
     await this.move(attacker.root, attacker.root.x - direction * 42, attacker.root.y, 100, 'Quad.easeOut');
     this.scene.sound.play('sword-swish', { volume: .7 });
     const contactX = mode === 'flank' ? target.root.x + direction * 62 : target.root.x - direction * 58;
+    playHeroinePose(attacker.sprite,'strike');
     await this.move(attacker.root, contactX, target.root.y, 150, 'Cubic.easeIn');
     if (mode === 'flank') badge.setText(`${card.name}\n側襲`);
     this.slash(target.root.x, target.root.y - 5, enemy);
@@ -43,6 +45,7 @@ export class ActionPresenter {
     }
     await this.wait(90); badge.destroy();
     if (returnToSlot) await this.move(attacker.root, attacker.x, attacker.y, 240);
+    playHeroinePose(attacker.sprite,'idle');if(!defeated)playHeroinePose(target.sprite,'idle');
     if(defeated)this.resetCamera()
   }
 
@@ -62,6 +65,7 @@ export class ActionPresenter {
     // The target keeps the first hit's recoil pose until this second blade lands.
     await this.wait(55);
     this.scene.sound.play('sword-swish', { volume: .78 });
+    playHeroinePose(ally.sprite,'strike');
     this.slash(target.root.x, target.root.y - 5, enemy);
     this.scene.sound.play('sword-impact', { volume: .9 });
     this.scene.cameras.main.shake(150, .013);
@@ -78,6 +82,7 @@ export class ActionPresenter {
     }
     await this.wait(80);
     await this.move(ally.root, ally.x, ally.y, 230, 'Quad.easeInOut');
+    playHeroinePose(source.sprite,'idle');playHeroinePose(ally.sprite,'idle');if(!defeated)playHeroinePose(target.sprite,'idle');
     source.root.setDepth(0); ally.root.setDepth(0); target.root.setDepth(0);
     this.resetCamera();
   }
@@ -89,7 +94,7 @@ export class ActionPresenter {
       this.move(pa.root,674,y+22,180,'Cubic.easeIn'),this.move(ea.root,606,y-22,180,'Cubic.easeIn'),
       this.move(ps.root,690,y-22,150,'Quad.easeOut'),this.move(es.root,590,y+22,150,'Quad.easeOut'),
     ]);
-    this.scene.sound.play('sword-swish',{volume:.85});this.slash(640,y-10,false);this.slash(640,y-10,true);
+    playHeroinePose(ps.sprite,'strike');playHeroinePose(pa.sprite,'strike');this.scene.sound.play('sword-swish',{volume:.85});this.slash(640,y-10,false);this.slash(640,y-10,true);
     this.scene.sound.play('sword-impact',{volume:1});this.scene.cameras.main.shake(190,.017);
     const enemyDefeated=onEnemyImpact?.()??false;
     const playerDefeated=onPlayerImpact?.()??false;
@@ -106,7 +111,7 @@ export class ActionPresenter {
       this.move(es.root,es.root.x-18,es.root.y+24,150,'Quad.easeIn'),
       new Promise<void>(resolve=>this.scene.tweens.add({targets:es.root,angle:-72,alpha:.5,duration:150,ease:'Quad.easeIn',onComplete:()=>resolve()})),
     ]).then(()=>undefined));else returns.push(this.move(es.root,es.x,es.y,230));
-    await Promise.all(returns);this.resetCamera();
+    await Promise.all(returns);if(!playerDefeated)playHeroinePose(ps.sprite,'idle');playHeroinePose(pa.sprite,'idle');this.resetCamera();
   }
 
   async cancel(actorId: string, enemy = false) {
