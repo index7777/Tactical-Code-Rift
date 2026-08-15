@@ -13,6 +13,7 @@ STATUS = AUTHORITATIVE_INDEX
 5. `FX_CROSS_ENGINE_SPEC.md`：現行 FX runtime 與未來移植參數。
 6. `GAMEPLAY_INSPIRATIONS.md`：參考作品與原創差異界線。
 7. `PLANNING_LOG.md`：每次建議、決策、批次範圍與結果的永久紀錄。
+8. `DEMO_ASSET_PLAN.md`：通用卡型、怪物、場景、FX 與低生成成本素材規劃。
 
 ## 支援性文件
 
@@ -32,4 +33,3 @@ STATUS = AUTHORITATIVE_INDEX
 2. 採用後同步修改相應權威規格；不可只存在聊天紀錄。
 3. 被取代的文件移入 `archive/YYYY-MM-說明/`，不得與現行文件並列。
 4. 程式、測試、瀏覽器畫面與文件衝突時，以程式及測試證據回報差異，再修正文檔，不可自行假定文件已完成。
-
