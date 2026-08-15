@@ -78,7 +78,7 @@ export class ClashPresenter {
     await this.move(actor.root, start, actor.root.y, 130, 'Back.easeOut');
   }
 
-  async play(clash: ClashPair, holdForRelay = false) {
+  async play(clash: ClashPair, holdForRelay = false, onFollowThrough?: () => boolean) {
     const player = this.players.get(clash.player.actorId)!;
     const enemy = this.enemies.get(clash.enemy.actorId)!;
     const protectedActor = this.players.get(clash.enemy.enemySkill!.targetId);
@@ -152,7 +152,7 @@ export class ClashPresenter {
     await this.wait(120);
     playerCard.destroy();
     enemyCard.destroy();
-    const result = this.scene.add.text(clashX, clashY - 55, clash.winner === 'tie' ? '相殺' : '崩解', {
+    const result = this.scene.add.text(clashX, clashY - 55, clash.winner === 'tie' ? '相殺' : '破招', {
       fontFamily: 'sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#fff5b8', backgroundColor: '#050912ee', padding: { x: 16, y: 7 },
     }).setOrigin(.5).setDepth(90).setAlpha(0).setScale(.9);
     this.combatLayer.add(result);
@@ -175,6 +175,15 @@ export class ClashPresenter {
       this.burst(loser.root.x, loser.root.y - 5, playerWon ? 0x67e8ff : 0xff6b78, 16);
       this.sound('sword-impact', .9);
       this.scene.cameras.main.shake(170, .014);
+      const defeated=onFollowThrough?.()??false;
+      if(defeated&&!holdForRelay){
+        await Promise.all([
+          this.move(loser.root,loser.root.x+direction*18,loser.root.y+24,150,'Quad.easeIn'),
+          new Promise<void>(resolve=>this.scene.tweens.add({targets:loser.root,angle:direction*72,alpha:.5,duration:150,ease:'Quad.easeIn',onComplete:()=>resolve()})),
+          this.move(winner.root,winner.x,winner.y,230,'Quad.easeOut'),
+        ]);
+        this.resetCamera();winner.root.setDepth(0);loser.root.setDepth(0);return
+      }
       if (holdForRelay) {
         await this.move(loser.root, loser.root.x + direction * 34, loser.root.y, 85, 'Quad.easeOut');
         loser.root.setAngle(direction * 9);

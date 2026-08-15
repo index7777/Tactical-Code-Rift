@@ -9,7 +9,7 @@ export class ActionPresenter {
   private slash(x: number, y: number, flipX: boolean) { const fx = this.scene.add.image(x, y, 'slash-fx').setDepth(100).setScale(.25).setFlipX(flipX).setAlpha(0); this.combatLayer.add(fx); this.scene.tweens.add({ targets: fx, alpha: 1, scale: .68, duration: 80, yoyo: true, hold: 55, onComplete: () => fx.destroy() }); }
   private resetCamera() { this.scene.cameras.main.pan(640, 360, 250, 'Sine.easeInOut'); this.scene.cameras.main.zoomTo(1, 250, 'Sine.easeInOut'); }
 
-  async attack(actorId: string, targetId: string, card: { name: string; clashPower: number }, enemy = false, mode: 'normal' | 'flank' = 'normal', returnToSlot = true) {
+  async attack(actorId: string, targetId: string, card: { name: string; clashPower: number }, enemy = false, mode: 'normal' | 'flank' = 'normal', returnToSlot = true, onImpact?: () => boolean) {
     const attacker = (enemy ? this.enemies : this.players).get(actorId)!;
     const target = (enemy ? this.players : this.enemies).get(targetId)!;
     const direction = attacker.root.x < target.root.x ? 1 : -1;
@@ -23,7 +23,13 @@ export class ActionPresenter {
     this.scene.sound.play('sword-impact', { volume: .82 });
     this.scene.cameras.main.shake(130, .01);
     await this.move(target.root, target.root.x + direction * 30, target.root.y, 70, 'Quad.easeOut');
-    if (returnToSlot) {
+    const defeated=onImpact?.()??false;
+    if(defeated){
+      await Promise.all([
+        this.move(target.root,target.root.x+direction*18,target.root.y+24,150,'Quad.easeIn'),
+        new Promise<void>(resolve=>this.scene.tweens.add({targets:target.root,angle:direction*72,alpha:.5,duration:150,ease:'Quad.easeIn',onComplete:()=>resolve()})),
+      ])
+    }else if (returnToSlot) {
       await this.move(target.root, target.x, target.y, 130, 'Back.easeOut');
       target.root.setAngle(0);
     } else {
@@ -31,6 +37,7 @@ export class ActionPresenter {
     }
     await this.wait(90); badge.destroy();
     if (returnToSlot) await this.move(attacker.root, attacker.x, attacker.y, 240);
+    if(defeated)this.resetCamera()
   }
 
   async relay(sourceId: string, allyId: string, targetId: string, enemy = false, onImpact?: () => boolean) {

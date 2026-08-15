@@ -16,10 +16,18 @@ export function resolveBattleBeats(timeline: ActionNode[], commands: Map<string,
     const incomingTarget = enemy.enemySkill.targetId;
     const available = activeCommands.filter((command) => !usedPlayers.has(command.nodeId));
 
+    const explicitCover = available.find((command) => {
+      const player = playerNodes.get(command.nodeId);
+      return command.card.definitionId === 'cover' &&
+        command.targetNodeId === enemy.id &&
+        command.targetActorId === incomingTarget &&
+        Boolean(player && (player.initiative ?? player.speed) > (enemy.initiative ?? enemy.speed));
+    });
+
     const direct = available.find((command) =>
       command.actorId === incomingTarget &&
       ((isHostile(command) && command.targetNodeId === enemy.id) ||
-        (command.card.intent === 'defense' && command.targetActorId === incomingTarget)),
+        (command.card.definitionId === 'guard' && command.targetActorId === incomingTarget)),
     );
 
     const cover = available
@@ -27,12 +35,13 @@ export function resolveBattleBeats(timeline: ActionNode[], commands: Map<string,
         const player = playerNodes.get(command.nodeId);
         if (!player || (player.initiative ?? player.speed) <= (enemy.initiative ?? enemy.speed)) return false;
         const attacksEnemy = isHostile(command) && command.targetNodeId === enemy.id;
-        const protectsTarget = command.card.intent === 'defense' && command.targetActorId === incomingTarget;
-        return attacksEnemy || protectsTarget;
+        return attacksEnemy;
       })
       .sort((a, b) => (playerNodes.get(b.nodeId)!.initiative ?? playerNodes.get(b.nodeId)!.speed) - (playerNodes.get(a.nodeId)!.initiative ?? playerNodes.get(a.nodeId)!.speed))[0];
 
-    const command = direct ?? cover;
+    // A player-selected cover line is an explicit reservation. It must not be
+    // stolen later by the original target's direct command.
+    const command = explicitCover ?? direct ?? cover;
     if (!command) continue;
     const playerPower = command.card.clashPower;
     const enemyPower = enemy.enemySkill.clashPower;
@@ -53,11 +62,14 @@ export function resolveBattleBeats(timeline: ActionNode[], commands: Map<string,
     if (node.team === 'player') {
       const command = commands.get(node.id);
       if (command === null) beats.push({ kind: 'skip', order: node.order, actorId: node.actorId });
-      else if (command && !usedPlayers.has(node.id)) beats.push({
-        kind: command.card.intent === 'support' || command.card.intent === 'defense' ? 'support' : 'player-one-sided',
-        order: node.order,
-        command,
-      });
+      else if (command && !usedPlayers.has(node.id)) {
+        if (command.card.definitionId === 'cover') beats.push({ kind: 'skip', order: node.order, actorId: node.actorId });
+        else beats.push({
+          kind: command.card.intent === 'support' || command.card.intent === 'defense' ? 'support' : 'player-one-sided',
+          order: node.order,
+          command,
+        });
+      }
     } else if (!usedEnemies.has(node.id)) {
       beats.push({ kind: 'enemy-one-sided', order: node.order, enemy: node });
     }
