@@ -97,7 +97,8 @@ private previewTarget(id:string){
     if(this.selected){
       const hostile=this.selected.intent==='attack'||this.selected.intent==='disruption';
       const validTarget=hostile?this.enemies.has(id):this.players.has(id);
-      if(!validTarget){
+      const validGuard=this.selected.definitionId!=='guard'||id===this.currentPlanner()?.actorId;
+      if(!validTarget||!validGuard){
         this.intentFocus=undefined;this.previewTargetId=undefined;this.renderEnemyIntents();return
       }
     }
@@ -150,6 +151,7 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
     }
     const visualBeats=resolveBattleBeats(applyPlannedInitiative(this.timeline,visualCommands),visualCommands);
     const resolvedClashes=new Set<string>();
+    const renderedPlayerRoutes=new Set<string>();
     for(const beat of visualBeats){
       if(beat.kind==='clash')resolvedClashes.add(`${beat.clash.player.nodeId}|${beat.clash.enemy.id}`)
     }
@@ -206,6 +208,7 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
           const card='card'in command?command.card:this.selected!;
           const actor=this.players.get(actorId)!;
           const commandNodeId='nodeId'in command?command.nodeId:this.currentPlanner()!.id;
+          renderedPlayerRoutes.add(commandNodeId);
           const isResolvedClash=resolvedClashes.has(`${commandNodeId}|${n.id}`);
           const actorNode=this.timeline.find(node=>node.team==='player'&&node.actorId===actorId);
           const actorInitiative=(actorNode?.initiative??actorNode?.speed??0)+card.tempo;
@@ -248,7 +251,28 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
         strokeCurve(trunk,{width:1,color:0xff4964,alpha:1},trunkFrom,new Phaser.Math.Vector2(690,lane),new Phaser.Math.Vector2(endX-125,target.y),trunkTo);
         this.intentLayer.add(trunk)
       }
-    })
+    });
+    // A hostile skill can be consumed by only one clash, but later player
+    // attacks aimed at that enemy still exist as one-sided beats. They own
+    // independent blade routes and must not disappear with the rewritten
+    // killing-intent line.
+    for(const beat of visualBeats){
+      if(beat.kind!=='player-one-sided'||renderedPlayerRoutes.has(beat.command.nodeId)||!beat.command.targetActorId)continue;
+      const actor=this.players.get(beat.command.actorId),target=this.enemies.get(beat.command.targetActorId);
+      if(!actor||!target)continue;
+      const focused=!this.intentFocus||this.intentFocus===beat.command.actorId||this.intentFocus===beat.command.targetActorId;
+      const alpha=this.intentFocus?(focused?1:.08):.78;
+      const blade=this.add.graphics().setAlpha(alpha).setData('intent',true);
+      const from=new Phaser.Math.Vector2(actor.x-42,actor.y),to=new Phaser.Math.Vector2(target.x+44,target.y);
+      strokeCurve(blade,{width:9,color:0x52ddeb,alpha:.11},from,new Phaser.Math.Vector2(actor.x-170,actor.y),new Phaser.Math.Vector2(target.x+150,target.y),to);
+      strokeCurve(blade,{width:2,color:0xb7f8ff,alpha:.98},from,new Phaser.Math.Vector2(actor.x-170,actor.y),new Phaser.Math.Vector2(target.x+150,target.y),to);
+      blade.fillStyle(0x9ef6ff,1).fillTriangle(to.x+12,to.y-7,to.x+12,to.y+7,to.x,to.y);
+      if(beat.command.card.assist)blade.lineStyle(3,0xffd36e,.95)
+        .lineBetween(to.x+25,to.y+9,to.x+34,to.y-9)
+        .lineBetween(to.x+37,to.y+9,to.x+46,to.y-9);
+      this.intentLayer.add(blade);
+      renderedPlayerRoutes.add(beat.command.nodeId)
+    }
   }
 private renderTimeline(){
     this.timelineLayer.removeAll(true);
@@ -303,7 +327,7 @@ private focus(){
     this.phase.setText(`${this.commands.size+1}/${this.planning.length}  ${n.actorId}`);
     this.status.setText('')
   }
-private target(id:string){const node=this.currentPlanner();if(!this.selected||!node)return;const hostile=this.selected.intent==='attack'||this.selected.intent==='disruption';const enemy=this.enemies.has(id);if(hostile!==enemy){this.status.setText(hostile?'此卡必須指定敵方。':'此卡必須指定友方。');return}const targetNode=enemy?this.timeline.find(n=>n.team==='enemy'&&n.actorId===id):undefined;this.commands.set(node.id,{nodeId:node.id,actorId:node.actorId,card:this.selected,targetNodeId:targetNode?.id,targetActorId:id});this.selected=undefined;this.previewTargetId=undefined;this.intentFocus=undefined;this.planIndex++;this.renderHand();this.renderTimeline();this.focus();this.renderEnemyIntents()}
+private target(id:string){const node=this.currentPlanner();if(!this.selected||!node)return;const hostile=this.selected.intent==='attack'||this.selected.intent==='disruption';const enemy=this.enemies.has(id);if(hostile!==enemy){this.status.setText(hostile?'此卡必須指定敵方。':'此卡必須指定友方。');return}if(this.selected.definitionId==='guard'&&id!==node.actorId){this.status.setText('堅守只能以自身為目標。');return}const targetNode=enemy?this.timeline.find(n=>n.team==='enemy'&&n.actorId===id):undefined;this.commands.set(node.id,{nodeId:node.id,actorId:node.actorId,card:this.selected,targetNodeId:targetNode?.id,targetActorId:id});this.selected=undefined;this.previewTargetId=undefined;this.intentFocus=undefined;this.planIndex++;this.renderHand();this.renderTimeline();this.focus();this.renderEnemyIntents()}
 private skip(){const node=this.currentPlanner();if(this.busy||!node)return;const actorId=node.actorId;this.commands.set(node.id,null);this.skipBonusNext.add(actorId);this.planIndex++;this.renderTimeline();this.status.setText(`${actorId} 跳過｜下回合速度 +2（一次）`);this.focus()}
 private undoCommand(){
     if(this.busy||this.commands.size===0)return;
@@ -315,7 +339,17 @@ private undoCommand(){
     this.renderHand();this.renderTimeline();this.focus();this.renderEnemyIntents()
 }
 private nextRound(){
-    if(this.busy||this.planIndex<this.planning.length)return;
+    if(this.busy)return;
+    if(this.planIndex<this.planning.length){
+      let node=this.currentPlanner();
+      while(node){
+        this.commands.set(node.id,null);this.skipBonusNext.add(node.actorId);this.planIndex++;
+        node=this.currentPlanner()
+      }
+      this.selected=undefined;this.previewTargetId=undefined;this.intentFocus=undefined;
+      this.renderHand();this.renderTimeline();this.renderEnemyIntents();this.focus();
+      return
+    }
     this.round++;
     const targets=[...this.players.keys()],enemyNodes=this.timeline.filter(n=>n.team==='enemy'),roundSkills=dealEnemySkills(enemyNodes.length);
     let enemyIndex=0;
