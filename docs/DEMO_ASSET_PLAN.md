@@ -142,6 +142,82 @@
 
 列車是旅行載具，不等於車廂內戰。路線圖使用程式繪線與節點，只需共用底圖、列車圖示及出發／戰鬥／事件／探索／精英／伙伴／王七種符號。
 
+路線圖列車固定使用俯視低細節 token，而非戰鬥場景用的側視列車。現行 prototype 為 `public/assets/journey/world01/train-token-topdown.svg`：透明、無軌道、無煙、車頭朝右，可由 runtime 依路徑切線旋轉；目標顯示尺寸約 96×29 至 128×38 px。
+
+## 第一世界戰鬥視覺拆件表
+
+視覺基準候選為 `assets/candidates/concepts/world01-battle-visual-target-v1.png`。該圖只用來約束角色比例、中央安全區、色彩、HUD 密度與因果線層級，不得直接切圖作為 runtime 素材，也不得把圖內角色視為核准角色設計。
+
+### P0 必要素材：共 37 個 source asset
+
+| 類別 | 數量 | 拆件 | 製作方式 |
+|---|---:|---|---|
+| 戰鬥背景 | 6 | 天空／月、遠山、遠景列車與鳥居、中景月台、角色地面、前景遮擋 | 分層 WebP；中央 42% 保持低對比 |
+| 氣氛貼圖 | 4 | 遠霧、近霧、灰燼／紙屑、燈光暈 | 可平鋪灰階貼圖，由 Phaser 著色與視差移動 |
+| 三種怪物關鍵姿勢 | 15 | 每隻 `idle / windup / strike / recoil-broken / down` 各 1 | 透明 WebP；先交付一個朝向，另一方向優先 runtime mirror |
+| 怪物規則覆層 | 3 | 疾行殘影、鎮岳甲片、咒返符印 | 不綁角色骨架，可套在姿勢上 |
+| 共用 FX 原料 | 5 | 墨痕、刀光 mask、火花、碎片、煙塵 flipbook | 程式著色、縮放、旋轉及混合；不得為每招重畫 |
+| UI 九宮格 | 4 | 通用卡框、時序 token、節點／按鈕框、牌庫背面 | 無文字；數字、名稱與狀態全部 runtime 排版 |
+
+37 是 source asset 數，不是輸出檔總數；WebP runtime、原始 PNG、atlas JSON 與縮圖不重複計入美術工作量。
+
+### 程式化項目：不製作點陣圖
+
+- 殺生線、當前線呼吸、截刀／掩護改線、交鋒節點與線的淡出生命週期。
+- HP 墨線、護符數、五段架勢、速度數字及時序連線。
+- 卡牌文字、大威力數字、速度修正、牌庫／棄牌數字與按鈕文字。
+- 鏡頭推拉、命中停格、彈刀後仰、接力穿入、擊退與歸位。
+- 迷霧 reveal mask、色弱線型與目前目標高亮。
+
+### 怪物最低動畫成本
+
+每隻雜魚只畫五張關鍵姿勢；`dying` 由 `idle` 降低重心、降低明度及加重呼吸實現，不新增圖。`hit` 優先用 `recoil-broken` 的短幅版本；`broken` 使用同一張姿勢配合架勢碎裂 FX 與較長僵直。只有 Boss 或輪廓完全無法共用時才增加姿勢。
+
+三種怪物共 15 張 source pose：
+
+1. 疾行妖：細長、前傾、武器或肢體形成高速斜線；規則可讀點是先手、連攻與追擊。
+2. 鎮岳鬼：低重心、厚甲片或巨大軀幹；規則可讀點是堅守、甲片與高架勢。
+3. 咒返妖：懸浮符紙、法器或不自然手勢；規則可讀點是改線、延後與咒返。
+
+### 怪物生成共用提詞模板
+
+```text
+Use case: stylized-concept
+Asset type: transparent side-view 2D enemy key pose for a tactical RPG
+Primary request: [怪物名稱] 的 [idle / windup / strike / recoil-broken / down] 姿勢
+Rule silhouette: [玩家必須從輪廓讀出的規則，例如高速連攻／厚甲堅守／符咒改線]
+Style: refined painterly 2D with Japanese ink and woodblock edge texture; dark teal, charcoal, aged brass and sparse vermilion; original design
+Composition: strict side view facing right; full body visible; feet share the same horizontal baseline; same canvas, scale, pivot and weapon-contact point across every pose
+Animation economy: one strong readable key pose, no in-between frames, no skeletal rig, no perspective turn
+Runtime support: motion, hit-stop, recoil, afterimage, particles and camera provide the remaining animation
+Constraints: genuinely transparent background; no ground, shadow, UI, text, frame, watermark or baked FX; preserve the same costume, anatomy and weapon between poses
+Avoid: front view, three-quarter view, eight-direction sheet, busy accessories that disappear at gameplay size, copyrighted character design
+```
+
+生成順序固定為先核准 `idle` 輪廓，再以核准圖作 reference 產其餘四姿勢；不可五張各自生成，否則角色一致性不可控。每張生成圖先進 `assets/candidates/`，經輪廓、透明邊緣、pivot、一致性與授權紀錄審查後才可進 `public/assets/`。
+
+### P1／P2 延後項目
+
+- 四名玩家角色：每名預估 `idle / ready / strike / recoil / broken / down` 六姿勢，共 24 張 source pose；角色規則尚未定案，因此目前不生成。
+- 精英：優先沿用三種怪物其中一型，增加 1 個輪廓附件、1 個規則覆層及 1 個特殊 windup，不重做整套。
+- Boss：等 Boss 規則定案後獨立估算；不得先用大量階段動畫填補未完成設計。
+
+## 我方角色美術方向
+
+使用者提供的黑髮紅黑女武者圖只作風格參考，來源與授權未確認，不得裁切、描圖或作為生成 edit target。採用的語言是：成熟二次元比例、墨色長髮、和風武裝、黑／朱紅／象牙配色、金屬與布料有明確材質差、輪廓帶少量妖異裝飾。
+
+轉成戰鬥 Sprite 時必須調整：
+
+- 由半身三分之四視角改為全身嚴格側視，臉、胸腰與武器輪廓不可互相遮蔽。
+- 髮絲、束帶、金屬雕花與多層腰飾合併成 3～5 個大形；不保留縮到 160～220 px 高後不可讀的細節。
+- 每名角色只選一個主輪廓標誌，例如大袖、長髮、披肩、大太刀或符帶，避免四人都以紅黑長髮女武者造成站列混淆。
+- 角色魅力留在臉型、身形、髮色、服裝剪影與武器姿態，不靠每張牌專屬插畫或高成本逐格動畫。
+- 四名角色共用六種姿勢規格：`idle / ready / strike / recoil / broken / down`；接力、掩護與追擊由相同姿勢配合路徑、停格及 FX 完成。
+
+四人必須在黑色剪影下仍能辨識；建議分成「敏捷刀手／重斬武者／護衛／咒術支援」四種輪廓，但角色能力與正式武器仍待通用卡型及怪物驗收後決定。
+
+補充畫風基準：`女主角sample.JPG` 只提供精緻二次元厚塗、乾淨臉部、柔亮髮絲、輪廓光及材質分離的參考；銀髮、螢光綠、近未來緊身服、畫面 UI 與原角色外觀全部不採用。`assets/candidates/concepts/heroine-style-costume-candidate-v1.png` 已驗證黑／朱紅和風鐵道女刀手的轉譯方向，但檔案是 24-bit RGB 且棋盤格已烘入，不具透明 alpha，只能當 identity／服裝概念，不可進 runtime。
+
 ## 共用 FX 素材庫
 
 P0 必須完成：殺生線、快斬、重斬、金屬交鋒、相殺、受擊、破招、崩勢、斷命。

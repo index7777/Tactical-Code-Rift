@@ -2,6 +2,8 @@
 
 All assets listed below are approved for the current attack showcase runtime. Candidate archives remain under `assets/candidates/`; selected runtime files are copied to `public/assets/battle/`.
 
+Project-authored journey prototype: `public/assets/journey/world01/train-token-topdown.svg` is original in-repository SVG geometry for the route-map train token. It is not derived from the generated train candidates.
+
 | Runtime files | Work | Author | License | Source |
 |---|---|---|---|---|
 | `hero-knight.png` | Knight spritesheet / Slash Knight assets | marqueeplier | CC0 1.0 | https://opengameart.org/content/knight-spritesheet |

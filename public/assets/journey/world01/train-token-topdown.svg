@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96">
+  <defs>
+    <linearGradient id="iron" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#31545b"/><stop offset="1" stop-color="#101b21"/></linearGradient>
+  </defs>
+  <rect x="12" y="22" width="112" height="52" rx="12" fill="#0b1318" stroke="#9b7e48" stroke-width="3"/>
+  <rect x="19" y="28" width="98" height="40" rx="8" fill="url(#iron)"/>
+  <path d="M31 34v28M55 34v28M79 34v28M103 34v28" stroke="#b28d4e" stroke-width="3" opacity=".65"/>
+  <circle cx="31" cy="48" r="4" fill="#d39b53"/><circle cx="55" cy="48" r="4" fill="#d39b53"/><circle cx="79" cy="48" r="4" fill="#d39b53"/><circle cx="103" cy="48" r="4" fill="#d39b53"/>
+  <rect x="124" y="42" width="13" height="12" rx="3" fill="#9b7e48"/>
+  <rect x="137" y="16" width="62" height="64" rx="13" fill="#0b1318" stroke="#9b7e48" stroke-width="3"/>
+  <rect x="144" y="23" width="48" height="50" rx="9" fill="url(#iron)"/>
+  <path d="M151 31h34M151 65h34" stroke="#b28d4e" stroke-width="3" opacity=".7"/>
+  <rect x="194" y="24" width="82" height="48" rx="20" fill="url(#iron)" stroke="#9b7e48" stroke-width="3"/>
+  <circle cx="222" cy="48" r="12" fill="#091115" stroke="#ad8b50" stroke-width="4"/>
+  <circle cx="254" cy="48" r="7" fill="#ad8b50" stroke="#151f24" stroke-width="3"/>
+  <path d="M274 25 310 38v20l-36 13z" fill="#151f24" stroke="#9b7e48" stroke-width="3"/>
+  <path d="m280 32 23 9M280 43l25 5M280 54l23 1M280 65l20-5" stroke="#71312f" stroke-width="4"/>
+  <circle cx="293" cy="48" r="5" fill="#d65a47"/>
+</svg>

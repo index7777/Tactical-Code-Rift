@@ -251,4 +251,16 @@ STATUS = APPEND_ONLY
 - 新增純規則選擇器：普通迎擊與精英使用 `battle-music`；只有 `boss-*`旅程節點或`?boss-proof=1`使用 Boss 曲。Boss 曲沿用既有 1.2 秒淡入、循環、失焦淡出、勝敗淡出與回旅程停止流程。
 - Boss 本體仍在待辦，王節點不會因此被降級成一般 4V4；`boss-proof`只驗證音樂資產及選擇，不代表 Boss 戰完成。
 - 音樂由使用者提供但未附發行授權，依資產規則標記 prototype-only、release provenance pending。
+
+## 2026-08-15：第一世界模組化路線與戰鬥資產拆件
+
+- 採用模組化路線圖：背景不得烘入列車、軌道、節點、Icon 或文字；軌道、分岔、站點底座與 Icon 由 Phaser／SVG 組裝，列車使用獨立透明資產沿連線移動。
+- 新增候選方向稿：`world01-battle-visual-target-v1.png`、`world01-journey-bg-candidate-v1.png`、`world01-train-candidate-v1.png`，均存於 `assets/candidates/concepts/`，不得視為已核准 runtime 素材。
+- 戰鬥 P0 拆為 37 個 source asset：6 背景層、4 氣氛貼圖、15 怪物關鍵姿勢、3 規則覆層、5 共用 FX 原料、4 UI 九宮格。因果線、HUD 數字、文字、鏡頭與位移維持程式化。
+- 三種雜魚各限制五張關鍵姿勢；頻死、短受擊與崩勢優先由姿勢變形、FX、停格及鏡頭完成。四名玩家角色 24 張姿勢與 Boss 素材延後至規則定案。
+- 建立怪物共用生成提詞與核准流程：先核准 idle，再以同一 reference 生成其餘姿勢；所有生成輸出先進 candidates，經一致性、透明邊緣、pivot 與來源檢查後才可進 runtime。
+- 拒絕兩版生成列車：第一版是高細節側視、第二版仍混入側面車輪與過量細節。改以專案原生 SVG 建立真正俯視的低細節 `train-token-topdown.svg`，可沿曲線切線旋轉。
+- 我方角色採成熟二次元和風武裝、黑／朱紅／象牙與妖異裝飾的方向；使用者參考圖來源未明，只採風格語言。正式 Sprite 必須轉成全身側視、大形輪廓與六種低成本關鍵姿勢，四人不可共用相同黑髮紅黑女武者剪影。
+- 追加女主角畫風參考：採精緻二次元厚塗、乾淨臉部、柔亮髮絲、輪廓光與材質分離，不採參考圖的銀髮、螢光綠或近未來服裝。生成 `heroine-style-costume-candidate-v1.png` 驗證原創黑／朱紅和風鐵道女刀手；檢查為 1536×1024、24-bit RGB，棋盤格背景已烘入而非透明 alpha，因此僅保留概念用途，禁止接入 runtime。
+- 本批同步前驗證：`npm run test` 18 files／89 tests 全數通過；`npm run build` 通過；`git diff --check` 通過。Vite 仍回報既有主 bundle 大於 500 kB 警告，本批沒有新增 runtime TypeScript，因此不把該警告誤列為本次美術規劃造成的回歸。
 - 驗證：Boss MP3 回應 `200 audio/mpeg`、2,584,405 bytes；`?boss-proof=1`載入戰鬥場景並於首次互動解鎖音訊，console 無錯誤。`npm run test` 89/89、`npm run build`與`git diff --check`通過；因 Boss 本體尚未實作，本批不宣稱王節點實戰切場完成。
