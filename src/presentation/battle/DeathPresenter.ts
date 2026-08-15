@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import type { VisualActor } from './ClashPresenter';
 
-export type DeathStyle='normal'|'heavy'|'flank'|'relay';
+// Death poses stay on the shared horizontal side-view rig. Heavy and relay
+// only alter impact timing/FX; flank never creates a directional death asset.
+export type DeathStyle='normal'|'heavy'|'relay';
 
 export class DeathPresenter {
   constructor(private scene:Phaser.Scene,private combatLayer:Phaser.GameObjects.Container){}
