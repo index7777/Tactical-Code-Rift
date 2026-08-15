@@ -9,6 +9,7 @@ import{CombatResolutionController}from'../../application/battle/CombatResolution
 import{readMonsterRule,resolveMonsterHit}from'../../core/battle/MonsterRules';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;shield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean;archetype?:EnemyArchetype;traitReady:boolean}
 export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
+constructor(){super('BootScene')}
 private deathPresenter!:DeathPresenter;private outcomePresenter!:OutcomePresenter;
 private resultFxPresenter!:CombatResultFxPresenter;
 private resolutionController=new CombatResolutionController();
@@ -74,6 +75,7 @@ private fadeBattleMusic(volume:number,duration:number){
   this.tweens.killTweensOf(this.battleMusic);
   this.tweens.add({targets:this.battleMusic,volume,duration,ease:'Sine.easeInOut'});
 }
+private returnToJourney(){this.fadeBattleMusic(0,350);this.time.delayedCall(350,()=>{this.battleMusic?.stop();this.scene.start('JourneyScene')})}
 private hud(){
     this.phase=this.add.text(22,9,'',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#cbe9ee'}).setVisible(false);
     this.hudLayer.add(this.phase);
@@ -536,7 +538,7 @@ private async resolve(){
   }
   const played=this.resolutionController.committedCards(this.commands);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=Math.max(0,this.deck.hand.length-this.pendingCycleDraws);this.renderHand();played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();
   const outcome=this.resolutionController.outcome(this.players.values(),this.enemies.values());
-  if(outcome){this.handLayer.setVisible(false);this.fadeBattleMusic(.05,900);await this.outcomePresenter.show(outcome,{onRetry:()=>this.scene.restart({battlefield:this.battlefieldMode,journeyNodeId:this.journeyNodeId}),onContinue:outcome==='victory'?(this.journeyNodeId?()=>this.scene.start('JourneyScene'):()=>this.scene.restart({battlefield:this.nextBattlefield()})):undefined});return}
+  if(outcome){this.handLayer.setVisible(false);this.fadeBattleMusic(.05,900);await this.outcomePresenter.show(outcome,{onRetry:()=>this.scene.restart({battlefield:this.battlefieldMode,journeyNodeId:this.journeyNodeId}),onContinue:outcome==='victory'?(this.journeyNodeId?()=>this.returnToJourney():()=>this.scene.restart({battlefield:this.nextBattlefield()})):undefined});return}
   this.handLayer.setVisible(true);if(this.pendingCycleDraws){const count=this.pendingCycleDraws,finalStart=640-(this.deck.hand.length-1)*112/2;for(let i=0;i<count;i++)this.time.delayedCall(i*170,()=>this.animateCardTravel(245,finalStart+(this.visibleHandCount+i)*112,0x3f6757,()=>{this.visibleHandCount++;this.renderHand()}));this.pendingCycleDraws=0}this.status.setText('');this.busy=false;
 }
 }

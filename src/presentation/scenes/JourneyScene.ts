@@ -1,12 +1,16 @@
 import Phaser from'phaser';
 import{availableStoryNodes,createJourneyState,moveJourney,type JourneyState,type StoryNodeType}from'../../core/route/RouteGenerator';
+import{JOURNEY_MUSIC_FADE_IN_MS,JOURNEY_MUSIC_FADE_OUT_MS,journeyLoopFadeDelayMs}from'../../core/audio/JourneyMusicPolicy';
 
 const labels:Record<StoryNodeType,string>={departure:'出發',battle:'迎擊',event:'事件',exploration:'探索',companion:'伙伴',elite:'精英',boss:'王'};
 const colors:Record<StoryNodeType,number>={departure:0x477889,battle:0x963d50,event:0x74578c,exploration:0x367360,companion:0x3b7896,elite:0xb56a34,boss:0x8e263c};
 
 export class JourneyScene extends Phaser.Scene{
+  private journeyMusic?:Phaser.Sound.BaseSound;private loopTimer?:Phaser.Time.TimerEvent;private leavingMap=false;
   constructor(){super('JourneyScene')}
+  preload(){this.load.audio('journey-world-01','assets/music/world-01/zone1-train-bgm.mp3')}
   create(){
+    this.startJourneyMusic();
     const state=(this.registry.get('journey-state')as JourneyState|undefined)??createJourneyState();this.registry.set('journey-state',state);
     this.add.rectangle(640,360,1280,720,0x07101a);this.add.circle(1060,145,78,0xb8c5d6,.12).setStrokeStyle(2,0xdde8ef,.16);
     for(let i=0;i<5;i++)this.add.ellipse(220+i*245,540+(i%2)*28,420,145,0x13252a,.78);
@@ -23,9 +27,24 @@ export class JourneyScene extends Phaser.Scene{
   private selectNode(state:JourneyState,nodeId:string,x:number,y:number){
     const next=moveJourney(state,nodeId);this.registry.set('journey-state',next);const node=next.route.nodes.find(n=>n.id===nodeId)!,train=this.children.list.find(o=>o instanceof Phaser.GameObjects.Container&&o.getData('train'))as Phaser.GameObjects.Container;
     this.input.enabled=false;this.tweens.add({targets:train,x,y:y+58,duration:720,ease:'Sine.easeInOut',onComplete:()=>{
-      if(node.type==='battle'||node.type==='elite')this.scene.start('BootScene',{journeyNodeId:node.id,battlefield:node.type==='elite'?'wayside':'rooftop'});
+      if(node.type==='battle'||node.type==='elite')this.leaveJourneyMusic(()=>this.scene.start('BootScene',{journeyNodeId:node.id,battlefield:node.type==='elite'?'wayside':'rooftop'}));
       else if(node.type==='boss'){this.input.enabled=true;this.add.text(640,610,'王節點已記錄｜等待 Boss 製作批次',{fontFamily:'sans-serif',fontSize:'18px',color:'#ffd0a0',backgroundColor:'#39151ddd',padding:{x:16,y:8}}).setOrigin(.5)}
       else{this.input.enabled=true;this.add.text(640,610,`${labels[node.type]}節點已記錄｜內容於角色與 Boss 完成後補入`,{fontFamily:'sans-serif',fontSize:'16px',color:'#ccecf0',backgroundColor:'#102a32dd',padding:{x:16,y:8}}).setOrigin(.5);this.time.delayedCall(850,()=>this.scene.restart())}
     }})
   }
+  private startJourneyMusic(){
+    this.leavingMap=false;this.journeyMusic=this.sound.get('journey-world-01')??this.sound.add('journey-world-01',{loop:false,volume:0});
+    if(!this.journeyMusic.isPlaying)this.journeyMusic.play({loop:false,volume:0});this.fadeJourneyMusic(.34,JOURNEY_MUSIC_FADE_IN_MS);this.scheduleJourneyLoop();
+    this.game.events.off(Phaser.Core.Events.BLUR,this.onGameBlur,this);this.game.events.off(Phaser.Core.Events.FOCUS,this.onGameFocus,this);this.game.events.on(Phaser.Core.Events.BLUR,this.onGameBlur,this);this.game.events.on(Phaser.Core.Events.FOCUS,this.onGameFocus,this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{this.loopTimer?.remove(false);this.game.events.off(Phaser.Core.Events.BLUR,this.onGameBlur,this);this.game.events.off(Phaser.Core.Events.FOCUS,this.onGameFocus,this)})
+  }
+  private scheduleJourneyLoop(){
+    this.loopTimer?.remove(false);if(!this.journeyMusic||this.leavingMap)return;const seek=(this.journeyMusic as Phaser.Sound.WebAudioSound|Phaser.Sound.HTML5AudioSound).seek,delay=journeyLoopFadeDelayMs(this.journeyMusic.duration,seek);
+    if(delay===null){this.loopTimer=this.time.delayedCall(250,()=>this.scheduleJourneyLoop());return}
+    this.loopTimer=this.time.delayedCall(delay,()=>{if(!this.journeyMusic||this.leavingMap)return;this.fadeJourneyMusic(0,JOURNEY_MUSIC_FADE_OUT_MS);this.loopTimer=this.time.delayedCall(JOURNEY_MUSIC_FADE_OUT_MS,()=>{if(!this.journeyMusic||this.leavingMap)return;this.journeyMusic.stop();this.journeyMusic.play({loop:false,volume:0});this.fadeJourneyMusic(.34,JOURNEY_MUSIC_FADE_IN_MS);this.scheduleJourneyLoop()})})
+  }
+  private fadeJourneyMusic(volume:number,duration:number){if(!this.journeyMusic)return;this.tweens.killTweensOf(this.journeyMusic);this.tweens.add({targets:this.journeyMusic,volume,duration,ease:'Sine.easeInOut'})}
+  private leaveJourneyMusic(onComplete:()=>void){this.leavingMap=true;this.loopTimer?.remove(false);this.fadeJourneyMusic(0,650);this.time.delayedCall(650,()=>{this.journeyMusic?.stop();onComplete()})}
+  private onGameBlur(){this.fadeJourneyMusic(0,450)}
+  private onGameFocus(){if(!this.leavingMap)this.fadeJourneyMusic(.34,650)}
 }

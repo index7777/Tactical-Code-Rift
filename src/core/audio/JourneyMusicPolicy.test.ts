@@ -1,0 +1,2 @@
+import{describe,expect,it}from'vitest';import{journeyLoopFadeDelayMs}from'./JourneyMusicPolicy';
+describe('journey music loop policy',()=>{it('starts fading before the decoded track ends',()=>expect(journeyLoopFadeDelayMs(90,10,1400)).toBe(78600));it('waits for decoded duration metadata',()=>expect(journeyLoopFadeDelayMs(0,0)).toBeNull());it('fades immediately when resuming inside the tail window',()=>expect(journeyLoopFadeDelayMs(10,9,1400)).toBe(0))});
