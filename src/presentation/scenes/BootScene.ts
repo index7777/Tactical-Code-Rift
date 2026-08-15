@@ -7,6 +7,7 @@ import{BattlefieldPresenter}from'../battle/BattlefieldPresenter';import{normaliz
 import{CombatResultFxPresenter}from'../battle/CombatResultFxPresenter';
 import{CombatResolutionController}from'../../application/battle/CombatResolutionController';
 import{readMonsterRule,resolveMonsterHit}from'../../core/battle/MonsterRules';
+import{battleMusicKey,battleMusicKind}from'../../core/audio/BattleMusicPolicy';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;shield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean;archetype?:EnemyArchetype;traitReady:boolean}
 export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
 constructor(){super('BootScene')}
@@ -16,14 +17,14 @@ private resolutionController=new CombatResolutionController();
 private visibleHandCount=5;
 private pendingCycleDraws=0;
 private battlefieldMode:BattlefieldMode='rooftop';private battlefieldPresenter!:BattlefieldPresenter;
-private requestedBattlefield?:BattlefieldMode;private journeyNodeId?:string;
-init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId}
+private requestedBattlefield?:BattlefieldMode;private journeyNodeId?:string;private selectedBattleMusicKey='battle-music';
+init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId;this.selectedBattleMusicKey=battleMusicKey(battleMusicKind(this.journeyNodeId,new URLSearchParams(window.location.search).has('boss-proof')))}
 private nextBattlefield():BattlefieldMode{return this.battlefieldMode==='rooftop'?'wayside':this.battlefieldMode==='wayside'?'exploration':'rooftop'}
 private currentPlanner(){return applyPlannedInitiative(this.timeline,this.commands).find(n=>n.team==='player'&&!this.commands.has(n.id))}
 private toolKey?:Phaser.Input.Keyboard.Key;private toolsInitialized=false;
 update(){if(!this.toolKey)this.toolKey=this.input.keyboard?.addKey('T');if(!this.toolsInitialized){this.toolsInitialized=true;this.setDevTools(false)}if(this.toolKey&&Phaser.Input.Keyboard.JustDown(this.toolKey))this.setDevTools(!this.toolsVisible)}
 private setDevTools(visible:boolean){this.toolsVisible=visible;const labels=new Set(['重新開始','P−','P+','E−','E+']);for(const item of this.hudLayer?.list??[]){if(item instanceof Phaser.GameObjects.Text){if(item.text==='戰術編碼：裂痕')item.setText('妖異鐵道｜殺生線試作');if(item.text==='FOCUSED CLASH // SHARED DECK')item.setText('讀取殺意・截斷因果・繼刀崩勢');if(labels.has(item.text))item.setVisible(visible)}}this.phase?.setText(visible?'開發工具｜T 收起':this.phase.text.replace('開發工具｜T 收起',''))}
-preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('slash-fx','assets/battle/slash-fx.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.spritesheet('hero','assets/battle/samurai.png',{frameWidth:48,frameHeight:48});this.load.spritesheet('enemy','assets/battle/enemy-knight.png',{frameWidth:64,frameHeight:64});this.load.image('yokai','assets/battle/kamaitachi.png')}
+preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('slash-fx','assets/battle/slash-fx.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('boss-battle-music','assets/music/world-01/zone1-boss-bgm.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.spritesheet('hero','assets/battle/samurai.png',{frameWidth:48,frameHeight:48});this.load.spritesheet('enemy','assets/battle/enemy-knight.png',{frameWidth:64,frameHeight:64});this.load.image('yokai','assets/battle/kamaitachi.png')}
 create(){
     if(new URLSearchParams(window.location.search).has('journey')&&!this.journeyNodeId){this.scene.start('JourneyScene');return}
     if(!this.anims.exists('hero-idle'))this.anims.create({key:'hero-idle',frames:this.anims.generateFrameNumbers('hero',{start:0,end:3}),frameRate:5,repeat:-1});
@@ -56,7 +57,7 @@ create(){
     this.rebuild()
   }
 private startBattleMusic(){
-  this.battleMusic=this.sound.get('battle-music')??this.sound.add('battle-music',{loop:true,volume:0});
+  this.battleMusic=this.sound.get(this.selectedBattleMusicKey)??this.sound.add(this.selectedBattleMusicKey,{loop:true,volume:0});
   if(!this.battleMusic.isPlaying)this.battleMusic.play({loop:true,volume:0});
   this.fadeBattleMusic(.3,1200);
   this.game.events.off(Phaser.Core.Events.BLUR,this.onGameBlur,this);

@@ -13,6 +13,7 @@ All assets listed below are approved for the current attack showcase runtime. Ca
 | `../cards/*.png` | Playing Cards Pack | Kenney | CC0 1.0 | https://kenney.nl/assets/playing-cards-pack |
 | `battle-music.ogg` | Chiptune Battle Music | pmiller | CC0 1.0 | https://opengameart.org/content/chiptune-battle-music |
 | `../music/world-01/zone1-train-bgm.mp3` | World 01 train-route BGM | User-provided project asset | Provenance/license pending; prototype runtime only | Supplied directly to the project on 2026-08-15 |
+| `../music/world-01/zone1-boss-bgm.mp3` | World 01 boss-battle BGM | User-provided project asset | Provenance/license pending; prototype runtime only | Supplied directly to the project on 2026-08-15 |
 
 ## Usage notes
 
@@ -24,6 +25,7 @@ All assets listed below are approved for the current attack showcase runtime. Ca
 - Player and enemy runtime characters now come from the same Slash Knight asset set; the older `enemy-idle.png` and `enemy-attack.png` remain only as unused legacy files.
 - Current enemy prototypes deliberately reuse free assets: swift/hexer use the CC0 Kamaitachi candidate with distinct runtime tint/timing, while crusher uses the CC0 Dark Knight sheet. These are gameplay placeholders, not approved final monster art.
 - `zone1-train-bgm.mp3` is archived by world and purpose under `public/assets/music/world-01/`. It is approved for local prototype playback only until ownership or distribution rights are documented; it must not be treated as release-cleared merely because it exists in runtime.
+- `zone1-boss-bgm.mp3` follows the same prototype-only restriction. It is reserved for the first-world Boss encounter and must not replace normal or elite battle music.
 
 ## Yokai Railway candidate review
 

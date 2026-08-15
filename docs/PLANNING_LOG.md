@@ -244,3 +244,11 @@ STATUS = APPEND_ONLY
 - 補上失焦／聚焦音量處理及純函式循環時序測試。來源與發行授權尚未提供，因此資產表標記為 prototype-only、release provenance pending。
 - 實機旅程切場發現既有 `BootScene` 未宣告正式 scene key，導致列車完成移動與地圖曲淡出後出現 `Scene key not found: BootScene`；本批補上 `super('BootScene')`，使 JourneyScene 能依既定 key 進入戰鬥。
 - 驗證：音樂 URL 回應 `200 audio/mpeg`、2,457,296 bytes；瀏覽器無新 console error，實際點選第一個迎擊節點後列車移至節點，地圖保持至淡出完成，再成功進入 4V4 戰鬥。`npm run test` 87/87、`npm run build`與`git diff --check`通過；完整曲長的實時間尾端聽測仍留給人工音訊驗收。
+
+## 2026-08-15：第一世界 Boss 背景曲
+
+- 將 `zone1_train_boss_bgm.mp3` 歸檔為 `public/assets/music/world-01/zone1-boss-bgm.mp3`，獨立註冊為 `boss-battle-music`。
+- 新增純規則選擇器：普通迎擊與精英使用 `battle-music`；只有 `boss-*`旅程節點或`?boss-proof=1`使用 Boss 曲。Boss 曲沿用既有 1.2 秒淡入、循環、失焦淡出、勝敗淡出與回旅程停止流程。
+- Boss 本體仍在待辦，王節點不會因此被降級成一般 4V4；`boss-proof`只驗證音樂資產及選擇，不代表 Boss 戰完成。
+- 音樂由使用者提供但未附發行授權，依資產規則標記 prototype-only、release provenance pending。
+- 驗證：Boss MP3 回應 `200 audio/mpeg`、2,584,405 bytes；`?boss-proof=1`載入戰鬥場景並於首次互動解鎖音訊，console 無錯誤。`npm run test` 89/89、`npm run build`與`git diff --check`通過；因 Boss 本體尚未實作，本批不宣稱王節點實戰切場完成。
