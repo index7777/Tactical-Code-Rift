@@ -1,4 +1,5 @@
 import type { ActionNode, BattleBeat, ClashPair, PlayerCommand } from './BattleTypes';
+import{resolveMonsterClashPower}from'./MonsterRules';
 
 const isHostile = (command: PlayerCommand) => command.card.intent === 'attack' || command.card.intent === 'disruption';
 
@@ -41,7 +42,7 @@ export function resolveBattleBeats(timeline: ActionNode[], commands: Map<string,
     // stolen later by the original target's direct command.
     const command = explicitCover ?? direct ?? cover;
     if (!command) continue;
-    const playerPower = command.card.clashPower;
+    const playerPower = resolveMonsterClashPower(enemy.enemySkill.archetype,command.card);
     const enemyPower = enemy.enemySkill.clashPower;
     clashes.push({
       player: command,

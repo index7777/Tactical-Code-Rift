@@ -6,7 +6,8 @@ import{DeathPresenter,type DeathStyle}from'../battle/DeathPresenter';import{Outc
 import{BattlefieldPresenter}from'../battle/BattlefieldPresenter';import{normalizeBattlefieldMode,type BattlefieldMode}from'../battle/BattlefieldMode';
 import{CombatResultFxPresenter}from'../battle/CombatResultFxPresenter';
 import{CombatResolutionController}from'../../application/battle/CombatResolutionController';
-interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;shield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean;archetype?:EnemyArchetype}
+import{resolveMonsterHit}from'../../core/battle/MonsterRules';
+interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;shield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean;archetype?:EnemyArchetype;traitReady:boolean}
 export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
 private deathPresenter!:DeathPresenter;private outcomePresenter!:OutcomePresenter;
 private resultFxPresenter!:CombatResultFxPresenter;
@@ -120,7 +121,7 @@ private addActor(f:Fighter){
     hit.on('pointerout',()=>{this.intentFocus=undefined;this.previewTargetId=undefined;this.renderEnemyIntents()});
     const root=this.add.container(p.x,p.y,[glow,sprite,hud,hit]).setData('actor',true);
     this.world.add(root);
-    const a={root,x:p.x,y:p.y,sprite,hud,hudView,hit,hp:100,shield:20,balance:10,alive:true,exposed:false,broken:false,archetype:f.archetype};
+    const a={root,x:p.x,y:p.y,sprite,hud,hudView,hit,hp:100,shield:20,balance:10,alive:true,exposed:false,broken:false,archetype:f.archetype,traitReady:true};
     (f.team==='player'?this.players:this.enemies).set(f.id,a);
     this.refreshActor(a)
   }
@@ -431,7 +432,7 @@ private nextRound(){
       return
     }
     this.round++;
-    clearEndOfRoundStatuses([...this.players.values(),...this.enemies.values()]);[...this.players.values(),...this.enemies.values()].forEach(a=>this.refreshActor(a));
+    clearEndOfRoundStatuses([...this.players.values(),...this.enemies.values()]);[...this.players.values(),...this.enemies.values()].forEach(a=>{a.traitReady=true;this.refreshActor(a)});
     this.timeline=this.timeline.filter(n=>(n.team==='player'?this.players:this.enemies).get(n.actorId)?.alive);
     const targets=[...this.players.entries()].filter(([,a])=>a.alive).map(([id])=>id),enemyNodes=this.timeline.filter(n=>n.team==='enemy'),roundRoles=enemyNodes.map(n=>n.enemySkill?.archetype??(['swift','crusher','hexer']as EnemyArchetype[])[n.actorIndex%3]!),roundSkills=dealEnemySkillsForArchetypes(roundRoles,Math.random,enemyNodes.map(n=>n.enemySkill?.name));
     if(targets.length===0){this.status.setText('全隊斷命');return}
@@ -456,7 +457,7 @@ private damage(a:Actor,n:number,balanceDamage=1,deferDeath=false,deathStyle:Deat
     a.hp=result.hp;a.shield=result.shield;a.balance=result.balance;a.alive=deferDeath&&died?true:result.alive;a.broken=result.broken;
     if(died&&!deferDeath){a.hit.disableInteractive();a.exposed=false;a.hud.setAlpha(.35);this.deathPresenter.play(a,[...this.enemies.values()].includes(a),deathStyle);const actorId=[...this.players.entries(),...this.enemies.entries()].find(([,actor])=>actor===a)?.[0],node=this.timeline.find(item=>item.actorId===actorId);if(node?.team==='player'){this.commands.delete(node.id);this.skipBonusNext.delete(node.actorId)}}
     this.refreshActor(a);
-    const feedback=died&&!deferDeath?'斷命':justBroken?'崩勢！':justShattered?'破符！':hpLoss>0?`−${hpLoss}`:`護符 −${blocked}`,color=died&&!deferDeath?'#fff0e8':justBroken?'#ffcf75':justShattered?'#9ff5ff':'#ff8294';
+    const feedback=died&&!deferDeath?'斷命':justBroken?'崩勢！':justShattered?'破符！':hpLoss>0?`−${hpLoss}`:balanceDamage>0&&n===0?`架勢 −${balanceDamage}`:`護符 −${blocked}`,color=died&&!deferDeath?'#fff0e8':justBroken?'#ffcf75':justShattered?'#9ff5ff':balanceDamage>0&&n===0?'#ffcf75':'#ff8294';
     const text=this.add.text(a.root.x,a.root.y-70,feedback,{fontFamily:'sans-serif',fontSize:justBroken?'20px':'15px',fontStyle:'bold',color,backgroundColor:'#080b12dd',padding:{x:8,y:3}}).setOrigin(.5).setDepth(95);
     this.combatLayer.add(text);
     this.tweens.add({targets:text,y:text.y-28,alpha:0,duration:620,ease:'Cubic.easeOut',onComplete:()=>text.destroy()});
@@ -464,6 +465,9 @@ private damage(a:Actor,n:number,balanceDamage=1,deferDeath=false,deathStyle:Deat
     return{justBroken,died}
   }
 private shield(a:Actor,n:number){a.shield=Math.min(50,a.shield+n);this.refreshActor(a)}
+private hitMonster(attacker:Actor,target:Actor,card:BattleCard,extraBalance=0,deferDeath=false,deathStyle:DeathStyle='normal'){
+    const hit=resolveMonsterHit(target.archetype,card,{exposed:target.exposed,broken:target.broken,traitReady:target.traitReady});if(hit.consumeTrait)target.traitReady=false;if(hit.cue)this.resultFxPresenter.playMonsterRule(target,hit.cue);const result=this.damage(target,hit.damage,hit.balanceDamage+extraBalance,deferDeath,deathStyle);if(hit.backlashBalance&&attacker.alive)this.damage(attacker,0,hit.backlashBalance);return result
+  }
 private async relayAssist(sourceId:string,targetId:string,actions:ActionPresenter,allyId?:string){
     const ally=allyId??[...this.players.keys()].find(id=>id!==sourceId&&this.players.get(id)!.alive&&!this.players.get(id)!.broken);
     if(!ally)return;
@@ -489,7 +493,7 @@ private async resolve(){
       const hold=Boolean(playerAlly||enemyAlly);
       await presenter.play(beat.clash,hold,()=>{
         if(beat.clash.winner==='player'){
-          const result=this.damage(enemyActor,beat.clash.player.card.damage??8,beat.clash.player.card.balanceDamage??1,Boolean(playerAlly),beat.clash.player.card.definitionId==='heavy'?'heavy':'normal');
+          const result=this.hitMonster(playerActor,enemyActor,beat.clash.player.card,0,Boolean(playerAlly),beat.clash.player.card.definitionId==='heavy'?'heavy':'normal');
           enemyActor.exposed=enemyActor.alive;this.refreshActor(enemyActor);return result.died&&!playerAlly
         }
         if(beat.clash.winner==='enemy'){
@@ -523,7 +527,7 @@ private async resolve(){
       }else{
         const actor=this.players.get(actorId)!,target=this.enemies.get(targetId)!;if(!actor.alive||!target.alive)continue;if(actor.broken){await actions.cancel(actorId);continue}
         pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText(`${actorId} → ${targetId}${pursuitCount>1?`｜追擊 ${pursuitCount}`:''}${flank?'｜側襲':''}`);
-        let broke=false;await actions.attack(actorId,targetId,beat.command.card,false,flank?'flank':'normal',!beat.command.card.assist,()=>{const balance=(beat.command.card.balanceDamage??1)+(pursuitCount>1?1:0)+(flank?2:0),style:DeathStyle=beat.command.card.definitionId==='heavy'?'heavy':'normal',result=this.damage(target,beat.command.card.damage??8,balance,Boolean(beat.command.card.assist),style);broke=result.justBroken;return result.died&&!beat.command.card.assist});
+        let broke=false;await actions.attack(actorId,targetId,beat.command.card,false,flank?'flank':'normal',!beat.command.card.assist,()=>{const extraBalance=(pursuitCount>1?1:0)+(flank?2:0),style:DeathStyle=beat.command.card.definitionId==='heavy'?'heavy':'normal',result=this.hitMonster(actor,target,beat.command.card,extraBalance,Boolean(beat.command.card.assist),style);broke=result.justBroken;return result.died&&!beat.command.card.assist});
         if(flank){target.exposed=false;this.refreshActor(target)}if(broke&&target.alive)await actions.cancel(targetId,true);if(beat.command.card.assist)await this.relayAssist(actorId,targetId,actions)
       }
     }
