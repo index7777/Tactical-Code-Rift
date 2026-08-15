@@ -85,6 +85,13 @@ export class ClashPresenter {
     const clashY = clash.source === 'intercept' && protectedActor
       ? Phaser.Math.Clamp(protectedActor.root.y, 190, 458)
       : Phaser.Math.Clamp((player.root.y + enemy.root.y) / 2, 190, 458);
+    // A cover intercept happens on the hostile route immediately before the
+    // protected actor. Only a direct face-to-face clash uses centre stage.
+    const clashX = clash.source === 'intercept' && protectedActor
+      ? Phaser.Math.Clamp(protectedActor.root.x - 150, 760, 900)
+      : 640;
+    const playerEntryX = clashX + 80;
+    const enemyEntryX = clashX - 80;
     player.root.setDepth(55);
     enemy.root.setDepth(55);
     this.focusCamera((player.root.x + enemy.root.x) / 2, (player.root.y + enemy.root.y) / 2, 1.08);
@@ -95,31 +102,31 @@ export class ClashPresenter {
       intentTrail.lineStyle(2,0xff526b,.72).lineBetween(enemy.root.x+35,enemy.root.y,protectedActor.root.x-30,protectedActor.root.y);
       this.combatLayer.add(intentTrail);
       protectedActor.root.setAlpha(.62);
-      this.focusCamera((enemy.root.x+protectedActor.root.x)/2,clashY,1.08);
+      this.focusCamera(clashX,clashY,1.08);
       this.sound('sword-swish',.48);
       if(enemy.sprite)this.scene.tweens.add({targets:enemy.sprite,angle:-9,duration:150,ease:'Cubic.easeIn'});
       if(player.sprite)this.scene.tweens.add({targets:player.sprite,angle:-7,duration:130,ease:'Back.easeOut'});
       await Promise.all([
-        this.move(enemy.root,560,clashY,300,'Cubic.easeIn'),
-        this.move(player.root,720,clashY,210,'Back.easeOut'),
+        this.move(enemy.root,enemyEntryX,clashY,300,'Cubic.easeIn'),
+        this.move(player.root,playerEntryX,clashY,210,'Back.easeOut'),
       ]);
-      this.burst(704,clashY+12,0x62ddff,8);
+      this.burst(playerEntryX-16,clashY+12,0x62ddff,8);
       this.scene.cameras.main.shake(75,.004);
       this.scene.tweens.add({targets:intentTrail,alpha:0,duration:120,onComplete:()=>intentTrail.destroy()});
       protectedActor.root.setAlpha(1);
     } else {
       await Promise.all([
-        this.move(player.root,720,clashY,280),
-        this.move(enemy.root,560,clashY,280),
+        this.move(player.root,playerEntryX,clashY,280),
+        this.move(enemy.root,enemyEntryX,clashY,280),
       ])
     }
-    this.focusCamera(640, clashY, 1.16);
+    this.focusCamera(clashX, clashY, 1.16);
 
-    const playerCard = this.scene.add.text(740, clashY - 112, `${clash.player.card.name}\n威力 ${clash.playerPower}`, {
+    const playerCard = this.scene.add.text(clashX+100, clashY - 112, `${clash.player.card.name}\n威力 ${clash.playerPower}`, {
       fontFamily: 'sans-serif', fontSize: '19px', fontStyle: 'bold', align: 'center', color: '#dffaff', backgroundColor: '#155268', padding: { x: 18, y: 10 },
     }).setOrigin(.5).setDepth(70).setAlpha(0).setScale(.86);
     this.combatLayer.add(playerCard);
-    const enemyCard = this.scene.add.text(540, clashY - 112, `${clash.enemy.enemySkill!.name}\n威力 ${clash.enemyPower}`, {
+    const enemyCard = this.scene.add.text(clashX-100, clashY - 112, `${clash.enemy.enemySkill!.name}\n威力 ${clash.enemyPower}`, {
       fontFamily: 'sans-serif', fontSize: '19px', fontStyle: 'bold', align: 'center', color: '#fff0f2', backgroundColor: '#713142', padding: { x: 18, y: 10 },
     }).setOrigin(.5).setDepth(70).setAlpha(0).setScale(.86);
     this.combatLayer.add(enemyCard);
@@ -127,13 +134,13 @@ export class ClashPresenter {
     this.scene.tweens.add({ targets: [playerCard, enemyCard], alpha: 1, scale: 1, duration: 170, ease: 'Back.easeOut' });
     await this.wait(420);
     this.sound('sword-swish', .55);
-    await Promise.all([this.move(player.root, 656, clashY, 135, 'Cubic.easeIn'), this.move(enemy.root, 624, clashY, 135, 'Cubic.easeIn')]);
+    await Promise.all([this.move(player.root, clashX+16, clashY, 135, 'Cubic.easeIn'), this.move(enemy.root, clashX-16, clashY, 135, 'Cubic.easeIn')]);
     this.sound('sword-impact', .72);
     if(player.sprite)player.sprite.setAngle(0);
     if(enemy.sprite)enemy.sprite.setAngle(0);
-    this.slash(640, clashY - 13, false);
-    if (clash.winner === 'tie') this.slash(640, clashY - 13, true);
-    this.burst(640, clashY - 13, 0xffed9c, 12);
+    this.slash(clashX, clashY - 13, false);
+    if (clash.winner === 'tie') this.slash(clashX, clashY - 13, true);
+    this.burst(clashX, clashY - 13, 0xffed9c, 12);
     this.scene.cameras.main.shake(130, .011);
     this.scene.time.timeScale = .35;
     await this.wait(55);
@@ -145,7 +152,7 @@ export class ClashPresenter {
     await this.wait(120);
     playerCard.destroy();
     enemyCard.destroy();
-    const result = this.scene.add.text(640, clashY - 55, clash.winner === 'tie' ? '相殺' : '崩解', {
+    const result = this.scene.add.text(clashX, clashY - 55, clash.winner === 'tie' ? '相殺' : '崩解', {
       fontFamily: 'sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#fff5b8', backgroundColor: '#050912ee', padding: { x: 16, y: 7 },
     }).setOrigin(.5).setDepth(90).setAlpha(0).setScale(.9);
     this.combatLayer.add(result);
@@ -168,11 +175,17 @@ export class ClashPresenter {
       this.burst(loser.root.x, loser.root.y - 5, playerWon ? 0x67e8ff : 0xff6b78, 16);
       this.sound('sword-impact', .9);
       this.scene.cameras.main.shake(170, .014);
+      if (holdForRelay) {
+        await this.move(loser.root, loser.root.x + direction * 34, loser.root.y, 85, 'Quad.easeOut');
+        loser.root.setAngle(direction * 9);
+        await this.wait(90);
+        return;
+      }
       await this.recoil(loser, direction);
       loser.root.setAngle(0);
       await this.wait(90);
     } else {
-      this.burst(640, clashY - 13, 0xffffff, 18);
+      this.burst(clashX, clashY - 13, 0xffffff, 18);
       await Promise.all([
         this.move(player.root, player.root.x + 28, player.root.y, 80, 'Back.easeOut'),
         this.move(enemy.root, enemy.root.x - 28, enemy.root.y, 80, 'Back.easeOut'),

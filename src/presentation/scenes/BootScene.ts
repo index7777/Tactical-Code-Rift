@@ -32,6 +32,8 @@ create(){
     this.input.keyboard?.on('keydown-W',()=>this.scene.restart({pc:Math.min(4,this.pc+1),ec:this.ec}));
     this.input.keyboard?.on('keydown-A',()=>this.scene.restart({pc:this.pc,ec:Math.max(1,this.ec-1)}));
     this.input.keyboard?.on('keydown-S',()=>this.scene.restart({pc:this.pc,ec:Math.min(4,this.ec+1)}));
+    this.input.keyboard?.on('keydown-ESC',()=>this.undoCommand());
+    this.input.keyboard?.on('keydown-BACKSPACE',(event:KeyboardEvent)=>{event.preventDefault();this.undoCommand()});
     this.rebuild()
   }
 private startBattleMusic(){
@@ -66,7 +68,8 @@ private hud(){
     this.status=this.add.text(640,548,'',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#ffcfb8',backgroundColor:'#481522dd',padding:{x:8,y:4}}).setOrigin(.5);
     this.hudLayer.add(this.status);
     this.hudLayer.add(this.button(1015,612,130,'下一回合',()=>this.nextRound(),0x285c67));
-    this.hudLayer.add(this.button(1015,654,130,'跳過',()=>this.skip(),0x4d5364))
+    this.hudLayer.add(this.button(1015,654,130,'跳過',()=>this.skip(),0x4d5364));
+    this.hudLayer.add(this.button(1155,654,105,'上一步',()=>this.undoCommand(),0x343b49))
   }
 private button(x:number,y:number,w:number,label:string,fn:()=>void,color=0x24586e){const b=this.add.text(x,y,label,{fixedWidth:w,align:'center',fontFamily:'sans-serif',fontSize:'14px',color:'#fff',backgroundColor:`#${color.toString(16).padStart(6,'0')}`,padding:{y:8}}).setInteractive({useHandCursor:true});b.on('pointerdown',fn);return b}
 private rebuild(){if(this.busy)return;this.world.each((x:any)=>{if(x instanceof Phaser.GameObjects.Container&&x.getData('actor'))x.destroy()});this.players.clear();this.enemies.clear();const ps:Fighter[]=Array.from({length:this.pc},(_,i)=>({id:`P${String.fromCharCode(65+i)}`,team:'player',actorIndex:i,speed:Phaser.Math.Between(4,9),alive:true}));const es:Fighter[]=Array.from({length:this.ec},(_,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,speed:Phaser.Math.Between(4,9),alive:true})),roundSkills=dealEnemySkills(this.ec);const skills=new Map(es.map((e,i)=>{const skill=roundSkills[i]!,target=Phaser.Math.RND.pick(ps);return[e.id,{id:`${e.id}-skill`,...skill,targetId:target.id}]}));this.timeline=buildRoundTimeline(ps,es,skills);ps.forEach(f=>this.addActor(f));es.forEach(f=>this.addActor(f));this.deck=refillHand(this.deck,5);this.commands.clear();this.planning=this.timeline.filter(n=>n.team==='player').sort((a,b)=>b.speed-a.speed);this.planIndex=0;this.selected=undefined;this.renderTimeline();this.renderHand();this.focus();this.renderEnemyIntents()}
@@ -220,6 +223,13 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
           strokeCurve(blade,{width:2,color:0xb7f8ff,alpha:.98},bladeFrom,new Phaser.Math.Vector2(actor.x-150,actor.y),new Phaser.Math.Vector2(clashX+105,clashY),bladeTo);
           if(isResolvedClash)blade.lineStyle(3,0xffe5a0,1).lineBetween(clashX-10,clashY-10,clashX+10,clashY+10).lineBetween(clashX+10,clashY-10,clashX-10,clashY+10);
           else blade.fillStyle(0x9ef6ff,1).fillTriangle(clashX-12,clashY-7,clashX-12,clashY+7,clashX,clashY);
+          if(card.assist){
+            // Relay is a second beat on the existing causal route, not a new
+            // killing-intent line or a floating text label.
+            blade.lineStyle(3,0xffd36e,.95)
+              .lineBetween(clashX+22,clashY+9,clashX+31,clashY-9)
+              .lineBetween(clashX+34,clashY+9,clashX+43,clashY-9)
+          }
           this.intentLayer.add(blade);
           if(isResolvedClash){
             const result=card.clashPower===s.clashPower?'相殺':card.clashPower>s.clashPower?'有利':'不利';
@@ -295,6 +305,15 @@ private focus(){
   }
 private target(id:string){const node=this.currentPlanner();if(!this.selected||!node)return;const hostile=this.selected.intent==='attack'||this.selected.intent==='disruption';const enemy=this.enemies.has(id);if(hostile!==enemy){this.status.setText(hostile?'此卡必須指定敵方。':'此卡必須指定友方。');return}const targetNode=enemy?this.timeline.find(n=>n.team==='enemy'&&n.actorId===id):undefined;this.commands.set(node.id,{nodeId:node.id,actorId:node.actorId,card:this.selected,targetNodeId:targetNode?.id,targetActorId:id});this.selected=undefined;this.previewTargetId=undefined;this.intentFocus=undefined;this.planIndex++;this.renderHand();this.renderTimeline();this.focus();this.renderEnemyIntents()}
 private skip(){const node=this.currentPlanner();if(this.busy||!node)return;const actorId=node.actorId;this.commands.set(node.id,null);this.skipBonusNext.add(actorId);this.planIndex++;this.renderTimeline();this.status.setText(`${actorId} 跳過｜下回合速度 +2（一次）`);this.focus()}
+private undoCommand(){
+    if(this.busy||this.commands.size===0)return;
+    const entries=[...this.commands.entries()],last=entries[entries.length-1];
+    if(!last)return;
+    const [nodeId,command]=last;
+    if(command===null){const node=this.timeline.find(n=>n.id===nodeId);if(node)this.skipBonusNext.delete(node.actorId)}
+    this.commands.delete(nodeId);this.planIndex=Math.max(0,this.planIndex-1);this.selected=undefined;this.previewTargetId=undefined;this.intentFocus=undefined;
+    this.renderHand();this.renderTimeline();this.focus();this.renderEnemyIntents()
+}
 private nextRound(){
     if(this.busy||this.planIndex<this.planning.length)return;
     this.round++;
@@ -332,11 +351,10 @@ private damage(a:Actor,n:number,balanceDamage=1){
     return justBroken
   }
 private shield(a:Actor,n:number){a.shield=Math.min(50,a.shield+n);this.refreshActor(a)}
-private async relayAssist(sourceId:string,targetId:string,actions:ActionPresenter){
-    const ally=[...this.players.keys()].find(id=>id!==sourceId&&!this.players.get(id)!.broken);
+private async relayAssist(sourceId:string,targetId:string,actions:ActionPresenter,allyId?:string){
+    const ally=allyId??[...this.players.keys()].find(id=>id!==sourceId&&!this.players.get(id)!.broken);
     if(!ally)return;
-    await actions.relay(sourceId,ally,targetId);
-    this.damage(this.enemies.get(targetId)!,6,2)
+    await actions.relay(sourceId,ally,targetId,false,()=>{const target=this.enemies.get(targetId)!;this.damage(target,6,2);return target.hp<=0})
   }
 private relayAlly(team:'player'|'enemy',sourceId:string){
     const actors=team==='player'?this.players:this.enemies;
@@ -349,24 +367,23 @@ private async resolve(){
   for(const beat of beats){
     this.intentFocus=beat.kind==='clash'?beat.clash.enemy.actorId:beat.kind==='enemy-one-sided'?beat.enemy.actorId:beat.kind==='player-one-sided'?beat.command.targetActorId:undefined;this.previewTargetId=undefined;
     if(beat.kind==='clash'){
-      const playerRelay=beat.clash.winner==='tie'&&Boolean(beat.clash.player.card.assist);
-      const enemyRelay=beat.clash.winner==='tie'&&Boolean(beat.clash.enemy.enemySkill?.assist);
+      const playerRelay=(beat.clash.winner==='tie'||beat.clash.winner==='player')&&Boolean(beat.clash.player.card.assist);
+      const enemyRelay=(beat.clash.winner==='tie'||beat.clash.winner==='enemy')&&Boolean(beat.clash.enemy.enemySkill?.assist);
       const playerAlly=playerRelay?this.relayAlly('player',beat.clash.player.actorId):undefined;
       const enemyAlly=enemyRelay?this.relayAlly('enemy',beat.clash.enemy.actorId):undefined;
       const hold=Boolean(playerAlly||enemyAlly);
       await presenter.play(beat.clash,hold);
       if(beat.clash.winner==='tie'&&hold){
         if(playerAlly&&enemyAlly)await actions.dualRelay(beat.clash.player.actorId,playerAlly,beat.clash.enemy.actorId,enemyAlly);
-        else if(playerAlly){await actions.relay(beat.clash.player.actorId,playerAlly,beat.clash.enemy.actorId);this.damage(this.enemies.get(beat.clash.enemy.actorId)!,6,2)}
-        else if(enemyAlly){await actions.relay(beat.clash.enemy.actorId,enemyAlly,beat.clash.player.actorId,true);this.damage(this.players.get(beat.clash.player.actorId)!,6,2)}
-        await presenter.release(beat.clash)
+        else if(playerAlly)await actions.relay(beat.clash.player.actorId,playerAlly,beat.clash.enemy.actorId,false,()=>{const target=this.enemies.get(beat.clash.enemy.actorId)!;this.damage(target,6,2);return target.hp<=0});
+        else if(enemyAlly)await actions.relay(beat.clash.enemy.actorId,enemyAlly,beat.clash.player.actorId,true,()=>{const target=this.players.get(beat.clash.player.actorId)!;this.damage(target,6,2);return target.hp<=0})
       }
-      if(beat.clash.winner==='player'){const target=this.enemies.get(beat.clash.enemy.actorId)!;this.damage(target,beat.clash.player.card.damage??8,beat.clash.player.card.balanceDamage??1);target.exposed=true;this.refreshActor(target);if(beat.clash.player.card.assist)await this.relayAssist(beat.clash.player.actorId,beat.clash.enemy.actorId,actions)}
-      else if(beat.clash.winner==='enemy'){const target=this.players.get(beat.clash.player.actorId)!;this.damage(target,beat.clash.enemy.enemySkill!.damage,1);target.exposed=true;this.refreshActor(target)}
+      if(beat.clash.winner==='player'){const target=this.enemies.get(beat.clash.enemy.actorId)!;this.damage(target,beat.clash.player.card.damage??8,beat.clash.player.card.balanceDamage??1);target.exposed=true;this.refreshActor(target);if(playerAlly)await this.relayAssist(beat.clash.player.actorId,beat.clash.enemy.actorId,actions,playerAlly)}
+      else if(beat.clash.winner==='enemy'){const target=this.players.get(beat.clash.player.actorId)!;this.damage(target,beat.clash.enemy.enemySkill!.damage,1);target.exposed=true;this.refreshActor(target);if(enemyAlly)await actions.relay(beat.clash.enemy.actorId,enemyAlly,beat.clash.player.actorId,true,()=>{this.damage(target,6,2);return target.hp<=0})}
     }else if(beat.kind==='skip')continue;
     else{
       const actorId=beat.kind==='enemy-one-sided'?beat.enemy.actorId:beat.command.actorId,targetId=beat.kind==='enemy-one-sided'?beat.enemy.enemySkill!.targetId:beat.command.targetActorId!;
-      if(beat.kind==='enemy-one-sided'){const actor=this.enemies.get(actorId)!;if(actor.broken){await actions.cancel(actorId,true);continue}await actions.attack(actorId,targetId,{name:beat.enemy.enemySkill!.name,clashPower:beat.enemy.enemySkill!.clashPower},true);this.damage(this.players.get(targetId)!,beat.enemy.enemySkill!.damage,1)}
+      if(beat.kind==='enemy-one-sided'){const actor=this.enemies.get(actorId)!,target=this.players.get(targetId)!,ally=beat.enemy.enemySkill!.assist?this.relayAlly('enemy',actorId):undefined;if(actor.broken){await actions.cancel(actorId,true);continue}await actions.attack(actorId,targetId,{name:beat.enemy.enemySkill!.name,clashPower:beat.enemy.enemySkill!.clashPower},true,'normal',!ally);this.damage(target,beat.enemy.enemySkill!.damage,1);if(ally)await actions.relay(actorId,ally,targetId,true,()=>{this.damage(target,6,2);return target.hp<=0})}
       else if(beat.kind==='support'){await actions.support(actorId,targetId,beat.command.card);this.shield(this.players.get(targetId)!,beat.command.card.shield??8)}
       else{const actor=this.players.get(actorId)!,target=this.enemies.get(targetId)!;if(actor.broken){await actions.cancel(actorId);continue}pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText(`${actorId} → ${targetId}${pursuitCount>1?`｜追擊 ${pursuitCount}`:''}${flank?'｜側襲':''}`);await actions.attack(actorId,targetId,beat.command.card,false,flank?'flank':'normal',!beat.command.card.assist);const balance=(beat.command.card.balanceDamage??1)+(pursuitCount>1?1:0)+(flank?2:0);const broke=this.damage(target,beat.command.card.damage??8,balance);if(flank){target.exposed=false;this.refreshActor(target)}if(broke)await actions.cancel(targetId,true);if(beat.command.card.assist)await this.relayAssist(actorId,targetId,actions)}
     }
