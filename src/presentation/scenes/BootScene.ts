@@ -3,10 +3,15 @@ import{FighterHudPresenter,type FighterHudView}from'../battle/FighterHudPresente
 import{resolveDamage}from'../../core/battle/VitalResolver';
 import{clearEndOfRoundStatuses}from'../../core/battle/StatusLifecycle';import{selectCoverIntent}from'../../core/battle/CoverSelection';
 import{DeathPresenter,type DeathStyle}from'../battle/DeathPresenter';import{OutcomePresenter}from'../battle/OutcomePresenter';
+import{BattlefieldPresenter}from'../battle/BattlefieldPresenter';import{normalizeBattlefieldMode,type BattlefieldMode}from'../battle/BattlefieldMode';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;shield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean}
 export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
 private deathPresenter!:DeathPresenter;private outcomePresenter!:OutcomePresenter;
 private visibleHandCount=5;
+private battlefieldMode:BattlefieldMode='rooftop';private battlefieldPresenter!:BattlefieldPresenter;
+private requestedBattlefield?:BattlefieldMode;
+init(data?:{battlefield?:BattlefieldMode}){this.requestedBattlefield=data?.battlefield}
+private nextBattlefield():BattlefieldMode{return this.battlefieldMode==='rooftop'?'wayside':this.battlefieldMode==='wayside'?'exploration':'rooftop'}
 private currentPlanner(){return applyPlannedInitiative(this.timeline,this.commands).find(n=>n.team==='player'&&!this.commands.has(n.id))}
 private toolKey?:Phaser.Input.Keyboard.Key;private toolsInitialized=false;
 update(){if(!this.toolKey)this.toolKey=this.input.keyboard?.addKey('T');if(!this.toolsInitialized){this.toolsInitialized=true;this.setDevTools(false)}if(this.toolKey&&Phaser.Input.Keyboard.JustDown(this.toolKey))this.setDevTools(!this.toolsVisible)}
@@ -21,7 +26,8 @@ create(){
     this.hudLayer=this.add.container().setDepth(30);
     this.handLayer=this.add.container().setDepth(20);
     this.timelineLayer=this.add.container().setDepth(30);
-    this.makeBackdrop();
+    this.battlefieldMode=this.requestedBattlefield??normalizeBattlefieldMode(new URLSearchParams(window.location.search).get('scene'));
+    this.battlefieldPresenter=new BattlefieldPresenter(this,this.world);this.battlefieldPresenter.build(this.battlefieldMode);
     this.intentLayer=this.add.container();
     this.intentController=new IntentLayerController(this.intentLayer);
     this.fighterHud=new FighterHudPresenter(this);
@@ -61,7 +67,6 @@ private fadeBattleMusic(volume:number,duration:number){
   this.tweens.killTweensOf(this.battleMusic);
   this.tweens.add({targets:this.battleMusic,volume,duration,ease:'Sine.easeInOut'});
 }
-private makeBackdrop(){const items=[this.add.tileSprite(640,290,1280,520,'bg-sky').setTint(0x273342),this.add.tileSprite(640,305,1280,520,'bg-mountains-1').setTint(0x5a4858).setAlpha(.72),this.add.tileSprite(640,320,1280,520,'bg-mountains-2').setTint(0x25313b).setAlpha(.82),this.add.tileSprite(640,340,1280,520,'bg-trees').setTint(0x15191e)];items.forEach(x=>this.world.add(x));const carriage=this.add.container();carriage.add(this.add.rectangle(640,126,1280,24,0x120d11,.96));carriage.add(this.add.rectangle(640,520,1280,28,0x120d11,.97));for(let x=70;x<1280;x+=190){carriage.add(this.add.rectangle(x,323,14,380,0x1e1418,.95));carriage.add(this.add.rectangle(x+94,139,124,8,0x6e4036,.75))}carriage.add(this.add.rectangle(640,505,1280,5,0x8b4b3f,.65));this.world.add(carriage);this.world.add(this.add.rectangle(640,630,1280,180,0x07101b,.98))}
 private hud(){
     this.phase=this.add.text(22,9,'',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#cbe9ee'}).setVisible(false);
     this.hudLayer.add(this.phase);
@@ -501,7 +506,7 @@ private async resolve(){
   }
   const played=[...this.commands.values()].filter((x):x is PlayerCommand=>Boolean(x)).map(x=>x.card);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();
   const outcome=![...this.enemies.values()].some(a=>a.alive)?'victory':![...this.players.values()].some(a=>a.alive)?'defeat':undefined;
-  if(outcome){this.handLayer.setVisible(false);this.fadeBattleMusic(.05,900);await this.outcomePresenter.show(outcome,()=>this.scene.restart({pc:this.pc,ec:this.ec}));return}
+  if(outcome){this.handLayer.setVisible(false);this.fadeBattleMusic(.05,900);await this.outcomePresenter.show(outcome,{onRetry:()=>this.scene.restart({battlefield:this.battlefieldMode}),onContinue:outcome==='victory'?()=>this.scene.restart({battlefield:this.nextBattlefield()}):undefined});return}
   this.handLayer.setVisible(true);this.status.setText('');this.busy=false;
 }
 }

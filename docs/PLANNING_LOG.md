@@ -140,3 +140,10 @@ STATUS = APPEND_ONLY
 - 實作 5：掩護選定受保護者後，可直接點選敵人到匯流點之前的紅色殺生線分支，精確綁定該敵方技能槽；匯流後共用幹線不代表單一技能，不接受精確綁定。
 - 實作 6：抽出 `StatusLifecycle`、`CoverSelection`、`DeathPresenter`、`OutcomePresenter`，開始拆解 BootScene。完整 `CombatResolutionController` 與 Graphify AST 警告仍保留為後續架構工作，不宣稱 P0-08 全部完成。
 - 驗證：`npm run test` 62/62 通過；`npm run build` 通過；瀏覽器實際操作驗證斷命位置、勝利結果層、再戰入口與殺生線分支點選成立。
+
+## 2026-08-15：列車旅程與多場景框架
+
+- 修正方向：刪除固定車廂柱框。列車是移動據點與旅程線索，不代表每場戰鬥都在車廂內發生。
+- 採用三種低成本 Demo 框架：`rooftop` 車頂遭遇、`wayside` 停靠迎擊、`exploration` 離車探索遭遇。三者共用 4V4 戰場預算、殺生線與交鋒座標。
+- 實作：新增 `BattlefieldPresenter` 與純資料 `BattlefieldMode`；網址可用 `?scene=rooftop`、`?scene=wayside`、`?scene=exploration` 固定畫面。勝利結果新增「繼續旅程」，依車頂→停靠→探索順序切換下一個原型框架；再戰保留目前場景。
+- 自證：車頂模式已由實際瀏覽器截圖確認，中央交鋒帶、4V4 角色與殺生線保持可讀。停靠與探索模式通過建置，但瀏覽器連續擷取逾時、本機 headless 截圖停在載入底色，因此本批不把這兩張列為目視驗收通過。

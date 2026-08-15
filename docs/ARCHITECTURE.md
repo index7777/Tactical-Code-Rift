@@ -26,6 +26,8 @@ dist              生成檔，不是 authoritative source
 
 `core` 不得 import Phaser、DOM 或任何平台 SDK。鍵鼠、手把、觸控先轉成共同 game actions。平台功能以介面注入。
 
+戰場背景由 `BattlefieldPresenter` 負責，規則層只持有場景識別，不依賴背景座標或列車物件。現行原型模式為 `rooftop`、`wayside`、`exploration`，均沿用同一組戰鬥布局與鏡頭契約。
+
 ## 畫面、輸入與存檔
 
 - 邏輯畫布 1280×720、16:9、FIT letterbox、pixel art 整數取樣。
