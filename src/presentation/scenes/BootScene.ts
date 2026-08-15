@@ -77,7 +77,7 @@ private addActor(f:Fighter){
     const sprite=this.add.sprite(0,-8,f.team==='player'?'hero':'yokai').setScale(f.team==='player'?1.7:1.9).setFlipX(f.team==='enemy');
     if(f.team==='player')sprite.play('hero-idle');else this.tweens.add({targets:sprite,y:-16,duration:520,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
 
-    const hudView=this.fighterHud.create(f.id,f.team);
+    const hudView=this.fighterHud.create();
     const hud=hudView.root;
 
     const hit=this.add.rectangle(0,0,120,166,0xffffff,.001).setInteractive({useHandCursor:true});
@@ -130,7 +130,7 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
     curve(9,valid?0x52ddeb:0x75696d,.14);curve(2,valid?0xc5fbff:0xb28b91,.98);
     if(valid)g.lineStyle(5,0xffe5a0,1).lineBetween(x-12,y+12,x+12,y-12);
     else g.lineStyle(4,0xff526b,1).lineBetween(x-8,y-8,x+8,y+8).lineBetween(x+8,y-8,x-8,y+8);
-    const label=this.add.text(x,y-22,valid?'掩護':'速度不足',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#fff',backgroundColor:valid?'#16343bdd':'#5a1b29dd',padding:{x:7,y:3}}).setOrigin(.5);
+    const label=this.add.text(x,y-22,valid?'截刀':'速度不足',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#fff',backgroundColor:valid?'#16343bdd':'#5a1b29dd',padding:{x:7,y:3}}).setOrigin(.5);
     this.intentLayer.add([g,label])
   }
   private renderEnemyIntents(){
@@ -139,9 +139,11 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
     if(!this.intentController.canRenderPlanning())this.intentController.beginPlanning();
     const visualCommands=new Map(this.commands);
     const previewPlanner=this.currentPlanner();
-    if(this.previewTargetId&&this.selected&&previewPlanner&&(this.selected.intent==='attack'||this.selected.intent==='disruption')){
-      const previewEnemy=this.timeline.find(n=>n.team==='enemy'&&n.actorId===this.previewTargetId);
-      if(previewEnemy)visualCommands.set(previewPlanner.id,{nodeId:previewPlanner.id,actorId:previewPlanner.actorId,card:this.selected,targetNodeId:previewEnemy.id,targetActorId:previewEnemy.actorId})
+    if(this.previewTargetId&&this.selected&&previewPlanner){
+      const hostile=this.selected.intent==='attack'||this.selected.intent==='disruption';
+      const previewEnemy=hostile?this.timeline.find(n=>n.team==='enemy'&&n.actorId===this.previewTargetId):undefined;
+      if(previewEnemy)visualCommands.set(previewPlanner.id,{nodeId:previewPlanner.id,actorId:previewPlanner.actorId,card:this.selected,targetNodeId:previewEnemy.id,targetActorId:previewEnemy.actorId});
+      else if(this.selected.intent==='defense'&&this.players.has(this.previewTargetId))visualCommands.set(previewPlanner.id,{nodeId:previewPlanner.id,actorId:previewPlanner.actorId,card:this.selected,targetActorId:this.previewTargetId})
     }
     const visualBeats=resolveBattleBeats(applyPlannedInitiative(this.timeline,visualCommands),visualCommands);
     const resolvedClashes=new Set<string>();
@@ -166,14 +168,26 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
       const focused=!this.intentFocus||this.intentFocus===targetId||nodes.some(n=>this.intentFocus===n.actorId);
       const passive=this.intentFocus?(focused ? 0.9 : 0.04):0.18;
       const mergeX=570,endX=target.x-42;
+      const coverRedirects=new Map<string,Phaser.Math.Vector2>();
+      for(const beat of visualBeats){
+        if(beat.kind!=='clash'||beat.clash.enemy.enemySkill?.targetId!==targetId||beat.clash.player.card.intent!=='defense'||beat.clash.player.actorId===targetId)continue;
+        const actorNode=this.timeline.find(node=>node.team==='player'&&node.actorId===beat.clash.player.actorId);
+        const actorInitiative=(actorNode?.initiative??actorNode?.speed??0)+beat.clash.player.card.tempo;
+        const enemyInitiative=beat.clash.enemy.initiative??beat.clash.enemy.speed;
+        coverRedirects.set(beat.clash.enemy.id,new Phaser.Math.Vector2(Phaser.Math.Clamp(735-(actorInitiative-enemyInitiative)*28,600,840),lane))
+      }
+      let continuingToTarget=0;
       nodes.forEach((n,index)=>{
         const a=this.enemies.get(n.actorId)!;
         const s=n.enemySkill!;
         const approachOffset=(index-(nodes.length-1)/2)*14;
         const branch=this.add.graphics().setAlpha(passive).setData('intent',true);
-        const branchFrom=new Phaser.Math.Vector2(a.x+42,a.y),branchTo=new Phaser.Math.Vector2(mergeX,lane);
-        strokeCurve(branch,{width:focused?6:4,color:0x7b1830,alpha:.26},branchFrom,new Phaser.Math.Vector2(a.x+115,a.y),new Phaser.Math.Vector2(mergeX-105,lane+approachOffset),branchTo);
-        strokeCurve(branch,{width:1,color:0xff6078,alpha:.9},branchFrom,new Phaser.Math.Vector2(a.x+115,a.y),new Phaser.Math.Vector2(mergeX-105,lane+approachOffset),branchTo);
+        const redirect=coverRedirects.get(n.id);
+        if(!redirect)continuingToTarget++;
+        const branchFrom=new Phaser.Math.Vector2(a.x+42,a.y),branchTo=redirect??new Phaser.Math.Vector2(mergeX,lane);
+        const approachX=branchTo.x-105;
+        strokeCurve(branch,{width:focused?6:4,color:0x7b1830,alpha:.26},branchFrom,new Phaser.Math.Vector2(a.x+115,a.y),new Phaser.Math.Vector2(approachX,branchTo.y+approachOffset),branchTo);
+        strokeCurve(branch,{width:1,color:0xff6078,alpha:.9},branchFrom,new Phaser.Math.Vector2(a.x+115,a.y),new Phaser.Math.Vector2(approachX,branchTo.y+approachOffset),branchTo);
         this.intentLayer.add(branch);
         const tag=this.add.container(a.x-58,a.y-55).setAlpha(focused?1:.52).setData('intent',true);
         tag.add(this.add.rectangle(0,0,116,28,0x3d101b,.92).setStrokeStyle(1,0xa8374d,.8));
@@ -217,11 +231,13 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
           }
         }
       });
-      const trunk=this.add.graphics().setAlpha(passive).setData('intent',true);
-      const trunkFrom=new Phaser.Math.Vector2(mergeX,lane),trunkTo=new Phaser.Math.Vector2(endX,target.y);
-      strokeCurve(trunk,{width:5,color:0x7c1129,alpha:.2},trunkFrom,new Phaser.Math.Vector2(690,lane),new Phaser.Math.Vector2(endX-125,target.y),trunkTo);
-      strokeCurve(trunk,{width:1,color:0xff4964,alpha:1},trunkFrom,new Phaser.Math.Vector2(690,lane),new Phaser.Math.Vector2(endX-125,target.y),trunkTo);
-      this.intentLayer.add(trunk);
+      if(continuingToTarget>0){
+        const trunk=this.add.graphics().setAlpha(passive).setData('intent',true);
+        const trunkFrom=new Phaser.Math.Vector2(mergeX,lane),trunkTo=new Phaser.Math.Vector2(endX,target.y);
+        strokeCurve(trunk,{width:5,color:0x7c1129,alpha:.2},trunkFrom,new Phaser.Math.Vector2(690,lane),new Phaser.Math.Vector2(endX-125,target.y),trunkTo);
+        strokeCurve(trunk,{width:1,color:0xff4964,alpha:1},trunkFrom,new Phaser.Math.Vector2(690,lane),new Phaser.Math.Vector2(endX-125,target.y),trunkTo);
+        this.intentLayer.add(trunk)
+      }
     })
   }
 private renderTimeline(){

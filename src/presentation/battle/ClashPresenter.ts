@@ -82,29 +82,37 @@ export class ClashPresenter {
     const player = this.players.get(clash.player.actorId)!;
     const enemy = this.enemies.get(clash.enemy.actorId)!;
     const protectedActor = this.players.get(clash.enemy.enemySkill!.targetId);
-    const clashY = Phaser.Math.Clamp((player.root.y + enemy.root.y) / 2, 205, 345);
+    const clashY = clash.source === 'intercept' && protectedActor
+      ? Phaser.Math.Clamp(protectedActor.root.y, 190, 458)
+      : Phaser.Math.Clamp((player.root.y + enemy.root.y) / 2, 190, 458);
     player.root.setDepth(55);
     enemy.root.setDepth(55);
     this.focusCamera((player.root.x + enemy.root.x) / 2, (player.root.y + enemy.root.y) / 2, 1.08);
 
     if (clash.source === 'intercept' && protectedActor) {
-      const guardX = protectedActor.root.x - 105;
-      const guardY = protectedActor.root.y;
-      const interceptLabel = this.scene.add.text(guardX, guardY - 92, '掩護\n攔截', {
-        fontFamily: 'sans-serif', fontSize: '16px', fontStyle: 'bold', align: 'center', color: '#dffaff', backgroundColor: '#155268dd', padding: { x: 12, y: 6 },
-      }).setOrigin(.5).setDepth(85);
-      this.combatLayer.add(interceptLabel);
-      await this.move(player.root, guardX, guardY, 190, 'Back.easeOut');
-      this.burst(guardX, guardY + 12, 0x62ddff, 8);
-      this.scene.cameras.main.shake(80, .004);
-      await this.wait(170);
-      interceptLabel.destroy();
+      const intentTrail=this.scene.add.graphics().setDepth(48);
+      intentTrail.lineStyle(8,0x7b1830,.16).lineBetween(enemy.root.x+35,enemy.root.y,protectedActor.root.x-30,protectedActor.root.y);
+      intentTrail.lineStyle(2,0xff526b,.72).lineBetween(enemy.root.x+35,enemy.root.y,protectedActor.root.x-30,protectedActor.root.y);
+      this.combatLayer.add(intentTrail);
+      protectedActor.root.setAlpha(.62);
+      this.focusCamera((enemy.root.x+protectedActor.root.x)/2,clashY,1.08);
+      this.sound('sword-swish',.48);
+      if(enemy.sprite)this.scene.tweens.add({targets:enemy.sprite,angle:-9,duration:150,ease:'Cubic.easeIn'});
+      if(player.sprite)this.scene.tweens.add({targets:player.sprite,angle:-7,duration:130,ease:'Back.easeOut'});
+      await Promise.all([
+        this.move(enemy.root,560,clashY,300,'Cubic.easeIn'),
+        this.move(player.root,720,clashY,210,'Back.easeOut'),
+      ]);
+      this.burst(704,clashY+12,0x62ddff,8);
+      this.scene.cameras.main.shake(75,.004);
+      this.scene.tweens.add({targets:intentTrail,alpha:0,duration:120,onComplete:()=>intentTrail.destroy()});
+      protectedActor.root.setAlpha(1);
+    } else {
+      await Promise.all([
+        this.move(player.root,720,clashY,280),
+        this.move(enemy.root,560,clashY,280),
+      ])
     }
-
-    await Promise.all([
-      this.move(player.root, 720, clashY, clash.source === 'intercept' ? 210 : 280),
-      this.move(enemy.root, 560, clashY, 280),
-    ]);
     this.focusCamera(640, clashY, 1.16);
 
     const playerCard = this.scene.add.text(740, clashY - 112, `${clash.player.card.name}\n威力 ${clash.playerPower}`, {
@@ -121,6 +129,8 @@ export class ClashPresenter {
     this.sound('sword-swish', .55);
     await Promise.all([this.move(player.root, 656, clashY, 135, 'Cubic.easeIn'), this.move(enemy.root, 624, clashY, 135, 'Cubic.easeIn')]);
     this.sound('sword-impact', .72);
+    if(player.sprite)player.sprite.setAngle(0);
+    if(enemy.sprite)enemy.sprite.setAngle(0);
     this.slash(640, clashY - 13, false);
     if (clash.winner === 'tie') this.slash(640, clashY - 13, true);
     this.burst(640, clashY - 13, 0xffed9c, 12);

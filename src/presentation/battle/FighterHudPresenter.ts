@@ -20,16 +20,11 @@ export interface FighterHudView {
 export class FighterHudPresenter {
   constructor(private scene: Phaser.Scene) {}
 
-  create(id: string, team: 'player' | 'enemy'): FighterHudView {
-    const accent = team === 'player' ? 0x61dff2 : 0xef526d;
+  create(): FighterHudView {
     const root = this.scene.add.container(0, 53);
-    const crest = this.scene.add.circle(-35, -5, 10, 0x07101b, .95).setStrokeStyle(2, accent, .95);
-    const label = this.scene.add.text(-35, -5, id.slice(1), {
-      fontFamily: 'monospace', fontSize: '9px', fontStyle: 'bold', color: '#ffffff',
-    }).setOrigin(.5);
-    const hpBack = this.scene.add.rectangle(-21, -7, 58, 5, 0x24141a, .96).setOrigin(0, .5);
-    const hpEcho = this.scene.add.rectangle(-21, -7, 58, 5, 0xf2d9d9, .8).setOrigin(0, .5);
-    const hpFill = this.scene.add.rectangle(-21, -7, 58, 5, 0xd8465f).setOrigin(0, .5);
+    const hpBack = this.scene.add.rectangle(-29, -7, 58, 5, 0x24141a, .96).setOrigin(0, .5);
+    const hpEcho = this.scene.add.rectangle(-29, -7, 58, 5, 0xf2d9d9, .8).setOrigin(0, .5);
+    const hpFill = this.scene.add.rectangle(-29, -7, 58, 5, 0xd8465f).setOrigin(0, .5);
     const shieldMarks = Array.from({ length: 4 }, (_, index) =>
       this.scene.add.rectangle(-18 + index * 11, 3, 7, 9, 0x8de8ee, .95)
         .setStrokeStyle(1, 0xd9ffff, .8)
@@ -42,7 +37,7 @@ export class FighterHudPresenter {
       fontFamily: 'sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#fff',
       backgroundColor: '#8b2034', padding: { x: 7, y: 2 },
     }).setOrigin(.5).setVisible(false);
-    root.add([crest, label, hpBack, hpEcho, hpFill, ...shieldMarks, ...balanceMarks, state]);
+    root.add([hpBack, hpEcho, hpFill, ...shieldMarks, ...balanceMarks, state]);
     return { root, hpFill, hpEcho, shieldMarks, balanceMarks, state };
   }
 
@@ -67,4 +62,3 @@ export class FighterHudPresenter {
     view.state.setText(status).setBackgroundColor(state.broken ? '#a11e36' : '#6b2e55').setVisible(Boolean(status));
   }
 }
-
