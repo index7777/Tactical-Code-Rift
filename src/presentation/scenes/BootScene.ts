@@ -1,4 +1,4 @@
-import Phaser from'phaser';import{createTeamDeck,createTeamDeckState,refillHand,commitPlayedCards,type BattleCard,type TeamDeckState}from'../../core/cards/BattleCards';import{applyPlannedInitiative,buildRoundTimeline}from'../../core/battle/RoundPlanner';import{resolveBattleBeats}from'../../core/battle/ClashResolver';import{dealEnemySkillsForArchetypes}from'../../core/battle/EnemySkills';import type{ActionNode,EnemyArchetype,Fighter,PlayerCommand}from'../../core/battle/BattleTypes';import{standbyPosition}from'../battle/BattleLayout';import{ClashPresenter,type VisualActor}from'../battle/ClashPresenter';import{ActionPresenter}from'../battle/ActionPresenter';
+import Phaser from'phaser';import{createTeamDeck,createTeamDeckState,refillHand,commitPlayedCards,cycleUncommittedCards,type BattleCard,type TeamDeckState}from'../../core/cards/BattleCards';import{applyPlannedInitiative,buildRoundTimeline}from'../../core/battle/RoundPlanner';import{resolveBattleBeats}from'../../core/battle/ClashResolver';import{dealEnemySkillsForArchetypes}from'../../core/battle/EnemySkills';import type{ActionNode,EnemyArchetype,Fighter,PlayerCommand}from'../../core/battle/BattleTypes';import{standbyPosition}from'../battle/BattleLayout';import{ClashPresenter,type VisualActor}from'../battle/ClashPresenter';import{ActionPresenter}from'../battle/ActionPresenter';
 import{FighterHudPresenter,type FighterHudView}from'../battle/FighterHudPresenter';import{IntentLayerController}from'../battle/IntentLayerController';
 import{resolveDamage}from'../../core/battle/VitalResolver';
 import{clearEndOfRoundStatuses}from'../../core/battle/StatusLifecycle';import{selectCoverIntent}from'../../core/battle/CoverSelection';
@@ -6,12 +6,13 @@ import{DeathPresenter,type DeathStyle}from'../battle/DeathPresenter';import{Outc
 import{BattlefieldPresenter}from'../battle/BattlefieldPresenter';import{normalizeBattlefieldMode,type BattlefieldMode}from'../battle/BattlefieldMode';
 import{CombatResultFxPresenter}from'../battle/CombatResultFxPresenter';
 import{CombatResolutionController}from'../../application/battle/CombatResolutionController';
-interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;shield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean}
+interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;shield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean;archetype?:EnemyArchetype}
 export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
 private deathPresenter!:DeathPresenter;private outcomePresenter!:OutcomePresenter;
 private resultFxPresenter!:CombatResultFxPresenter;
 private resolutionController=new CombatResolutionController();
 private visibleHandCount=5;
+private pendingCycleDraws=0;
 private battlefieldMode:BattlefieldMode='rooftop';private battlefieldPresenter!:BattlefieldPresenter;
 private requestedBattlefield?:BattlefieldMode;private journeyNodeId?:string;
 init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId}
@@ -90,16 +91,16 @@ private button(x:number,y:number,w:number,label:string,fn:()=>void,color=0x24586
 private rebuild(){
   if(this.busy)return;
   this.world.each((x:any)=>{if(x instanceof Phaser.GameObjects.Container&&x.getData('actor'))x.destroy()});this.players.clear();this.enemies.clear();
-  const params=new URLSearchParams(window.location.search),multiCoverProof=params.has('multi-cover-proof'),resultProof=params.has('result-proof');
+  const params=new URLSearchParams(window.location.search),multiCoverProof=params.has('multi-cover-proof'),resultProof=params.has('result-proof'),cardProof=params.has('card-proof');
   if(params.has('outcome-proof')||resultProof)this.ec=1;
   const ps:Fighter[]=Array.from({length:this.pc},(_,i)=>({id:`P${String.fromCharCode(65+i)}`,team:'player',actorIndex:i,speed:multiCoverProof?[4,10,9,5][i]??5:resultProof?[9,8,7,6][i]??6:Phaser.Math.Between(4,9),alive:true}));
-  const enemyRoles:EnemyArchetype[]=Array.from({length:this.ec},(_,i)=>(['swift','crusher','hexer']as EnemyArchetype[])[i%3]!),es:Fighter[]=Array.from({length:this.ec},(_,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,speed:multiCoverProof?[6,5,4,3][i]??3:resultProof?2:enemyRoles[i]==='swift'?Phaser.Math.Between(7,9):enemyRoles[i]==='crusher'?Phaser.Math.Between(3,5):Phaser.Math.Between(5,7),alive:true})),roundSkills=dealEnemySkillsForArchetypes(enemyRoles);
+  const enemyRoles:EnemyArchetype[]=Array.from({length:this.ec},(_,i)=>(['swift','crusher','hexer']as EnemyArchetype[])[i%3]!),es:Fighter[]=Array.from({length:this.ec},(_,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,archetype:enemyRoles[i],speed:multiCoverProof?[6,5,4,3][i]??3:resultProof?2:enemyRoles[i]==='swift'?Phaser.Math.Between(7,9):enemyRoles[i]==='crusher'?Phaser.Math.Between(3,5):Phaser.Math.Between(5,7),alive:true})),roundSkills=dealEnemySkillsForArchetypes(enemyRoles);
   const skills=new Map(es.map((e,i)=>{const skill=roundSkills[i]!,target=multiCoverProof&&i<2?ps[0]!:Phaser.Math.RND.pick(ps);return[e.id,{id:`${e.id}-skill`,...skill,targetId:target.id}]}));
   this.timeline=buildRoundTimeline(ps,es,skills);ps.forEach(f=>this.addActor(f));es.forEach(f=>this.addActor(f));
   if(params.has('death-proof')||params.has('outcome-proof')){const target=this.enemies.values().next().value as Actor|undefined;if(target){target.hp=6;target.shield=0;target.balance=2;this.refreshActor(target)}}
   if(resultProof){const target=this.enemies.values().next().value as Actor|undefined;if(target){target.hp=70;target.shield=0;target.balance=1;this.refreshActor(target)}}
   if(multiCoverProof){const all=createTeamDeck(),covers=all.filter(c=>c.definitionId==='cover'),others=all.filter(c=>c.definitionId!=='cover');this.deck={drawPile:others.slice(3),discardPile:[],exhaustPile:[],hand:[...covers,...others.slice(0,3)]}}
-  else if(resultProof){const all=createTeamDeck(),pick=(id:string)=>all.find(c=>c.definitionId===id)!,hand=[pick('break'),pick('assist'),pick('heavy'),pick('quick'),pick('guard')],ids=new Set(hand.map(c=>c.instanceId));this.deck={drawPile:all.filter(c=>!ids.has(c.instanceId)),discardPile:[],exhaustPile:[],hand}}
+  else if(resultProof||cardProof){const all=createTeamDeck(),pick=(id:string)=>all.find(c=>c.definitionId===id)!,hand=cardProof?[pick('cycle'),pick('delay'),pick('quick'),pick('guard'),pick('cover')]:[pick('break'),pick('relay'),pick('heavy'),pick('quick'),pick('guard')],ids=new Set(hand.map(c=>c.instanceId));this.deck={drawPile:all.filter(c=>!ids.has(c.instanceId)),discardPile:[],exhaustPile:[],hand}}
   else this.deck=refillHand(this.deck,5);
   this.commands.clear();this.planning=this.timeline.filter(n=>n.team==='player').sort((a,b)=>b.speed-a.speed);this.planIndex=0;this.selected=undefined;this.renderTimeline();this.renderHand();this.focus();this.renderEnemyIntents()
 }
@@ -107,8 +108,8 @@ private addActor(f:Fighter){
     const p=standbyPosition(f.team,f.team==='player'?this.pc:this.ec,f.actorIndex);
     const accent=f.team==='player'?0x65e7ff:0xff7087;
     const glow=this.add.ellipse(0,43,90,24,accent,.5).setVisible(false);
-    const sprite=this.add.sprite(0,-8,f.team==='player'?'hero':'yokai').setScale(f.team==='player'?1.7:1.9).setFlipX(f.team==='enemy');if(f.team==='enemy')sprite.setTint([0xd9e7ee,0xd6a09c,0xb8a5da][f.actorIndex%3]!);
-    if(f.team==='player')sprite.play('hero-idle');else this.tweens.add({targets:sprite,y:-16,duration:520,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+    const enemyTexture=f.archetype==='crusher'?'enemy':'yokai',sprite=this.add.sprite(0,-8,f.team==='player'?'hero':enemyTexture).setScale(f.team==='player'?1.7:f.archetype==='crusher'?1.42:1.9).setFlipX(f.team==='enemy');if(f.team==='enemy')sprite.setTint(f.archetype==='swift'?0xd9e7ee:f.archetype==='crusher'?0xc6a69c:0xb8a5da);
+    if(f.team==='player')sprite.play('hero-idle');else if(f.archetype==='crusher')sprite.play('enemy-idle');else this.tweens.add({targets:sprite,y:-16,duration:f.archetype==='swift'?410:620,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
 
     const hudView=this.fighterHud.create();
     const hud=hudView.root;
@@ -119,7 +120,7 @@ private addActor(f:Fighter){
     hit.on('pointerout',()=>{this.intentFocus=undefined;this.previewTargetId=undefined;this.renderEnemyIntents()});
     const root=this.add.container(p.x,p.y,[glow,sprite,hud,hit]).setData('actor',true);
     this.world.add(root);
-    const a={root,x:p.x,y:p.y,sprite,hud,hudView,hit,hp:100,shield:20,balance:10,alive:true,exposed:false,broken:false};
+    const a={root,x:p.x,y:p.y,sprite,hud,hudView,hit,hp:100,shield:20,balance:10,alive:true,exposed:false,broken:false,archetype:f.archetype};
     (f.team==='player'?this.players:this.enemies).set(f.id,a);
     this.refreshActor(a)
   }
@@ -333,27 +334,40 @@ private renderTimeline(){
       if(i===0)this.timelineLayer.add(this.add.circle(x,y,radius+5,0x171710,.92).setStrokeStyle(2,0xffe58a));
       this.timelineLayer.add(this.add.circle(x,y,radius,color,1).setStrokeStyle(2,n.team==='player'?0x9eeeff:0xff9aac,.85));
       this.timelineLayer.add(this.add.text(x,y,n.actorId,{fontFamily:'monospace',fontSize:i===0?'11px':'9px',fontStyle:'bold',color:'#fff'}).setOrigin(.5));
-      this.timelineLayer.add(this.add.text(x,y+23,String(n.speed),{fontFamily:'monospace',fontSize:'9px',color:i===0?'#ffe58a':'#9aadb5'}).setOrigin(.5))
+      this.timelineLayer.add(this.add.text(x,y+23,String(n.initiative??n.speed),{fontFamily:'monospace',fontSize:'9px',color:i===0?'#ffe58a':'#9aadb5'}).setOrigin(.5))
     })
   }
+private drawCardIcon(x:number,y:number,card:BattleCard,color:number){
+    const g=this.add.graphics().setDepth(23);g.lineStyle(2,color,1);
+    if(card.definitionId==='quick'){g.lineBetween(x-9,y+7,x+8,y-8);g.lineBetween(x-3,y+8,x+11,y-4)}
+    else if(card.definitionId==='heavy'){g.lineStyle(4,color,1).lineBetween(x-10,y+8,x+9,y-9);g.lineStyle(2,color,1).strokeCircle(x+7,y-7,4)}
+    else if(card.definitionId==='break'){g.strokeCircle(x,y,8);g.lineBetween(x-10,y-10,x+10,y+10);g.lineBetween(x+2,y-10,x-3,y+9)}
+    else if(card.definitionId==='guard'){g.strokeTriangle(x,y-11,x-10,y-2,x,y+10);g.lineBetween(x,y-11,x+10,y-2);g.lineBetween(x+10,y-2,x,y+10)}
+    else if(card.definitionId==='cover'){g.lineBetween(x-10,y+8,x+9,y-9);g.strokeCircle(x-5,y+3,7)}
+    else if(card.definitionId==='relay'){g.lineBetween(x-10,y+6,x-1,y-6);g.lineBetween(x,y+6,x+9,y-6);g.lineBetween(x+5,y-2,x+10,y-6);g.lineBetween(x+5,y-10,x+10,y-6)}
+    else if(card.definitionId==='cycle'){g.strokeCircle(x,y,8);g.lineBetween(x+4,y-9,x+9,y-5);g.lineBetween(x+9,y-5,x+5,y-1)}
+    else{g.lineBetween(x-10,y,x+10,y);g.lineBetween(x+4,y-5,x+10,y);g.lineBetween(x+4,y+5,x+10,y)}
+    this.handLayer.add(g)
+}
 private renderHand(){
     this.handLayer.removeAll(true);
     const assigned=new Set([...this.commands.values()].filter((x):x is PlayerCommand=>Boolean(x)).map(x=>x.card.instanceId));
     const cards=this.deck.hand.filter(c=>!assigned.has(c.instanceId)).slice(0,this.visibleHandCount);
-    const gap=106,start=640-(cards.length-1)*gap/2;
+    const gap=112,start=640-(cards.length-1)*gap/2;
     cards.forEach((c,i)=>{
-      const x=start+i*gap,color=c.intent==='attack'?0x823447:c.intent==='defense'?0x286174:c.intent==='support'?0x3e7058:0x65437d,selected=this.selected===c;
-      const box=this.add.rectangle(x,653,98,112,color,.96).setStrokeStyle(selected?3:1,selected?0xffe78c:0x8eb4bf,selected?1:.55).setInteractive({useHandCursor:true});
+      const x=start+i*gap,baseY=this.selected===c?641:649,color=c.intent==='attack'?0x743247:c.intent==='defense'?0x245e70:c.intent==='support'?0x3f6757:0x59406f,accent=c.intent==='attack'?0xff6a82:c.intent==='defense'?0x76e4f2:c.intent==='support'?0x8be0ad:0xc39cf2,selected=this.selected===c;
+      const box=this.add.rectangle(x,baseY,104,118,color,.98).setStrokeStyle(selected?3:1,selected?0xffe78c:0x91aeb8,selected?1:.6).setInteractive({useHandCursor:true});
       box.on('pointerdown',()=>{this.selected=c;this.renderHand();this.status.setText('')});
+      const power=c.clashPower>0?String(c.clashPower):'—',effect=c.definitionId==='quick'?'傷10':c.definitionId==='heavy'?'傷16':c.definitionId==='break'?'勢3':c.definitionId==='guard'?'護12':c.definitionId==='cover'?'截刀':c.definitionId==='relay'?'補刀':c.definitionId==='cycle'?'棄2補2':'序−2';
       this.handLayer.add([
         box,
-        this.add.rectangle(x-45,653,4,100,c.intent==='attack'?0xff6a82:c.intent==='defense'?0x76e4f2:c.intent==='support'?0x8be0ad:0xc39cf2,1),
-        this.add.text(x,616,c.name,{fixedWidth:82,align:'center',fontFamily:'sans-serif',fontSize:'14px',fontStyle:'bold',color:'#fff'}).setOrigin(.5),
-        this.add.rectangle(x-27,659,24,24,0x111820,.96).setStrokeStyle(2,0xffdc7a).setAngle(45),
-        this.add.text(x-27,659,String(c.clashPower),{fontFamily:'monospace',fontSize:'18px',fontStyle:'bold',color:'#fff0a8'}).setOrigin(.5),
-        this.add.text(x+22,659,c.tempo>0?`速 +${c.tempo}`:c.tempo<0?`速 ${c.tempo}`:'速 0',{fontFamily:'monospace',fontSize:'10px',fontStyle:'bold',color:c.tempo>0?'#8ff4ff':c.tempo<0?'#ffb3a7':'#b9c2c7'}).setOrigin(.5),
-        this.add.text(x+22,687,c.intent==='attack'?'斬':c.intent==='defense'?'守':c.intent==='support'?'援':'破',{fontFamily:'serif',fontSize:'10px',color:'#d5e0e5'}).setOrigin(.5)
-      ])
+        this.add.rectangle(x-47,baseY,4,106,accent,1),
+        this.add.text(x+8,baseY-39,c.name,{fixedWidth:68,align:'center',fontFamily:'sans-serif',fontSize:'15px',fontStyle:'bold',color:'#fff'}).setOrigin(.5),
+        this.add.polygon(x-30,baseY+5,[0,-14,12,-7,12,7,0,14,-12,7,-12,-7],0x101820,.98).setStrokeStyle(2,0xffdc70),
+        this.add.text(x-30,baseY+5,power,{fontFamily:'monospace',fontSize:'18px',fontStyle:'bold',color:'#fff0a8'}).setOrigin(.5),
+        this.add.text(x+24,baseY+2,c.tempo>0?`速+${c.tempo}`:c.tempo<0?`速${c.tempo}`:'速±0',{fontFamily:'monospace',fontSize:'10px',fontStyle:'bold',color:c.tempo>0?'#9af5ff':c.tempo<0?'#ffb3a7':'#cad2d5'}).setOrigin(.5),
+        this.add.text(x+15,baseY+39,effect,{fixedWidth:64,align:'center',fontFamily:'sans-serif',fontSize:'11px',fontStyle:'bold',color:'#e7eef0'}).setOrigin(.5)
+      ]);this.drawCardIcon(x-25,baseY-38,c,accent)
     });
     const deckX=245,discardX=310,hudY=655;
     for(let i=0;i<3;i++)this.handLayer.add(this.add.rectangle(deckX-i*3,hudY-i*3,46,62,0x17212c,1).setStrokeStyle(1,0x7093a5,.8));
@@ -388,6 +402,7 @@ private target(id:string){
     const hostile=this.selected.intent==='attack'||this.selected.intent==='disruption',enemy=this.enemies.has(id);
     if(hostile!==enemy){this.status.setText(hostile?'此卡必須指定敵方。':'此卡必須指定友方。');return}
     if(this.selected.definitionId==='guard'&&id!==node.actorId){this.status.setText('堅守只能以自身為目標。');return}
+    if(this.selected.definitionId==='cycle'&&id!==node.actorId){this.status.setText('整備由行動者執行，請選擇自身。');return}
     targetNode=enemy?this.timeline.find(n=>n.team==='enemy'&&n.actorId===id):undefined
   }
   this.commands.set(node.id,{nodeId:node.id,actorId:node.actorId,card:this.selected,targetNodeId:targetNode?.id,targetActorId});this.selected=undefined;this.previewTargetId=undefined;this.intentFocus=undefined;this.planIndex++;this.renderHand();this.renderTimeline();this.focus();this.renderEnemyIntents()
@@ -418,7 +433,7 @@ private nextRound(){
     this.round++;
     clearEndOfRoundStatuses([...this.players.values(),...this.enemies.values()]);[...this.players.values(),...this.enemies.values()].forEach(a=>this.refreshActor(a));
     this.timeline=this.timeline.filter(n=>(n.team==='player'?this.players:this.enemies).get(n.actorId)?.alive);
-    const targets=[...this.players.entries()].filter(([,a])=>a.alive).map(([id])=>id),enemyNodes=this.timeline.filter(n=>n.team==='enemy'),roundRoles=enemyNodes.map(n=>(['swift','crusher','hexer']as EnemyArchetype[])[n.actorIndex%3]!),roundSkills=dealEnemySkillsForArchetypes(roundRoles);
+    const targets=[...this.players.entries()].filter(([,a])=>a.alive).map(([id])=>id),enemyNodes=this.timeline.filter(n=>n.team==='enemy'),roundRoles=enemyNodes.map(n=>n.enemySkill?.archetype??(['swift','crusher','hexer']as EnemyArchetype[])[n.actorIndex%3]!),roundSkills=dealEnemySkillsForArchetypes(roundRoles,Math.random,enemyNodes.map(n=>n.enemySkill?.name));
     if(targets.length===0){this.status.setText('全隊斷命');return}
     let enemyIndex=0;
     for(const node of this.timeline){
@@ -431,7 +446,7 @@ private nextRound(){
     this.planning=this.timeline.filter(n=>n.team==='player').sort((a,b)=>b.speed-a.speed);
     this.commands.clear();this.intentFocus=undefined;this.previewTargetId=undefined;this.planIndex=0;this.selected=undefined;
     const handBefore=this.deck.hand.length;this.intentController.beginPlanning();this.renderEnemyIntents();this.deck=refillHand(this.deck,5);
-    const drawn=this.deck.hand.length-handBefore,finalStart=640-(this.deck.hand.length-1)*106/2;this.visibleHandCount=handBefore;this.renderHand();for(let i=0;i<drawn;i++)this.time.delayedCall(i*170,()=>this.animateCardTravel(245,finalStart+(handBefore+i)*106,0x286174,()=>{this.visibleHandCount++;this.renderHand()}));this.renderTimeline();this.focus()
+    const drawn=this.deck.hand.length-handBefore,finalStart=640-(this.deck.hand.length-1)*112/2;this.visibleHandCount=handBefore;this.renderHand();for(let i=0;i<drawn;i++)this.time.delayedCall(i*170,()=>this.animateCardTravel(245,finalStart+(handBefore+i)*112,0x286174,()=>{this.visibleHandCount++;this.renderHand()}));this.renderTimeline();this.focus()
   }
 private refreshActor(a:Actor){
     this.fighterHud.refresh(a.hudView,a)
@@ -502,7 +517,9 @@ private async resolve(){
         if(ally)await actions.relay(actorId,ally,targetId,true,()=>{this.damage(target,6,2,false,'relay');return target.hp<=0})
       }else if(beat.kind==='support'){
         const actor=this.players.get(actorId)!,target=this.players.get(targetId)!;if(!actor.alive||!target.alive)continue;
-        await actions.support(actorId,targetId,beat.command.card);this.shield(target,beat.command.card.shield??8)
+        await actions.support(actorId,targetId,beat.command.card);
+        if(beat.command.card.cycleCount){const protectedIds=new Set(this.resolutionController.committedCards(this.commands).map(card=>card.instanceId)),cycled=cycleUncommittedCards(this.deck,protectedIds,beat.command.card.cycleCount);this.deck=cycled.state;this.pendingCycleDraws+=cycled.cycled.length}
+        else if(beat.command.card.shield)this.shield(target,beat.command.card.shield)
       }else{
         const actor=this.players.get(actorId)!,target=this.enemies.get(targetId)!;if(!actor.alive||!target.alive)continue;if(actor.broken){await actions.cancel(actorId);continue}
         pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText(`${actorId} → ${targetId}${pursuitCount>1?`｜追擊 ${pursuitCount}`:''}${flank?'｜側襲':''}`);
@@ -511,9 +528,9 @@ private async resolve(){
       }
     }
   }
-  const played=this.resolutionController.committedCards(this.commands);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();
+  const played=this.resolutionController.committedCards(this.commands);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=Math.max(0,this.deck.hand.length-this.pendingCycleDraws);this.renderHand();played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();
   const outcome=this.resolutionController.outcome(this.players.values(),this.enemies.values());
   if(outcome){this.handLayer.setVisible(false);this.fadeBattleMusic(.05,900);await this.outcomePresenter.show(outcome,{onRetry:()=>this.scene.restart({battlefield:this.battlefieldMode,journeyNodeId:this.journeyNodeId}),onContinue:outcome==='victory'?(this.journeyNodeId?()=>this.scene.start('JourneyScene'):()=>this.scene.restart({battlefield:this.nextBattlefield()})):undefined});return}
-  this.handLayer.setVisible(true);this.status.setText('');this.busy=false;
+  this.handLayer.setVisible(true);if(this.pendingCycleDraws){const count=this.pendingCycleDraws,finalStart=640-(this.deck.hand.length-1)*112/2;for(let i=0;i<count;i++)this.time.delayedCall(i*170,()=>this.animateCardTravel(245,finalStart+(this.visibleHandCount+i)*112,0x3f6757,()=>{this.visibleHandCount++;this.renderHand()}));this.pendingCycleDraws=0}this.status.setText('');this.busy=false;
 }
 }

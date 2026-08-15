@@ -17,4 +17,5 @@ describe('enemy intent counterplay', () => {
   });
   it('gives each enemy role a bounded finite intent pool',()=>{expect(enemyArchetypePools.swift.every(s=>s.tempo!>=2&&s.clashPower<=6)).toBe(true);expect(enemyArchetypePools.crusher.some(s=>s.balanceDamage===3)).toBe(true);expect(enemyArchetypePools.hexer.every(s=>s.clashPower<=6)).toBe(true)});
   it('keeps at most one power seven across mixed roles',()=>{for(let seed=0;seed<12;seed++){const dealt=dealEnemySkillsForArchetypes(['crusher','crusher','swift','hexer'],()=>((seed=seed*1664525+1013904223)>>>0)/4294967296);expect(dealt.filter(s=>s.clashPower>=7).length).toBeLessThanOrEqual(1);expect(dealt.some(s=>s.clashPower<=5)).toBe(true)}});
+  it('does not repeat the same intent on the next round when alternatives exist',()=>{const first=dealEnemySkillsForArchetypes(['swift','crusher','hexer'],()=>0);const second=dealEnemySkillsForArchetypes(['swift','crusher','hexer'],()=>0,first.map(skill=>skill.name));expect(second.map(skill=>skill.name)).not.toEqual(first.map(skill=>skill.name))});
 });

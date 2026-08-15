@@ -11,9 +11,9 @@ export const enemySkillPool: EnemySkillTemplate[] = [
 ];
 
 export const enemyArchetypePools:Record<EnemyArchetype,EnemySkillTemplate[]>={
-  swift:[{name:'疾走斬',clashPower:5,damage:9,tempo:3,balanceDamage:1,archetype:'swift'},{name:'追風突',clashPower:6,damage:10,tempo:2,assist:true,balanceDamage:1,archetype:'swift'},{name:'試探',clashPower:4,damage:7,tempo:4,balanceDamage:1,archetype:'swift'}],
-  crusher:[{name:'鎮岳',clashPower:7,damage:15,tempo:-3,balanceDamage:3,archetype:'crusher'},{name:'碎構',clashPower:6,damage:12,tempo:-1,balanceDamage:3,archetype:'crusher'},{name:'沉肩',clashPower:5,damage:10,tempo:0,balanceDamage:2,archetype:'crusher'}],
-  hexer:[{name:'咒裂',clashPower:5,damage:8,tempo:1,balanceDamage:2,archetype:'hexer'},{name:'縛足印',clashPower:4,damage:7,tempo:2,balanceDamage:2,archetype:'hexer'},{name:'返刃式',clashPower:6,damage:10,tempo:0,balanceDamage:2,archetype:'hexer'}],
+  swift:[{name:'疾走斬',clashPower:5,damage:9,tempo:3,balanceDamage:1,archetype:'swift',cue:'swift'},{name:'追風突',clashPower:6,damage:10,tempo:2,assist:true,balanceDamage:1,archetype:'swift',cue:'swift'},{name:'試探',clashPower:4,damage:7,tempo:4,balanceDamage:1,archetype:'swift',cue:'swift'}],
+  crusher:[{name:'鎮岳',clashPower:7,damage:15,tempo:-3,balanceDamage:3,archetype:'crusher',cue:'heavy'},{name:'碎構',clashPower:6,damage:12,tempo:-1,balanceDamage:3,archetype:'crusher',cue:'heavy'},{name:'沉肩',clashPower:5,damage:10,tempo:0,balanceDamage:2,archetype:'crusher',cue:'heavy'}],
+  hexer:[{name:'咒裂',clashPower:5,damage:8,tempo:1,balanceDamage:2,archetype:'hexer',cue:'hex'},{name:'縛足印',clashPower:4,damage:7,tempo:2,balanceDamage:2,archetype:'hexer',cue:'hex'},{name:'返刃式',clashPower:6,damage:10,tempo:0,balanceDamage:2,archetype:'hexer',cue:'hex'}],
 };
 
 function shuffle<T>(values: T[], random: () => number) {
@@ -35,4 +35,4 @@ export function dealEnemySkills(count: number, random: () => number = Math.rando
   return shuffle(result.slice(0, count), random);
 }
 
-export function dealEnemySkillsForArchetypes(archetypes:EnemyArchetype[],random:()=>number=Math.random){let highThreatUsed=false;return archetypes.map(type=>{const pool=shuffle(enemyArchetypePools[type],random),allowed=pool.filter(skill=>!highThreatUsed||skill.clashPower<7),skill=allowed[0]??pool.find(s=>s.clashPower<7)!;if(skill.clashPower>=7)highThreatUsed=true;return skill})}
+export function dealEnemySkillsForArchetypes(archetypes:EnemyArchetype[],random:()=>number=Math.random,previousNames:readonly(string|undefined)[]=[]){let highThreatUsed=false;return archetypes.map((type,index)=>{const pool=shuffle(enemyArchetypePools[type],random),nonRepeat=pool.filter(skill=>skill.name!==previousNames[index]),allowed=nonRepeat.filter(skill=>!highThreatUsed||skill.clashPower<7),fallback=pool.filter(skill=>!highThreatUsed||skill.clashPower<7),skill=allowed[0]??fallback[0]!;if(skill.clashPower>=7)highThreatUsed=true;return skill})}

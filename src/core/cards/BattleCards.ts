@@ -1,10 +1,42 @@
-﻿export type CardIntent='attack'|'defense'|'support'|'disruption';
-export type CardTag='攻擊'|'防禦'|'干擾'|'突擊'|'破甲'|'支援'|'援攻'|'側襲'|'終結';
-export interface BattleCard{instanceId:string;definitionId:string;name:string;clashPower:number;tempo:number;intent:CardIntent;tags:CardTag[];description:string;damage?:number;balanceDamage?:number;shield?:number;assist?:boolean;exhaust?:boolean}
-export interface TeamDeckState{drawPile:BattleCard[];discardPile:BattleCard[];exhaustPile:BattleCard[];hand:BattleCard[]}
-const defs:Omit<BattleCard,'instanceId'>[]=[{definitionId:'quick',name:'快斬',clashPower:5,tempo:3,intent:'attack',tags:['攻擊','突擊','側襲'],description:'造成10點傷害；可追击破绽。',damage:10,balanceDamage:1},{definitionId:'heavy',name:'重斬',clashPower:8,tempo:-3,intent:'attack',tags:['攻擊','終結'],description:'造成16點傷害；对瓦解目标强化演出。',damage:16,balanceDamage:2},{definitionId:'break',name:'破甲',clashPower:6,tempo:0,intent:'disruption',tags:['攻擊','干擾','破甲'],description:'造成9點傷害与大量平衡伤害。',damage:9,balanceDamage:3},{definitionId:'guard',name:'堅守',clashPower:6,tempo:0,intent:'defense',tags:['防禦'],description:'原地立架並提供12點護盾；不形成交鋒。',shield:12},{definitionId:'cover',name:'掩護',clashPower:5,tempo:2,intent:'defense',tags:['防禦','支援'],description:'提供9點護盾；快速切入攔截。',shield:9},{definitionId:'assist',name:'接力指令',clashPower:4,tempo:2,intent:'attack',tags:['攻擊','援攻'],description:'造成7點傷害；命中後觸發一次援攻。',damage:7,balanceDamage:1,assist:true},{definitionId:'repair',name:'修復',clashPower:3,tempo:-1,intent:'support',tags:['支援'],description:'提供10點護盾。',shield:10}];
-export function createTeamDeck():BattleCard[]{const ids=['quick','heavy','break','guard','cover','assist','repair','quick','heavy','break','guard','cover'];return ids.map((id,i)=>({...defs.find(d=>d.definitionId===id)!,instanceId:`${id}-${i}`}))}
-export function shuffleCards(cards:BattleCard[],random:()=>number=Math.random):BattleCard[]{const a=[...cards];for(let i=a.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[a[i],a[j]]=[a[j]!,a[i]!]}return a}
+export type CardIntent = 'attack' | 'defense' | 'support' | 'disruption';
+export type CardTag = '攻擊' | '防禦' | '干擾' | '突擊' | '破甲' | '支援' | '援攻' | '側襲' | '終結' | '整備' | '牽制';
+export type CardFamily = 'quick' | 'heavy' | 'break' | 'guard' | 'cover' | 'relay' | 'cycle' | 'delay';
+
+export interface BattleCard {
+  instanceId: string;
+  definitionId: CardFamily;
+  name: string;
+  clashPower: number;
+  tempo: number;
+  intent: CardIntent;
+  tags: CardTag[];
+  description: string;
+  damage?: number;
+  balanceDamage?: number;
+  shield?: number;
+  assist?: boolean;
+  cycleCount?: number;
+  delayTarget?: number;
+}
+
+export interface TeamDeckState { drawPile: BattleCard[]; discardPile: BattleCard[]; exhaustPile: BattleCard[]; hand: BattleCard[] }
+
+export const cardDefinitions: Readonly<Record<CardFamily, Omit<BattleCard, 'instanceId'>>> = {
+  quick: { definitionId: 'quick', name: '快斬', clashPower: 5, tempo: 3, intent: 'attack', tags: ['攻擊', '突擊', '側襲'], description: '快攻｜傷害 10｜架勢 1', damage: 10, balanceDamage: 1 },
+  heavy: { definitionId: 'heavy', name: '重斬', clashPower: 8, tempo: -3, intent: 'attack', tags: ['攻擊', '終結'], description: '終結｜傷害 16｜架勢 2', damage: 16, balanceDamage: 2 },
+  break: { definitionId: 'break', name: '破甲', clashPower: 6, tempo: 0, intent: 'disruption', tags: ['攻擊', '干擾', '破甲'], description: '傷害 9｜架勢 3', damage: 9, balanceDamage: 3 },
+  guard: { definitionId: 'guard', name: '堅守', clashPower: 6, tempo: 0, intent: 'defense', tags: ['防禦'], description: '自身｜護符 12', shield: 12 },
+  cover: { definitionId: 'cover', name: '掩護', clashPower: 5, tempo: 2, intent: 'defense', tags: ['防禦', '支援'], description: '截斷一條殺意｜護符 9', shield: 9 },
+  relay: { definitionId: 'relay', name: '接力', clashPower: 4, tempo: 2, intent: 'attack', tags: ['攻擊', '援攻'], description: '傷害 7｜命中後補刀', damage: 7, balanceDamage: 1, assist: true },
+  cycle: { definitionId: 'cycle', name: '整備', clashPower: 0, tempo: -1, intent: 'support', tags: ['支援', '整備'], description: '消耗行動｜棄 2 補 2', cycleCount: 2 },
+  delay: { definitionId: 'delay', name: '牽制', clashPower: 4, tempo: 2, intent: 'disruption', tags: ['攻擊', '干擾', '牽制'], description: '傷害 5｜目標時序 −2', damage: 5, balanceDamage: 1, delayTarget: 2 },
+};
+
+export const teamDeckRecipe: readonly CardFamily[] = ['quick','quick','quick','heavy','heavy','break','break','break','guard','guard','cover','cover','relay','relay','cycle','cycle','delay','delay'];
+
+export function createTeamDeck(): BattleCard[] { return teamDeckRecipe.map((id,index)=>({...cardDefinitions[id],tags:[...cardDefinitions[id].tags],instanceId:`${id}-${index}`})) }
+export function shuffleCards(cards:BattleCard[],random:()=>number=Math.random):BattleCard[]{const result=[...cards];for(let index=result.length-1;index>0;index--){const swap=Math.floor(random()*(index+1));[result[index],result[swap]]=[result[swap]!,result[index]!]}return result}
 export const createTeamDeckState=(random:()=>number=Math.random):TeamDeckState=>({drawPile:shuffleCards(createTeamDeck(),random),discardPile:[],exhaustPile:[],hand:[]});
-export function refillHand(state:TeamDeckState,limit=5,random:()=>number=Math.random):TeamDeckState{const draw=[...state.drawPile],discard=[...state.discardPile],hand=[...state.hand];while(hand.length<limit){if(!draw.length){if(!discard.length)break;draw.push(...shuffleCards(discard.splice(0),random))}hand.push(draw.shift()!)}return{...state,drawPile:draw,discardPile:discard,hand}}
-export function commitPlayedCards(state:TeamDeckState,cards:BattleCard[]):TeamDeckState{const ids=new Set(cards.map(c=>c.instanceId));return{...state,hand:state.hand.filter(c=>!ids.has(c.instanceId)),discardPile:[...state.discardPile,...cards.filter(c=>!c.exhaust)],exhaustPile:[...state.exhaustPile,...cards.filter(c=>c.exhaust)]}}
+export function refillHand(state:TeamDeckState,limit=5,random:()=>number=Math.random):TeamDeckState{const drawPile=[...state.drawPile],discardPile=[...state.discardPile],hand=[...state.hand];while(hand.length<limit){if(!drawPile.length){if(!discardPile.length)break;drawPile.push(...shuffleCards(discardPile.splice(0),random))}hand.push(drawPile.shift()!)}return{...state,drawPile,discardPile,hand}}
+export function commitPlayedCards(state:TeamDeckState,cards:BattleCard[]):TeamDeckState{const ids=new Set(cards.map(card=>card.instanceId));return{...state,hand:state.hand.filter(card=>!ids.has(card.instanceId)),discardPile:[...state.discardPile,...cards],exhaustPile:[...state.exhaustPile]}}
+export function cycleUncommittedCards(state:TeamDeckState,protectedIds:ReadonlySet<string>,count:number,random:()=>number=Math.random):{state:TeamDeckState;cycled:BattleCard[]}{const cycled=state.hand.filter(card=>!protectedIds.has(card.instanceId)).slice(0,count);if(!cycled.length)return{state,cycled};const ids=new Set(cycled.map(card=>card.instanceId)),staged={...state,hand:state.hand.filter(card=>!ids.has(card.instanceId)),discardPile:[...state.discardPile,...cycled]};return{state:refillHand(staged,state.hand.length,random),cycled}}

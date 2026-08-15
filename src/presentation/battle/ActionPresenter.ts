@@ -7,9 +7,14 @@ export class ActionPresenter {
   private move(o: Phaser.GameObjects.Container, x: number, y: number, d = 210, ease = 'Quad.easeInOut') { return new Promise<void>((r) => this.scene.tweens.add({ targets: o, x, y, duration: d, ease, onComplete: () => r() })); }
   private wait(ms: number) { return new Promise<void>((r) => this.scene.time.delayedCall(ms, r)); }
   private slash(x: number, y: number, flipX: boolean) { const fx = this.scene.add.image(x, y, 'slash-fx').setDepth(100).setScale(.25).setFlipX(flipX).setAlpha(0); this.combatLayer.add(fx); this.scene.tweens.add({ targets: fx, alpha: 1, scale: .68, duration: 80, yoyo: true, hold: 55, onComplete: () => fx.destroy() }); }
+  private cardImpact(x:number,y:number,definitionId?:string){
+    if(definitionId==='break'){for(let i=0;i<5;i++){const shard=this.scene.add.rectangle(x,y,14+i*2,3,0xffd36b,1).setRotation(-.8+i*.35).setDepth(102);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x-42+i*21,y:y-30+(i%2)*34,angle:70-i*25,alpha:0,duration:290,onComplete:()=>shard.destroy()})}}
+    else if(definitionId==='delay'){const ring=this.scene.add.ellipse(x,y,52,84,0x6fb8d5,.08).setStrokeStyle(3,0x9cecff,.9).setDepth(101);this.combatLayer.add(ring);this.scene.tweens.add({targets:ring,scaleX:1.7,scaleY:.65,alpha:0,duration:330,ease:'Cubic.easeOut',onComplete:()=>ring.destroy()})}
+    else if(definitionId==='heavy'){const shock=this.scene.add.rectangle(x,y+28,124,5,0xffd8a0,.8).setDepth(101);this.combatLayer.add(shock);this.scene.tweens.add({targets:shock,scaleX:1.8,alpha:0,duration:260,onComplete:()=>shock.destroy()})}
+  }
   private resetCamera() { this.scene.cameras.main.pan(640, 360, 250, 'Sine.easeInOut'); this.scene.cameras.main.zoomTo(1, 250, 'Sine.easeInOut'); }
 
-  async attack(actorId: string, targetId: string, card: { name: string; clashPower: number }, enemy = false, mode: 'normal' | 'flank' = 'normal', returnToSlot = true, onImpact?: () => boolean) {
+  async attack(actorId: string, targetId: string, card: { name: string; clashPower: number; definitionId?: string }, enemy = false, mode: 'normal' | 'flank' = 'normal', returnToSlot = true, onImpact?: () => boolean) {
     const attacker = (enemy ? this.enemies : this.players).get(actorId)!;
     const target = (enemy ? this.players : this.enemies).get(targetId)!;
     const direction = attacker.root.x < target.root.x ? 1 : -1;
@@ -20,6 +25,7 @@ export class ActionPresenter {
     await this.move(attacker.root, contactX, target.root.y, 150, 'Cubic.easeIn');
     if (mode === 'flank') badge.setText(`${card.name}\n側襲`);
     this.slash(target.root.x, target.root.y - 5, enemy);
+    this.cardImpact(target.root.x,target.root.y-5,card.definitionId);
     this.scene.sound.play('sword-impact', { volume: .82 });
     this.scene.cameras.main.shake(130, .01);
     await this.move(target.root, target.root.x + direction * 30, target.root.y, 70, 'Quad.easeOut');
@@ -115,9 +121,9 @@ export class ActionPresenter {
 
   async support(actorId: string, targetId: string, card: BattleCard) {
     const actor = this.players.get(actorId)!; const target = this.players.get(targetId)!;
-    const badge = this.scene.add.text(actor.root.x, actor.root.y - 90, `${card.name}\n支援`, { fontFamily: 'sans-serif', fontSize: '16px', fontStyle: 'bold', align: 'center', color: '#fff', backgroundColor: '#376d59', padding: { x: 14, y: 8 } }).setOrigin(.5).setDepth(70);
-    await this.move(actor.root, target.root.x - 75, target.root.y, 190, 'Back.easeOut');
+    const badge = this.scene.add.text(actor.root.x, actor.root.y - 90, card.name, { fontFamily: 'sans-serif', fontSize: '16px', fontStyle: 'bold', align: 'center', color: '#fff', backgroundColor: '#376d59', padding: { x: 14, y: 8 } }).setOrigin(.5).setDepth(70);
+    if(actorId!==targetId)await this.move(actor.root, target.root.x - 75, target.root.y, 190, 'Back.easeOut');
     this.scene.tweens.add({ targets: target.root, scale: 1.12, duration: 160, yoyo: true });
-    await this.wait(260); badge.destroy(); await this.move(actor.root, actor.x, actor.y);
+    await this.wait(260); badge.destroy(); if(actorId!==targetId)await this.move(actor.root, actor.x, actor.y);
   }
 }

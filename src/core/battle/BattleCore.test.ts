@@ -29,6 +29,7 @@ it('never lets one cover command consume two killing intents',()=>{
   expect(beats.filter(b=>b.kind==='clash')).toHaveLength(1);
   expect(beats.filter(b=>b.kind==='enemy-one-sided')).toHaveLength(1)
 });
+it('moves a restrained enemy two initiative steps later without granting an extra action',()=>{const timeline=buildRoundTimeline(ps,es,skills),delay=createTeamDeck().find(card=>card.definitionId==='delay')!,enemy=timeline.find(node=>node.actorId==='EB')!,command:PlayerCommand={nodeId:'PA-action',actorId:'PA',card:delay,targetNodeId:enemy.id,targetActorId:'EB'},planned=applyPlannedInitiative(timeline,new Map([['PA-action',command]]));expect(planned.find(node=>node.actorId==='EB')!.initiative).toBe(enemy.speed+(enemy.enemySkill?.tempo??0)-2);expect(planned.filter(node=>node.actorId==='EB')).toHaveLength(1)});
 it('does not turn an unbound cover into a ghost support movement',()=>{
   const timeline=buildRoundTimeline(ps,es,skills),cover=createTeamDeck().find(c=>c.definitionId==='cover')!;
   const commands=new Map<string,PlayerCommand|null>([['PB-action',{nodeId:'PB-action',actorId:'PB',card:cover,targetActorId:'PA'}]]);
