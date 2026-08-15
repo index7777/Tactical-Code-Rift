@@ -1,4 +1,4 @@
-import Phaser from'phaser';import{createTeamDeck,createTeamDeckState,refillHand,commitPlayedCards,cycleUncommittedCards,type BattleCard,type TeamDeckState}from'../../core/cards/BattleCards';import{applyPlannedInitiative,buildRoundTimeline}from'../../core/battle/RoundPlanner';import{resolveBattleBeats}from'../../core/battle/ClashResolver';import{dealEnemySkillsForArchetypes}from'../../core/battle/EnemySkills';import type{ActionNode,EnemyArchetype,Fighter,PlayerCommand}from'../../core/battle/BattleTypes';import{standbyPosition}from'../battle/BattleLayout';import{ClashPresenter,type VisualActor}from'../battle/ClashPresenter';import{ActionPresenter}from'../battle/ActionPresenter';
+import Phaser from'phaser';import{createTeamDeck,createTeamDeckState,refillHand,commitPlayedCards,cycleUncommittedCards,type BattleCard,type TeamDeckState}from'../../core/cards/BattleCards';import{applyPlannedInitiative,buildRoundTimeline}from'../../core/battle/RoundPlanner';import{resolveBattleBeats}from'../../core/battle/ClashResolver';import{dealEnemySkillsForArchetypes,enemyArchetypePools}from'../../core/battle/EnemySkills';import type{ActionNode,EnemyArchetype,Fighter,PlayerCommand}from'../../core/battle/BattleTypes';import{standbyPosition}from'../battle/BattleLayout';import{ClashPresenter,type VisualActor}from'../battle/ClashPresenter';import{ActionPresenter}from'../battle/ActionPresenter';
 import{FighterHudPresenter,type FighterHudView}from'../battle/FighterHudPresenter';import{IntentLayerController}from'../battle/IntentLayerController';
 import{resolveDamage}from'../../core/battle/VitalResolver';
 import{clearEndOfRoundStatuses}from'../../core/battle/StatusLifecycle';import{selectCoverIntent}from'../../core/battle/CoverSelection';
@@ -6,7 +6,7 @@ import{DeathPresenter,type DeathStyle}from'../battle/DeathPresenter';import{Outc
 import{BattlefieldPresenter}from'../battle/BattlefieldPresenter';import{normalizeBattlefieldMode,type BattlefieldMode}from'../battle/BattlefieldMode';
 import{CombatResultFxPresenter}from'../battle/CombatResultFxPresenter';
 import{CombatResolutionController}from'../../application/battle/CombatResolutionController';
-import{resolveMonsterHit}from'../../core/battle/MonsterRules';
+import{readMonsterRule,resolveMonsterHit}from'../../core/battle/MonsterRules';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;shield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean;archetype?:EnemyArchetype;traitReady:boolean}
 export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
 private deathPresenter!:DeathPresenter;private outcomePresenter!:OutcomePresenter;
@@ -92,16 +92,16 @@ private button(x:number,y:number,w:number,label:string,fn:()=>void,color=0x24586
 private rebuild(){
   if(this.busy)return;
   this.world.each((x:any)=>{if(x instanceof Phaser.GameObjects.Container&&x.getData('actor'))x.destroy()});this.players.clear();this.enemies.clear();
-  const params=new URLSearchParams(window.location.search),multiCoverProof=params.has('multi-cover-proof'),resultProof=params.has('result-proof'),cardProof=params.has('card-proof');
-  if(params.has('outcome-proof')||resultProof)this.ec=1;
+  const params=new URLSearchParams(window.location.search),multiCoverProof=params.has('multi-cover-proof'),resultProof=params.has('result-proof'),cardProof=params.has('card-proof'),monsterProofValue=params.get('monster-proof'),monsterProof=(['swift','crusher','hexer']as const).find(role=>role===monsterProofValue);
+  if(params.has('outcome-proof')||resultProof||monsterProof)this.ec=1;if(monsterProof)this.pc=1;
   const ps:Fighter[]=Array.from({length:this.pc},(_,i)=>({id:`P${String.fromCharCode(65+i)}`,team:'player',actorIndex:i,speed:multiCoverProof?[4,10,9,5][i]??5:resultProof?[9,8,7,6][i]??6:Phaser.Math.Between(4,9),alive:true}));
-  const enemyRoles:EnemyArchetype[]=Array.from({length:this.ec},(_,i)=>(['swift','crusher','hexer']as EnemyArchetype[])[i%3]!),es:Fighter[]=Array.from({length:this.ec},(_,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,archetype:enemyRoles[i],speed:multiCoverProof?[6,5,4,3][i]??3:resultProof?2:enemyRoles[i]==='swift'?Phaser.Math.Between(7,9):enemyRoles[i]==='crusher'?Phaser.Math.Between(3,5):Phaser.Math.Between(5,7),alive:true})),roundSkills=dealEnemySkillsForArchetypes(enemyRoles);
+  const enemyRoles:EnemyArchetype[]=Array.from({length:this.ec},(_,i)=>monsterProof??(['swift','crusher','hexer']as EnemyArchetype[])[i%3]!),es:Fighter[]=Array.from({length:this.ec},(_,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,archetype:enemyRoles[i],speed:multiCoverProof?[6,5,4,3][i]??3:resultProof?2:monsterProof?5:enemyRoles[i]==='swift'?Phaser.Math.Between(7,9):enemyRoles[i]==='crusher'?Phaser.Math.Between(3,5):Phaser.Math.Between(5,7),alive:true})),proofPower=monsterProof==='swift'?5:monsterProof==='crusher'?5:4,roundSkills=monsterProof?[enemyArchetypePools[monsterProof].find(skill=>skill.clashPower===proofPower)!]:dealEnemySkillsForArchetypes(enemyRoles);
   const skills=new Map(es.map((e,i)=>{const skill=roundSkills[i]!,target=multiCoverProof&&i<2?ps[0]!:Phaser.Math.RND.pick(ps);return[e.id,{id:`${e.id}-skill`,...skill,targetId:target.id}]}));
   this.timeline=buildRoundTimeline(ps,es,skills);ps.forEach(f=>this.addActor(f));es.forEach(f=>this.addActor(f));
   if(params.has('death-proof')||params.has('outcome-proof')){const target=this.enemies.values().next().value as Actor|undefined;if(target){target.hp=6;target.shield=0;target.balance=2;this.refreshActor(target)}}
   if(resultProof){const target=this.enemies.values().next().value as Actor|undefined;if(target){target.hp=70;target.shield=0;target.balance=1;this.refreshActor(target)}}
   if(multiCoverProof){const all=createTeamDeck(),covers=all.filter(c=>c.definitionId==='cover'),others=all.filter(c=>c.definitionId!=='cover');this.deck={drawPile:others.slice(3),discardPile:[],exhaustPile:[],hand:[...covers,...others.slice(0,3)]}}
-  else if(resultProof||cardProof){const all=createTeamDeck(),pick=(id:string)=>all.find(c=>c.definitionId===id)!,hand=cardProof?[pick('cycle'),pick('delay'),pick('quick'),pick('guard'),pick('cover')]:[pick('break'),pick('relay'),pick('heavy'),pick('quick'),pick('guard')],ids=new Set(hand.map(c=>c.instanceId));this.deck={drawPile:all.filter(c=>!ids.has(c.instanceId)),discardPile:[],exhaustPile:[],hand}}
+  else if(resultProof||cardProof||monsterProof){const all=createTeamDeck(),pick=(id:string)=>all.find(c=>c.definitionId===id)!,monsterHands={swift:['heavy','quick','break','guard','relay'],crusher:['quick','break','heavy','guard','relay'],hexer:['heavy','delay','break','quick','guard']}as const,hand=monsterProof?monsterHands[monsterProof].map(pick):cardProof?[pick('cycle'),pick('delay'),pick('quick'),pick('guard'),pick('cover')]:[pick('break'),pick('relay'),pick('heavy'),pick('quick'),pick('guard')],ids=new Set(hand.map(c=>c.instanceId));this.deck={drawPile:all.filter(c=>!ids.has(c.instanceId)),discardPile:[],exhaustPile:[],hand}}
   else this.deck=refillHand(this.deck,5);
   this.commands.clear();this.planning=this.timeline.filter(n=>n.team==='player').sort((a,b)=>b.speed-a.speed);this.planIndex=0;this.selected=undefined;this.renderTimeline();this.renderHand();this.focus();this.renderEnemyIntents()
 }
@@ -137,6 +137,7 @@ private previewTarget(id:string){
       }
     }
     this.intentFocus=id;this.previewTargetId=id;this.renderEnemyIntents();
+    if(this.selected&&this.enemies.has(id))this.drawMonsterRuleRead(this.enemies.get(id)!,this.selected);
     if(!this.selected)return;
     const planner=this.currentPlanner();if(!planner)return;
     const initiative=planner.speed+this.selected.tempo;
@@ -325,6 +326,7 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
       renderedPlayerRoutes.add(beat.command.nodeId)
     }
   }
+private drawMonsterRuleRead(actor:Actor,card:BattleCard){const read=readMonsterRule(actor.archetype,card,actor);if(read.state==='neutral'||!read.label)return;const safe=read.state==='counter',color=safe?0x83e9c0:0xff7185,g=this.add.circle(actor.x,actor.y-72,17,color,.16).setStrokeStyle(2,color,.95),label=this.add.text(actor.x,actor.y-72,read.label,{fontFamily:'serif',fontSize:'12px',fontStyle:'bold',color:safe?'#bfffe6':'#ffd3d9',backgroundColor:'#0b111bdd',padding:{x:6,y:3}}).setOrigin(.5);this.intentLayer.add([g,label])}
 private renderTimeline(){
     this.timelineLayer.removeAll(true);
     const planned=applyPlannedInitiative(this.timeline,this.commands);

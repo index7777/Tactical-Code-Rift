@@ -23,7 +23,15 @@ export class CombatResultFxPresenter{
   playMonsterRule(actor:VisualActor,cue:MonsterRuleCue){
     const x=actor.root.x,y=actor.root.y-28,label=cue==='afterimage'?'殘影':cue==='stone-guard'?'厚甲':'咒返',color=cue==='afterimage'?0x9cecff:cue==='stone-guard'?0xe4bd72:0xc99cff;
     const ring=this.scene.add.ellipse(x,y+24,cue==='afterimage'?48:68,cue==='afterimage'?92:70,color,.06).setStrokeStyle(cue==='stone-guard'?5:3,color,.9).setDepth(108),text=this.scene.add.text(x,y-42,label,{fontFamily:'serif',fontSize:'15px',fontStyle:'bold',color:'#fff',backgroundColor:'#15121ddd',padding:{x:8,y:3}}).setOrigin(.5).setDepth(109);this.layer.add([ring,text]);
-    if(cue==='afterimage')this.scene.tweens.add({targets:actor.root,x:actor.root.x-12,duration:45,yoyo:true,repeat:2});
+    if(cue==='afterimage'){
+      this.scene.tweens.add({targets:actor.root,x:actor.root.x-12,duration:45,yoyo:true,repeat:2});
+      for(let i=0;i<3;i++){const echo=this.scene.add.ellipse(x+12+i*13,y+18,34,88,color,.035).setStrokeStyle(2,color,.42-i*.1).setDepth(106);this.layer.add(echo);this.scene.tweens.add({targets:echo,x:echo.x+30+i*7,alpha:0,delay:i*35,duration:260,onComplete:()=>echo.destroy()})}
+    }else if(cue==='stone-guard'){
+      for(let i=0;i<4;i++){const plate=this.scene.add.rectangle(x-30+i*20,y+15-(i%2)*8,17,42,color,.28).setStrokeStyle(2,0xffe6ac,.92).setRotation((i-1.5)*.14).setDepth(107);this.layer.add(plate);this.scene.tweens.add({targets:plate,x:plate.x+(i-1.5)*18,y:plate.y-15-(i%2)*12,angle:(i-1.5)*24,alpha:0,delay:90,duration:310,ease:'Cubic.easeOut',onComplete:()=>plate.destroy()})}
+    }else{
+      for(let i=0;i<2;i++){const seal=this.scene.add.polygon(x,y+18,[0,-32,25,0,0,32,-25,0],color,.04).setStrokeStyle(2,color,.85).setDepth(107);this.layer.add(seal);this.scene.tweens.add({targets:seal,angle:i?95:-95,scale:i?1.35:.7,alpha:0,duration:390+i*70,onComplete:()=>seal.destroy()})}
+      const recoil=this.scene.add.rectangle(x,y+18,96,3,color,.9).setDepth(108);this.layer.add(recoil);this.scene.tweens.add({targets:recoil,scaleX:1.8,alpha:0,duration:300,onComplete:()=>recoil.destroy()})
+    }
     this.scene.tweens.add({targets:ring,scaleX:1.65,scaleY:.72,alpha:0,duration:360,onComplete:()=>ring.destroy()});this.scene.tweens.add({targets:text,y:text.y-18,alpha:0,delay:120,duration:380,onComplete:()=>text.destroy()})
   }
 }
