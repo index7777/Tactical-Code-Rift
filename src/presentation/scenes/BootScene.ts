@@ -1,18 +1,20 @@
-import Phaser from'phaser';import{createTeamDeck,createTeamDeckState,refillHand,commitPlayedCards,type BattleCard,type TeamDeckState}from'../../core/cards/BattleCards';import{applyPlannedInitiative,buildRoundTimeline}from'../../core/battle/RoundPlanner';import{resolveBattleBeats}from'../../core/battle/ClashResolver';import{dealEnemySkills}from'../../core/battle/EnemySkills';import type{ActionNode,Fighter,PlayerCommand}from'../../core/battle/BattleTypes';import{standbyPosition}from'../battle/BattleLayout';import{ClashPresenter,type VisualActor}from'../battle/ClashPresenter';import{ActionPresenter}from'../battle/ActionPresenter';
+import Phaser from'phaser';import{createTeamDeck,createTeamDeckState,refillHand,commitPlayedCards,type BattleCard,type TeamDeckState}from'../../core/cards/BattleCards';import{applyPlannedInitiative,buildRoundTimeline}from'../../core/battle/RoundPlanner';import{resolveBattleBeats}from'../../core/battle/ClashResolver';import{dealEnemySkillsForArchetypes}from'../../core/battle/EnemySkills';import type{ActionNode,EnemyArchetype,Fighter,PlayerCommand}from'../../core/battle/BattleTypes';import{standbyPosition}from'../battle/BattleLayout';import{ClashPresenter,type VisualActor}from'../battle/ClashPresenter';import{ActionPresenter}from'../battle/ActionPresenter';
 import{FighterHudPresenter,type FighterHudView}from'../battle/FighterHudPresenter';import{IntentLayerController}from'../battle/IntentLayerController';
 import{resolveDamage}from'../../core/battle/VitalResolver';
 import{clearEndOfRoundStatuses}from'../../core/battle/StatusLifecycle';import{selectCoverIntent}from'../../core/battle/CoverSelection';
 import{DeathPresenter,type DeathStyle}from'../battle/DeathPresenter';import{OutcomePresenter}from'../battle/OutcomePresenter';
 import{BattlefieldPresenter}from'../battle/BattlefieldPresenter';import{normalizeBattlefieldMode,type BattlefieldMode}from'../battle/BattlefieldMode';
 import{CombatResultFxPresenter}from'../battle/CombatResultFxPresenter';
+import{CombatResolutionController}from'../../application/battle/CombatResolutionController';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;shield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean}
 export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
 private deathPresenter!:DeathPresenter;private outcomePresenter!:OutcomePresenter;
 private resultFxPresenter!:CombatResultFxPresenter;
+private resolutionController=new CombatResolutionController();
 private visibleHandCount=5;
 private battlefieldMode:BattlefieldMode='rooftop';private battlefieldPresenter!:BattlefieldPresenter;
-private requestedBattlefield?:BattlefieldMode;
-init(data?:{battlefield?:BattlefieldMode}){this.requestedBattlefield=data?.battlefield}
+private requestedBattlefield?:BattlefieldMode;private journeyNodeId?:string;
+init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId}
 private nextBattlefield():BattlefieldMode{return this.battlefieldMode==='rooftop'?'wayside':this.battlefieldMode==='wayside'?'exploration':'rooftop'}
 private currentPlanner(){return applyPlannedInitiative(this.timeline,this.commands).find(n=>n.team==='player'&&!this.commands.has(n.id))}
 private toolKey?:Phaser.Input.Keyboard.Key;private toolsInitialized=false;
@@ -20,6 +22,7 @@ update(){if(!this.toolKey)this.toolKey=this.input.keyboard?.addKey('T');if(!this
 private setDevTools(visible:boolean){this.toolsVisible=visible;const labels=new Set(['重新開始','P−','P+','E−','E+']);for(const item of this.hudLayer?.list??[]){if(item instanceof Phaser.GameObjects.Text){if(item.text==='戰術編碼：裂痕')item.setText('妖異鐵道｜殺生線試作');if(item.text==='FOCUSED CLASH // SHARED DECK')item.setText('讀取殺意・截斷因果・繼刀崩勢');if(labels.has(item.text))item.setVisible(visible)}}this.phase?.setText(visible?'開發工具｜T 收起':this.phase.text.replace('開發工具｜T 收起',''))}
 preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('slash-fx','assets/battle/slash-fx.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.spritesheet('hero','assets/battle/samurai.png',{frameWidth:48,frameHeight:48});this.load.spritesheet('enemy','assets/battle/enemy-knight.png',{frameWidth:64,frameHeight:64});this.load.image('yokai','assets/battle/kamaitachi.png')}
 create(){
+    if(new URLSearchParams(window.location.search).has('journey')&&!this.journeyNodeId){this.scene.start('JourneyScene');return}
     if(!this.anims.exists('hero-idle'))this.anims.create({key:'hero-idle',frames:this.anims.generateFrameNumbers('hero',{start:0,end:3}),frameRate:5,repeat:-1});
     if(!this.anims.exists('hero-ready'))this.anims.create({key:'hero-ready',frames:[{key:'hero',frame:4}]});
     if(!this.anims.exists('enemy-idle'))this.anims.create({key:'enemy-idle',frames:this.anims.generateFrameNumbers('enemy',{start:0,end:3}),frameRate:5,repeat:-1});
@@ -90,7 +93,7 @@ private rebuild(){
   const params=new URLSearchParams(window.location.search),multiCoverProof=params.has('multi-cover-proof'),resultProof=params.has('result-proof');
   if(params.has('outcome-proof')||resultProof)this.ec=1;
   const ps:Fighter[]=Array.from({length:this.pc},(_,i)=>({id:`P${String.fromCharCode(65+i)}`,team:'player',actorIndex:i,speed:multiCoverProof?[4,10,9,5][i]??5:resultProof?[9,8,7,6][i]??6:Phaser.Math.Between(4,9),alive:true}));
-  const es:Fighter[]=Array.from({length:this.ec},(_,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,speed:multiCoverProof?[6,5,4,3][i]??3:resultProof?2:Phaser.Math.Between(4,9),alive:true})),roundSkills=dealEnemySkills(this.ec);
+  const enemyRoles:EnemyArchetype[]=Array.from({length:this.ec},(_,i)=>(['swift','crusher','hexer']as EnemyArchetype[])[i%3]!),es:Fighter[]=Array.from({length:this.ec},(_,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,speed:multiCoverProof?[6,5,4,3][i]??3:resultProof?2:enemyRoles[i]==='swift'?Phaser.Math.Between(7,9):enemyRoles[i]==='crusher'?Phaser.Math.Between(3,5):Phaser.Math.Between(5,7),alive:true})),roundSkills=dealEnemySkillsForArchetypes(enemyRoles);
   const skills=new Map(es.map((e,i)=>{const skill=roundSkills[i]!,target=multiCoverProof&&i<2?ps[0]!:Phaser.Math.RND.pick(ps);return[e.id,{id:`${e.id}-skill`,...skill,targetId:target.id}]}));
   this.timeline=buildRoundTimeline(ps,es,skills);ps.forEach(f=>this.addActor(f));es.forEach(f=>this.addActor(f));
   if(params.has('death-proof')||params.has('outcome-proof')){const target=this.enemies.values().next().value as Actor|undefined;if(target){target.hp=6;target.shield=0;target.balance=2;this.refreshActor(target)}}
@@ -104,7 +107,7 @@ private addActor(f:Fighter){
     const p=standbyPosition(f.team,f.team==='player'?this.pc:this.ec,f.actorIndex);
     const accent=f.team==='player'?0x65e7ff:0xff7087;
     const glow=this.add.ellipse(0,43,90,24,accent,.5).setVisible(false);
-    const sprite=this.add.sprite(0,-8,f.team==='player'?'hero':'yokai').setScale(f.team==='player'?1.7:1.9).setFlipX(f.team==='enemy');
+    const sprite=this.add.sprite(0,-8,f.team==='player'?'hero':'yokai').setScale(f.team==='player'?1.7:1.9).setFlipX(f.team==='enemy');if(f.team==='enemy')sprite.setTint([0xd9e7ee,0xd6a09c,0xb8a5da][f.actorIndex%3]!);
     if(f.team==='player')sprite.play('hero-idle');else this.tweens.add({targets:sprite,y:-16,duration:520,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
 
     const hudView=this.fighterHud.create();
@@ -415,12 +418,12 @@ private nextRound(){
     this.round++;
     clearEndOfRoundStatuses([...this.players.values(),...this.enemies.values()]);[...this.players.values(),...this.enemies.values()].forEach(a=>this.refreshActor(a));
     this.timeline=this.timeline.filter(n=>(n.team==='player'?this.players:this.enemies).get(n.actorId)?.alive);
-    const targets=[...this.players.entries()].filter(([,a])=>a.alive).map(([id])=>id),enemyNodes=this.timeline.filter(n=>n.team==='enemy'),roundSkills=dealEnemySkills(enemyNodes.length);
+    const targets=[...this.players.entries()].filter(([,a])=>a.alive).map(([id])=>id),enemyNodes=this.timeline.filter(n=>n.team==='enemy'),roundRoles=enemyNodes.map(n=>(['swift','crusher','hexer']as EnemyArchetype[])[n.actorIndex%3]!),roundSkills=dealEnemySkillsForArchetypes(roundRoles);
     if(targets.length===0){this.status.setText('全隊斷命');return}
     let enemyIndex=0;
     for(const node of this.timeline){
       const bonus=node.team==='player'&&this.skipBonusNext.has(node.actorId)?2:0;
-      node.speed=Phaser.Math.Between(4,9)+bonus;node.initiative=undefined;
+      const role=node.team==='enemy'?(['swift','crusher','hexer']as EnemyArchetype[])[node.actorIndex%3]:undefined;node.speed=(role==='swift'?Phaser.Math.Between(7,9):role==='crusher'?Phaser.Math.Between(3,5):role==='hexer'?Phaser.Math.Between(5,7):Phaser.Math.Between(4,9))+bonus;node.initiative=undefined;
       if(node.team==='enemy'){const skill=roundSkills[enemyIndex++]!;node.enemySkill={id:`${node.actorId}-skill-r${this.round}`,...skill,targetId:Phaser.Math.RND.pick(targets)}}
     }
     this.skipBonusNext.clear();
@@ -457,7 +460,7 @@ private relayAlly(team:'player'|'enemy',sourceId:string){
   }
 private async resolve(){
   this.busy=true;this.intentController.beginExecution();this.handLayer.setVisible(false);this.status.setText('');this.players.forEach(a=>{a.root.setAlpha(a.alive?1:.5);a.hud.setAlpha(a.alive?1:.25);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)});this.phase.setText('');
-  const planned=applyPlannedInitiative(this.timeline,this.commands),beats=resolveBattleBeats(planned,this.commands),presenter=new ClashPresenter(this,this.players,this.enemies,this.combatLayer),actions=new ActionPresenter(this,this.players,this.enemies,this.combatLayer);
+  const {beats}=this.resolutionController.createPlan(this.timeline,this.commands),presenter=new ClashPresenter(this,this.players,this.enemies,this.combatLayer),actions=new ActionPresenter(this,this.players,this.enemies,this.combatLayer);
   let pursuitTarget='';let pursuitCount=0;
   for(const beat of beats){
     this.intentFocus=beat.kind==='clash'?beat.clash.enemy.actorId:beat.kind==='enemy-one-sided'?beat.enemy.actorId:beat.kind==='player-one-sided'?beat.command.targetActorId:undefined;this.previewTargetId=undefined;
@@ -475,7 +478,7 @@ private async resolve(){
           enemyActor.exposed=enemyActor.alive;this.refreshActor(enemyActor);return result.died&&!playerAlly
         }
         if(beat.clash.winner==='enemy'){
-          const result=this.damage(playerActor,beat.clash.enemy.enemySkill!.damage,1,Boolean(enemyAlly));
+          const result=this.damage(playerActor,beat.clash.enemy.enemySkill!.damage,beat.clash.enemy.enemySkill!.balanceDamage??1,Boolean(enemyAlly));
           playerActor.exposed=playerActor.alive;this.refreshActor(playerActor);return result.died&&!enemyAlly
         }
         return false
@@ -495,7 +498,7 @@ private async resolve(){
       if(beat.kind==='enemy-one-sided'){
         const actor=this.enemies.get(actorId)!,target=this.players.get(targetId)!;if(!actor.alive||!target.alive)continue;
         const ally=beat.enemy.enemySkill!.assist?this.relayAlly('enemy',actorId):undefined;if(actor.broken){await actions.cancel(actorId,true);continue}
-        await actions.attack(actorId,targetId,{name:beat.enemy.enemySkill!.name,clashPower:beat.enemy.enemySkill!.clashPower},true,'normal',!ally,()=>this.damage(target,beat.enemy.enemySkill!.damage,1,Boolean(ally)).died&&!ally);
+        await actions.attack(actorId,targetId,{name:beat.enemy.enemySkill!.name,clashPower:beat.enemy.enemySkill!.clashPower},true,'normal',!ally,()=>this.damage(target,beat.enemy.enemySkill!.damage,beat.enemy.enemySkill!.balanceDamage??1,Boolean(ally)).died&&!ally);
         if(ally)await actions.relay(actorId,ally,targetId,true,()=>{this.damage(target,6,2,false,'relay');return target.hp<=0})
       }else if(beat.kind==='support'){
         const actor=this.players.get(actorId)!,target=this.players.get(targetId)!;if(!actor.alive||!target.alive)continue;
@@ -508,9 +511,9 @@ private async resolve(){
       }
     }
   }
-  const played=[...this.commands.values()].filter((x):x is PlayerCommand=>Boolean(x)).map(x=>x.card);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();
-  const outcome=![...this.enemies.values()].some(a=>a.alive)?'victory':![...this.players.values()].some(a=>a.alive)?'defeat':undefined;
-  if(outcome){this.handLayer.setVisible(false);this.fadeBattleMusic(.05,900);await this.outcomePresenter.show(outcome,{onRetry:()=>this.scene.restart({battlefield:this.battlefieldMode}),onContinue:outcome==='victory'?()=>this.scene.restart({battlefield:this.nextBattlefield()}):undefined});return}
+  const played=this.resolutionController.committedCards(this.commands);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();
+  const outcome=this.resolutionController.outcome(this.players.values(),this.enemies.values());
+  if(outcome){this.handLayer.setVisible(false);this.fadeBattleMusic(.05,900);await this.outcomePresenter.show(outcome,{onRetry:()=>this.scene.restart({battlefield:this.battlefieldMode,journeyNodeId:this.journeyNodeId}),onContinue:outcome==='victory'?(this.journeyNodeId?()=>this.scene.start('JourneyScene'):()=>this.scene.restart({battlefield:this.nextBattlefield()})):undefined});return}
   this.handLayer.setVisible(true);this.status.setText('');this.busy=false;
 }
 }

@@ -25,9 +25,7 @@ export function resolveBattleBeats(timeline: ActionNode[], commands: Map<string,
     });
 
     const direct = available.find((command) =>
-      command.actorId === incomingTarget &&
-      ((isHostile(command) && command.targetNodeId === enemy.id) ||
-        (command.card.definitionId === 'guard' && command.targetActorId === incomingTarget)),
+      command.actorId === incomingTarget && isHostile(command) && command.targetNodeId === enemy.id,
     );
 
     const cover = available

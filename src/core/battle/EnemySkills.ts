@@ -1,4 +1,4 @@
-import type { EnemySkill } from './BattleTypes';
+import type { EnemyArchetype,EnemySkill } from './BattleTypes';
 
 export type EnemySkillTemplate = Omit<EnemySkill, 'id' | 'targetId'>;
 
@@ -9,6 +9,12 @@ export const enemySkillPool: EnemySkillTemplate[] = [
   { name: '破勢', clashPower: 4, damage: 8, tempo: 1 },
   { name: '猛擊', clashPower: 7, damage: 15, tempo: -3 },
 ];
+
+export const enemyArchetypePools:Record<EnemyArchetype,EnemySkillTemplate[]>={
+  swift:[{name:'疾走斬',clashPower:5,damage:9,tempo:3,balanceDamage:1,archetype:'swift'},{name:'追風突',clashPower:6,damage:10,tempo:2,assist:true,balanceDamage:1,archetype:'swift'},{name:'試探',clashPower:4,damage:7,tempo:4,balanceDamage:1,archetype:'swift'}],
+  crusher:[{name:'鎮岳',clashPower:7,damage:15,tempo:-3,balanceDamage:3,archetype:'crusher'},{name:'碎構',clashPower:6,damage:12,tempo:-1,balanceDamage:3,archetype:'crusher'},{name:'沉肩',clashPower:5,damage:10,tempo:0,balanceDamage:2,archetype:'crusher'}],
+  hexer:[{name:'咒裂',clashPower:5,damage:8,tempo:1,balanceDamage:2,archetype:'hexer'},{name:'縛足印',clashPower:4,damage:7,tempo:2,balanceDamage:2,archetype:'hexer'},{name:'返刃式',clashPower:6,damage:10,tempo:0,balanceDamage:2,archetype:'hexer'}],
+};
 
 function shuffle<T>(values: T[], random: () => number) {
   const result = [...values];
@@ -28,3 +34,5 @@ export function dealEnemySkills(count: number, random: () => number = Math.rando
   while (result.length < count) result.push(normal[(result.length - 1) % normal.length]!);
   return shuffle(result.slice(0, count), random);
 }
+
+export function dealEnemySkillsForArchetypes(archetypes:EnemyArchetype[],random:()=>number=Math.random){let highThreatUsed=false;return archetypes.map(type=>{const pool=shuffle(enemyArchetypePools[type],random),allowed=pool.filter(skill=>!highThreatUsed||skill.clashPower<7),skill=allowed[0]??pool.find(s=>s.clashPower<7)!;if(skill.clashPower>=7)highThreatUsed=true;return skill})}

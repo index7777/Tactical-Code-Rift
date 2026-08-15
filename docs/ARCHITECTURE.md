@@ -28,6 +28,10 @@ dist              生成檔，不是 authoritative source
 
 戰場背景由 `BattlefieldPresenter` 負責，規則層只持有場景識別，不依賴背景座標或列車物件。現行原型模式為 `rooftop`、`wayside`、`exploration`，均沿用同一組戰鬥布局與鏡頭契約。
 
+`CombatResolutionController` 已承接時序套用、節拍建立、死亡撤銷後的實際出牌收集與勝敗判定；Phaser Presenter 仍在 `BootScene` 依節拍播放。後續 Boss 批次前須再把逐節拍執行迴圈移出 Scene，現階段不宣稱 God Object 拆分全部完成。
+
+`JourneyScene` 負責主線選路與列車移動；`core/route` 的 `JourneyState` 保存固定起點／王終點、目前節點、已走節點與連線。事件、探索與伙伴節點現在只有資料和 placeholder resolution，不得在角色與 Boss 完成前擴寫內容系統。
+
 ## 畫面、輸入與存檔
 
 - 邏輯畫布 1280×720、16:9、FIT letterbox、pixel art 整數取樣。
