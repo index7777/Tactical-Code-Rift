@@ -1,8 +1,11 @@
 import Phaser from'phaser';import{createTeamDeck,createTeamDeckState,refillHand,commitPlayedCards,type BattleCard,type TeamDeckState}from'../../core/cards/BattleCards';import{applyPlannedInitiative,buildRoundTimeline}from'../../core/battle/RoundPlanner';import{resolveBattleBeats}from'../../core/battle/ClashResolver';import{dealEnemySkills}from'../../core/battle/EnemySkills';import type{ActionNode,Fighter,PlayerCommand}from'../../core/battle/BattleTypes';import{standbyPosition}from'../battle/BattleLayout';import{ClashPresenter,type VisualActor}from'../battle/ClashPresenter';import{ActionPresenter}from'../battle/ActionPresenter';
 import{FighterHudPresenter,type FighterHudView}from'../battle/FighterHudPresenter';import{IntentLayerController}from'../battle/IntentLayerController';
 import{resolveDamage}from'../../core/battle/VitalResolver';
+import{clearEndOfRoundStatuses}from'../../core/battle/StatusLifecycle';import{selectCoverIntent}from'../../core/battle/CoverSelection';
+import{DeathPresenter,type DeathStyle}from'../battle/DeathPresenter';import{OutcomePresenter}from'../battle/OutcomePresenter';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;shield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean}
 export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
+private deathPresenter!:DeathPresenter;private outcomePresenter!:OutcomePresenter;
 private visibleHandCount=5;
 private currentPlanner(){return applyPlannedInitiative(this.timeline,this.commands).find(n=>n.team==='player'&&!this.commands.has(n.id))}
 private toolKey?:Phaser.Input.Keyboard.Key;private toolsInitialized=false;
@@ -23,6 +26,7 @@ create(){
     this.intentController=new IntentLayerController(this.intentLayer);
     this.fighterHud=new FighterHudPresenter(this);
     this.combatLayer=this.add.container();
+    this.deathPresenter=new DeathPresenter(this,this.combatLayer);this.outcomePresenter=new OutcomePresenter(this,this.hudLayer);
     this.world.add([this.intentLayer,this.combatLayer]);
     const ui=this.cameras.add(0,0,1280,720);
     ui.ignore(this.world);
@@ -77,11 +81,12 @@ private rebuild(){
   if(this.busy)return;
   this.world.each((x:any)=>{if(x instanceof Phaser.GameObjects.Container&&x.getData('actor'))x.destroy()});this.players.clear();this.enemies.clear();
   const params=new URLSearchParams(window.location.search),multiCoverProof=params.has('multi-cover-proof');
+  if(params.has('outcome-proof'))this.ec=1;
   const ps:Fighter[]=Array.from({length:this.pc},(_,i)=>({id:`P${String.fromCharCode(65+i)}`,team:'player',actorIndex:i,speed:multiCoverProof?[4,10,9,5][i]??5:Phaser.Math.Between(4,9),alive:true}));
   const es:Fighter[]=Array.from({length:this.ec},(_,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,speed:multiCoverProof?[6,5,4,3][i]??3:Phaser.Math.Between(4,9),alive:true})),roundSkills=dealEnemySkills(this.ec);
   const skills=new Map(es.map((e,i)=>{const skill=roundSkills[i]!,target=multiCoverProof&&i<2?ps[0]!:Phaser.Math.RND.pick(ps);return[e.id,{id:`${e.id}-skill`,...skill,targetId:target.id}]}));
   this.timeline=buildRoundTimeline(ps,es,skills);ps.forEach(f=>this.addActor(f));es.forEach(f=>this.addActor(f));
-  if(params.has('death-proof')){const target=this.enemies.values().next().value as Actor|undefined;if(target){target.hp=6;target.shield=0;target.balance=2;this.refreshActor(target)}}
+  if(params.has('death-proof')||params.has('outcome-proof')){const target=this.enemies.values().next().value as Actor|undefined;if(target){target.hp=6;target.shield=0;target.balance=2;this.refreshActor(target)}}
   if(multiCoverProof){const all=createTeamDeck(),covers=all.filter(c=>c.definitionId==='cover'),others=all.filter(c=>c.definitionId!=='cover');this.deck={drawPile:others.slice(3),discardPile:[],exhaustPile:[],hand:[...covers,...others.slice(0,3)]}}
   else this.deck=refillHand(this.deck,5);
   this.commands.clear();this.planning=this.timeline.filter(n=>n.team==='player').sort((a,b)=>b.speed-a.speed);this.planIndex=0;this.selected=undefined;this.renderTimeline();this.renderHand();this.focus();this.renderEnemyIntents()
@@ -219,6 +224,13 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
         strokeCurve(branch,{width:focused?6:4,color:0x7b1830,alpha:.26},branchFrom,new Phaser.Math.Vector2(a.x+115,a.y),new Phaser.Math.Vector2(approachX,branchTo.y+approachOffset),branchTo);
         strokeCurve(branch,{width:1,color:0xff6078,alpha:.9},branchFrom,new Phaser.Math.Vector2(a.x+115,a.y),new Phaser.Math.Vector2(approachX,branchTo.y+approachOffset),branchTo);
         this.intentLayer.add(branch);
+        if(this.selected?.definitionId==='cover'){
+          const hitPoints=new Phaser.Curves.CubicBezier(branchFrom,new Phaser.Math.Vector2(a.x+115,a.y),new Phaser.Math.Vector2(approachX,branchTo.y+approachOffset),branchTo).getPoints(7);
+          for(let i=1;i<hitPoints.length;i++){
+            const p=hitPoints[i-1]!,q=hitPoints[i]!,zone=this.add.rectangle((p.x+q.x)/2,(p.y+q.y)/2,Phaser.Math.Distance.Between(p.x,p.y,q.x,q.y)+10,26,0xffffff,.001).setRotation(Phaser.Math.Angle.Between(p.x,p.y,q.x,q.y)).setInteractive({useHandCursor:true}).setData('intent',true);
+            zone.on('pointerdown',()=>this.target(n.actorId));zone.on('pointerover',()=>{this.intentFocus=n.actorId});this.intentLayer.add(zone)
+          }
+        }
         const tag=this.add.container(a.x-58,a.y-55).setAlpha(focused?1:.52).setData('intent',true);
         tag.add(this.add.rectangle(0,0,116,28,0x3d101b,.92).setStrokeStyle(1,0xa8374d,.8));
         tag.add(this.add.text(-49,0,s.name,{fixedWidth:72,fontFamily:'sans-serif',fontSize:'11px',fontStyle:'bold',color:'#ffe9ec'}).setOrigin(0,.5));
@@ -357,20 +369,9 @@ private target(id:string){
   const selectedActor=this.players.get(id)??this.enemies.get(id);if(selectedActor&&!selectedActor.alive){this.status.setText('斷命目標無法選取。');return}
   let targetNode:ActionNode|undefined,targetActorId=id;
   if(this.selected.definitionId==='cover'){
-    const reserved=new Set([...this.commands.values()].filter((c):c is PlayerCommand=>Boolean(c?.targetNodeId)).map(c=>c.targetNodeId!));
-    if(this.enemies.has(id))targetNode=this.timeline.find(n=>n.team==='enemy'&&n.actorId===id);
-    else if(this.players.has(id)){
-      if(id===node.actorId){this.status.setText('掩護用於保護隊友；自身防禦請用堅守。');return}
-      const incoming=this.timeline.filter(n=>n.team==='enemy'&&n.enemySkill?.targetId===id&&!reserved.has(n.id));
-      if(incoming.length>1){this.status.setText('此角色有多條殺意；請點選要截斷的敵人。');this.intentFocus=id;this.renderEnemyIntents();return}
-      targetNode=incoming[0]
-    }
-    if(!targetNode?.enemySkill){this.status.setText('沒有可掩護的敵方殺意。');return}
-    if(reserved.has(targetNode.id)){this.status.setText('這條殺意已由其他角色攔截。');return}
-    targetActorId=targetNode.enemySkill.targetId;
-    if(targetActorId===node.actorId){this.status.setText('掩護用於保護隊友；自身防禦請用堅守。');return}
-    const initiative=node.speed+this.selected.tempo,enemyInitiative=targetNode.initiative??targetNode.speed+(targetNode.enemySkill.tempo??0);
-    if(initiative<=enemyInitiative){this.status.setText('速度不足，無法截斷這條殺意。');return}
+    const result=selectCoverIntent({timeline:this.timeline,commands:this.commands,actorId:node.actorId,actorSpeed:node.speed,cardTempo:this.selected.tempo,selectedActorId:id,selectedEnemyId:this.enemies.has(id)?id:undefined});
+    if(!result.ok){const messages={self:'掩護用於保護隊友；自身防禦請用堅守。',none:'沒有可掩護的敵方殺意。',multiple:'此角色有多條殺意；請點選要截斷的敵人。',reserved:'這條殺意已由其他角色攔截。',slow:'速度不足，無法截斷這條殺意。'};this.status.setText(messages[result.reason]);if(result.reason==='multiple'){this.intentFocus=id;this.renderEnemyIntents()}return}
+    targetNode=result.enemy;targetActorId=result.protectedActorId;
   }else{
     const hostile=this.selected.intent==='attack'||this.selected.intent==='disruption',enemy=this.enemies.has(id);
     if(hostile!==enemy){this.status.setText(hostile?'此卡必須指定敵方。':'此卡必須指定友方。');return}
@@ -403,6 +404,7 @@ private nextRound(){
       return
     }
     this.round++;
+    clearEndOfRoundStatuses([...this.players.values(),...this.enemies.values()]);[...this.players.values(),...this.enemies.values()].forEach(a=>this.refreshActor(a));
     this.timeline=this.timeline.filter(n=>(n.team==='player'?this.players:this.enemies).get(n.actorId)?.alive);
     const targets=[...this.players.entries()].filter(([,a])=>a.alive).map(([id])=>id),enemyNodes=this.timeline.filter(n=>n.team==='enemy'),roundSkills=dealEnemySkills(enemyNodes.length);
     if(targets.length===0){this.status.setText('全隊斷命');return}
@@ -422,10 +424,10 @@ private nextRound(){
 private refreshActor(a:Actor){
     this.fighterHud.refresh(a.hudView,a)
   }
-private damage(a:Actor,n:number,balanceDamage=1,deferDeath=false){
+private damage(a:Actor,n:number,balanceDamage=1,deferDeath=false,deathStyle:DeathStyle='normal'){
     const result=resolveDamage(a,n,balanceDamage),{blocked,hpLoss,justBroken,justShattered,died}=result;
     a.hp=result.hp;a.shield=result.shield;a.balance=result.balance;a.alive=deferDeath&&died?true:result.alive;a.broken=result.broken;
-    if(died&&!deferDeath){a.hit.disableInteractive();a.exposed=false;a.hud.setAlpha(.35)}
+    if(died&&!deferDeath){a.hit.disableInteractive();a.exposed=false;a.hud.setAlpha(.35);this.deathPresenter.play(a,[...this.enemies.values()].includes(a),deathStyle);const actorId=[...this.players.entries(),...this.enemies.entries()].find(([,actor])=>actor===a)?.[0],node=this.timeline.find(item=>item.actorId===actorId);if(node?.team==='player'){this.commands.delete(node.id);this.skipBonusNext.delete(node.actorId)}}
     this.refreshActor(a);
     const feedback=died&&!deferDeath?'斷命':justBroken?'崩勢！':justShattered?'破符！':hpLoss>0?`−${hpLoss}`:`護符 −${blocked}`,color=died&&!deferDeath?'#fff0e8':justBroken?'#ffcf75':justShattered?'#9ff5ff':'#ff8294';
     const text=this.add.text(a.root.x,a.root.y-70,feedback,{fontFamily:'sans-serif',fontSize:justBroken?'20px':'15px',fontStyle:'bold',color,backgroundColor:'#080b12dd',padding:{x:8,y:3}}).setOrigin(.5).setDepth(95);
@@ -438,7 +440,7 @@ private shield(a:Actor,n:number){a.shield=Math.min(50,a.shield+n);this.refreshAc
 private async relayAssist(sourceId:string,targetId:string,actions:ActionPresenter,allyId?:string){
     const ally=allyId??[...this.players.keys()].find(id=>id!==sourceId&&this.players.get(id)!.alive&&!this.players.get(id)!.broken);
     if(!ally)return;
-    await actions.relay(sourceId,ally,targetId,false,()=>{const target=this.enemies.get(targetId)!;this.damage(target,6,2);return target.hp<=0})
+    await actions.relay(sourceId,ally,targetId,false,()=>{const target=this.enemies.get(targetId)!;this.damage(target,6,2,false,'relay');return target.hp<=0})
   }
 private relayAlly(team:'player'|'enemy',sourceId:string){
     const actors=team==='player'?this.players:this.enemies;
@@ -460,7 +462,7 @@ private async resolve(){
       const hold=Boolean(playerAlly||enemyAlly);
       await presenter.play(beat.clash,hold,()=>{
         if(beat.clash.winner==='player'){
-          const result=this.damage(enemyActor,beat.clash.player.card.damage??8,beat.clash.player.card.balanceDamage??1,Boolean(playerAlly));
+          const result=this.damage(enemyActor,beat.clash.player.card.damage??8,beat.clash.player.card.balanceDamage??1,Boolean(playerAlly),beat.clash.player.card.definitionId==='heavy'?'heavy':'normal');
           enemyActor.exposed=enemyActor.alive;this.refreshActor(enemyActor);return result.died&&!playerAlly
         }
         if(beat.clash.winner==='enemy'){
@@ -470,12 +472,14 @@ private async resolve(){
         return false
       });
       if(beat.clash.winner==='tie'&&hold){
-        if(playerAlly&&enemyAlly)await actions.dualRelay(beat.clash.player.actorId,playerAlly,beat.clash.enemy.actorId,enemyAlly);
-        else if(playerAlly)await actions.relay(beat.clash.player.actorId,playerAlly,beat.clash.enemy.actorId,false,()=>{const target=this.enemies.get(beat.clash.enemy.actorId)!;this.damage(target,6,2);return target.hp<=0});
-        else if(enemyAlly)await actions.relay(beat.clash.enemy.actorId,enemyAlly,beat.clash.player.actorId,true,()=>{const target=this.players.get(beat.clash.player.actorId)!;this.damage(target,6,2);return target.hp<=0})
+        if(playerAlly&&enemyAlly)await actions.dualRelay(beat.clash.player.actorId,playerAlly,beat.clash.enemy.actorId,enemyAlly,
+          ()=>{this.damage(enemyActor,6,2,false,'relay');return enemyActor.hp<=0},
+          ()=>{this.damage(playerActor,6,2,false,'relay');return playerActor.hp<=0});
+        else if(playerAlly)await actions.relay(beat.clash.player.actorId,playerAlly,beat.clash.enemy.actorId,false,()=>{const target=this.enemies.get(beat.clash.enemy.actorId)!;this.damage(target,6,2,false,'relay');return target.hp<=0});
+        else if(enemyAlly)await actions.relay(beat.clash.enemy.actorId,enemyAlly,beat.clash.player.actorId,true,()=>{const target=this.players.get(beat.clash.player.actorId)!;this.damage(target,6,2,false,'relay');return target.hp<=0})
       }
       if(beat.clash.winner==='player'&&playerAlly)await this.relayAssist(beat.clash.player.actorId,beat.clash.enemy.actorId,actions,playerAlly);
-      else if(beat.clash.winner==='enemy'&&enemyAlly)await actions.relay(beat.clash.enemy.actorId,enemyAlly,beat.clash.player.actorId,true,()=>{this.damage(playerActor,6,2);return playerActor.hp<=0})
+      else if(beat.clash.winner==='enemy'&&enemyAlly)await actions.relay(beat.clash.enemy.actorId,enemyAlly,beat.clash.player.actorId,true,()=>{this.damage(playerActor,6,2,false,'relay');return playerActor.hp<=0})
     }else if(beat.kind==='skip')continue;
     else{
       const actorId=beat.kind==='enemy-one-sided'?beat.enemy.actorId:beat.command.actorId,targetId=beat.kind==='enemy-one-sided'?beat.enemy.enemySkill!.targetId:beat.command.targetActorId!;
@@ -483,18 +487,21 @@ private async resolve(){
         const actor=this.enemies.get(actorId)!,target=this.players.get(targetId)!;if(!actor.alive||!target.alive)continue;
         const ally=beat.enemy.enemySkill!.assist?this.relayAlly('enemy',actorId):undefined;if(actor.broken){await actions.cancel(actorId,true);continue}
         await actions.attack(actorId,targetId,{name:beat.enemy.enemySkill!.name,clashPower:beat.enemy.enemySkill!.clashPower},true,'normal',!ally,()=>this.damage(target,beat.enemy.enemySkill!.damage,1,Boolean(ally)).died&&!ally);
-        if(ally)await actions.relay(actorId,ally,targetId,true,()=>{this.damage(target,6,2);return target.hp<=0})
+        if(ally)await actions.relay(actorId,ally,targetId,true,()=>{this.damage(target,6,2,false,'relay');return target.hp<=0})
       }else if(beat.kind==='support'){
         const actor=this.players.get(actorId)!,target=this.players.get(targetId)!;if(!actor.alive||!target.alive)continue;
         await actions.support(actorId,targetId,beat.command.card);this.shield(target,beat.command.card.shield??8)
       }else{
         const actor=this.players.get(actorId)!,target=this.enemies.get(targetId)!;if(!actor.alive||!target.alive)continue;if(actor.broken){await actions.cancel(actorId);continue}
         pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText(`${actorId} → ${targetId}${pursuitCount>1?`｜追擊 ${pursuitCount}`:''}${flank?'｜側襲':''}`);
-        let broke=false;await actions.attack(actorId,targetId,beat.command.card,false,flank?'flank':'normal',!beat.command.card.assist,()=>{const balance=(beat.command.card.balanceDamage??1)+(pursuitCount>1?1:0)+(flank?2:0),result=this.damage(target,beat.command.card.damage??8,balance,Boolean(beat.command.card.assist));broke=result.justBroken;return result.died&&!beat.command.card.assist});
+        let broke=false;await actions.attack(actorId,targetId,beat.command.card,false,flank?'flank':'normal',!beat.command.card.assist,()=>{const balance=(beat.command.card.balanceDamage??1)+(pursuitCount>1?1:0)+(flank?2:0),style:DeathStyle=flank?'flank':beat.command.card.definitionId==='heavy'?'heavy':'normal',result=this.damage(target,beat.command.card.damage??8,balance,Boolean(beat.command.card.assist),style);broke=result.justBroken;return result.died&&!beat.command.card.assist});
         if(flank){target.exposed=false;this.refreshActor(target)}if(broke&&target.alive)await actions.cancel(targetId,true);if(beat.command.card.assist)await this.relayAssist(actorId,targetId,actions)
       }
     }
   }
-  const played=[...this.commands.values()].filter((x):x is PlayerCommand=>Boolean(x)).map(x=>x.card);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();this.handLayer.setVisible(true);played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.status.setText([...this.enemies.values()].some(a=>a.alive)?'':'戰鬥勝利');this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();this.busy=false;
+  const played=[...this.commands.values()].filter((x):x is PlayerCommand=>Boolean(x)).map(x=>x.card);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();
+  const outcome=![...this.enemies.values()].some(a=>a.alive)?'victory':![...this.players.values()].some(a=>a.alive)?'defeat':undefined;
+  if(outcome){this.handLayer.setVisible(false);this.fadeBattleMusic(.05,900);await this.outcomePresenter.show(outcome,()=>this.scene.restart({pc:this.pc,ec:this.ec}));return}
+  this.handLayer.setVisible(true);this.status.setText('');this.busy=false;
 }
 }

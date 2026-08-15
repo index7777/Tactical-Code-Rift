@@ -72,7 +72,7 @@ export class ActionPresenter {
     this.resetCamera();
   }
 
-  async dualRelay(playerSourceId:string,playerAllyId:string,enemySourceId:string,enemyAllyId:string){
+  async dualRelay(playerSourceId:string,playerAllyId:string,enemySourceId:string,enemyAllyId:string,onEnemyImpact?:()=>boolean,onPlayerImpact?:()=>boolean){
     const ps=this.players.get(playerSourceId)!,pa=this.players.get(playerAllyId)!,es=this.enemies.get(enemySourceId)!,ea=this.enemies.get(enemyAllyId)!;
     const y=Phaser.Math.Clamp((ps.root.y+es.root.y)/2,205,345);
     await Promise.all([
@@ -81,11 +81,22 @@ export class ActionPresenter {
     ]);
     this.scene.sound.play('sword-swish',{volume:.85});this.slash(640,y-10,false);this.slash(640,y-10,true);
     this.scene.sound.play('sword-impact',{volume:1});this.scene.cameras.main.shake(190,.017);
+    const enemyDefeated=onEnemyImpact?.()??false;
+    const playerDefeated=onPlayerImpact?.()??false;
     await Promise.all([
       this.move(pa.root,pa.root.x+36,pa.root.y,80,'Back.easeOut'),this.move(ps.root,ps.root.x+26,ps.root.y,80,'Back.easeOut'),
       this.move(ea.root,ea.root.x-36,ea.root.y,80,'Back.easeOut'),this.move(es.root,es.root.x-26,es.root.y,80,'Back.easeOut'),
     ]);
-    await Promise.all([this.move(pa.root,pa.x,pa.y,230),this.move(ps.root,ps.x,ps.y,230),this.move(ea.root,ea.x,ea.y,230),this.move(es.root,es.x,es.y,230)])
+    const returns=[this.move(pa.root,pa.x,pa.y,230),this.move(ea.root,ea.x,ea.y,230)];
+    if(playerDefeated)returns.push(Promise.all([
+      this.move(ps.root,ps.root.x+18,ps.root.y+24,150,'Quad.easeIn'),
+      new Promise<void>(resolve=>this.scene.tweens.add({targets:ps.root,angle:72,alpha:.5,duration:150,ease:'Quad.easeIn',onComplete:()=>resolve()})),
+    ]).then(()=>undefined));else returns.push(this.move(ps.root,ps.x,ps.y,230));
+    if(enemyDefeated)returns.push(Promise.all([
+      this.move(es.root,es.root.x-18,es.root.y+24,150,'Quad.easeIn'),
+      new Promise<void>(resolve=>this.scene.tweens.add({targets:es.root,angle:-72,alpha:.5,duration:150,ease:'Quad.easeIn',onComplete:()=>resolve()})),
+    ]).then(()=>undefined));else returns.push(this.move(es.root,es.x,es.y,230));
+    await Promise.all(returns);this.resetCamera();
   }
 
   async cancel(actorId: string, enemy = false) {
