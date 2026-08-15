@@ -46,11 +46,15 @@ export class ActionPresenter {
     const target = (enemy?this.players:this.enemies).get(targetId)!;
     const direction = source.root.x < target.root.x ? 1 : -1;
     const contactX = target.root.x - direction * 62;
+    source.root.setDepth(56);ally.root.setDepth(57);target.root.setDepth(55);
     if (Math.abs(source.root.x - contactX) > 90) await this.move(source.root, contactX, target.root.y, 110, 'Cubic.easeIn');
     await Promise.all([
       this.move(source.root, source.x, source.y, 180, 'Quad.easeOut'),
       this.move(ally.root, contactX, target.root.y, 180, 'Cubic.easeIn'),
     ]);
+    const handoff=this.scene.add.rectangle((source.root.x+ally.root.x)/2,target.root.y-14,96,3,0xffd56f,.85).setDepth(103).setRotation(-.12*direction);this.combatLayer.add(handoff);this.scene.tweens.add({targets:handoff,scaleX:1.45,alpha:0,duration:220,onComplete:()=>handoff.destroy()});
+    // The target keeps the first hit's recoil pose until this second blade lands.
+    await this.wait(55);
     this.scene.sound.play('sword-swish', { volume: .78 });
     this.slash(target.root.x, target.root.y - 5, enemy);
     this.scene.sound.play('sword-impact', { volume: .9 });

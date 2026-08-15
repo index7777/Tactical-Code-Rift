@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { ClashPair } from '../../core/battle/BattleTypes';
+import{CombatResultFxPresenter}from'./CombatResultFxPresenter';
 
 export interface VisualActor {
   root: Phaser.GameObjects.Container;
@@ -9,12 +10,13 @@ export interface VisualActor {
 }
 
 export class ClashPresenter {
+  private resultFx:CombatResultFxPresenter;
   constructor(
     private scene: Phaser.Scene,
     private players: Map<string, VisualActor>,
     private enemies: Map<string, VisualActor>,
     private combatLayer: Phaser.GameObjects.Container,
-  ) {}
+  ) {this.resultFx=new CombatResultFxPresenter(scene,combatLayer)}
 
   private move(target: Phaser.GameObjects.Container, x: number, y: number, duration = 220, ease = 'Quad.easeInOut') {
     return new Promise<void>((resolve) => this.scene.tweens.add({ targets: target, x, y, duration, ease, onComplete: () => resolve() }));
@@ -49,12 +51,6 @@ export class ClashPresenter {
       const shard = this.scene.add.rectangle(x, y, 18, 4, color, 1).setRotation(angle).setDepth(105); this.combatLayer.add(shard);
       this.scene.tweens.add({ targets: shard, x: x + Math.cos(angle) * 75, y: y + Math.sin(angle) * 48, alpha: 0, scaleX: .25, duration: 260, ease: 'Quad.easeOut', onComplete: () => shard.destroy() });
     }
-  }
-
-  private cancelFx(actor: VisualActor) {
-    const ring = this.scene.add.ellipse(actor.root.x, actor.root.y, 58, 92, 0x82909c, .12).setStrokeStyle(4, 0xbcc8d0, .9).setDepth(96); this.combatLayer.add(ring);
-    this.scene.tweens.add({ targets: ring, scale: 1.65, alpha: 0, duration: 260, onComplete: () => ring.destroy() });
-    this.scene.tweens.add({ targets: actor.root, alpha: .25, duration: 65, yoyo: true, repeat: 2 });
   }
 
   private async weaponStagger(actor:VisualActor,direction:number){
@@ -165,7 +161,8 @@ export class ClashPresenter {
       const loser = playerWon ? enemy : player;
       const direction = playerWon ? -1 : 1;
       await this.weaponStagger(loser,direction);
-      this.cancelFx(loser);
+      this.resultFx.playBreak(loser,direction);
+      this.scene.tweens.add({targets:loser.root,alpha:.32,duration:55,yoyo:true,repeat:2});
       this.burst(loser.root.x, loser.root.y, 0xff4f70, 14);
       const windupX = winner.root.x - direction * 45;
       await this.move(winner.root, windupX, winner.root.y, 100, 'Quad.easeOut');

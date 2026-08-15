@@ -10,6 +10,8 @@ export class DeathPresenter {
 
   play(actor:VisualActor,enemy:boolean,style:DeathStyle='normal'){
     const color=enemy?0xff536f:0x8eeeff,scale=style==='heavy'?1.7:style==='relay'?1.45:1.2;
+    const life=this.scene.add.rectangle(actor.root.x,actor.root.y+42,84,4,color,.95).setDepth(110);this.combatLayer.add(life);
+    this.scene.tweens.add({targets:life,scaleX:.02,alpha:0,duration:style==='heavy'?480:330,ease:'Cubic.easeIn',onComplete:()=>life.destroy()});
     const ring=this.scene.add.ellipse(actor.root.x,actor.root.y,82,30,color,.16).setStrokeStyle(style==='heavy'?5:3,color,.9).setDepth(108);this.combatLayer.add(ring);
     this.scene.tweens.add({targets:ring,scale,alpha:0,duration:style==='heavy'?520:360,ease:'Cubic.easeOut',onComplete:()=>ring.destroy()});
     for(let i=0;i<(style==='heavy'?14:9);i++){

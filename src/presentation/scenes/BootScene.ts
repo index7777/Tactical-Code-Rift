@@ -4,9 +4,11 @@ import{resolveDamage}from'../../core/battle/VitalResolver';
 import{clearEndOfRoundStatuses}from'../../core/battle/StatusLifecycle';import{selectCoverIntent}from'../../core/battle/CoverSelection';
 import{DeathPresenter,type DeathStyle}from'../battle/DeathPresenter';import{OutcomePresenter}from'../battle/OutcomePresenter';
 import{BattlefieldPresenter}from'../battle/BattlefieldPresenter';import{normalizeBattlefieldMode,type BattlefieldMode}from'../battle/BattlefieldMode';
+import{CombatResultFxPresenter}from'../battle/CombatResultFxPresenter';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;shield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean}
 export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
 private deathPresenter!:DeathPresenter;private outcomePresenter!:OutcomePresenter;
+private resultFxPresenter!:CombatResultFxPresenter;
 private visibleHandCount=5;
 private battlefieldMode:BattlefieldMode='rooftop';private battlefieldPresenter!:BattlefieldPresenter;
 private requestedBattlefield?:BattlefieldMode;
@@ -32,7 +34,7 @@ create(){
     this.intentController=new IntentLayerController(this.intentLayer);
     this.fighterHud=new FighterHudPresenter(this);
     this.combatLayer=this.add.container();
-    this.deathPresenter=new DeathPresenter(this,this.combatLayer);this.outcomePresenter=new OutcomePresenter(this,this.hudLayer);
+    this.deathPresenter=new DeathPresenter(this,this.combatLayer);this.outcomePresenter=new OutcomePresenter(this,this.hudLayer);this.resultFxPresenter=new CombatResultFxPresenter(this,this.combatLayer);
     this.world.add([this.intentLayer,this.combatLayer]);
     const ui=this.cameras.add(0,0,1280,720);
     ui.ignore(this.world);
@@ -85,14 +87,16 @@ private button(x:number,y:number,w:number,label:string,fn:()=>void,color=0x24586
 private rebuild(){
   if(this.busy)return;
   this.world.each((x:any)=>{if(x instanceof Phaser.GameObjects.Container&&x.getData('actor'))x.destroy()});this.players.clear();this.enemies.clear();
-  const params=new URLSearchParams(window.location.search),multiCoverProof=params.has('multi-cover-proof');
-  if(params.has('outcome-proof'))this.ec=1;
-  const ps:Fighter[]=Array.from({length:this.pc},(_,i)=>({id:`P${String.fromCharCode(65+i)}`,team:'player',actorIndex:i,speed:multiCoverProof?[4,10,9,5][i]??5:Phaser.Math.Between(4,9),alive:true}));
-  const es:Fighter[]=Array.from({length:this.ec},(_,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,speed:multiCoverProof?[6,5,4,3][i]??3:Phaser.Math.Between(4,9),alive:true})),roundSkills=dealEnemySkills(this.ec);
+  const params=new URLSearchParams(window.location.search),multiCoverProof=params.has('multi-cover-proof'),resultProof=params.has('result-proof');
+  if(params.has('outcome-proof')||resultProof)this.ec=1;
+  const ps:Fighter[]=Array.from({length:this.pc},(_,i)=>({id:`P${String.fromCharCode(65+i)}`,team:'player',actorIndex:i,speed:multiCoverProof?[4,10,9,5][i]??5:resultProof?[9,8,7,6][i]??6:Phaser.Math.Between(4,9),alive:true}));
+  const es:Fighter[]=Array.from({length:this.ec},(_,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,speed:multiCoverProof?[6,5,4,3][i]??3:resultProof?2:Phaser.Math.Between(4,9),alive:true})),roundSkills=dealEnemySkills(this.ec);
   const skills=new Map(es.map((e,i)=>{const skill=roundSkills[i]!,target=multiCoverProof&&i<2?ps[0]!:Phaser.Math.RND.pick(ps);return[e.id,{id:`${e.id}-skill`,...skill,targetId:target.id}]}));
   this.timeline=buildRoundTimeline(ps,es,skills);ps.forEach(f=>this.addActor(f));es.forEach(f=>this.addActor(f));
   if(params.has('death-proof')||params.has('outcome-proof')){const target=this.enemies.values().next().value as Actor|undefined;if(target){target.hp=6;target.shield=0;target.balance=2;this.refreshActor(target)}}
+  if(resultProof){const target=this.enemies.values().next().value as Actor|undefined;if(target){target.hp=70;target.shield=0;target.balance=1;this.refreshActor(target)}}
   if(multiCoverProof){const all=createTeamDeck(),covers=all.filter(c=>c.definitionId==='cover'),others=all.filter(c=>c.definitionId!=='cover');this.deck={drawPile:others.slice(3),discardPile:[],exhaustPile:[],hand:[...covers,...others.slice(0,3)]}}
+  else if(resultProof){const all=createTeamDeck(),pick=(id:string)=>all.find(c=>c.definitionId===id)!,hand=[pick('break'),pick('assist'),pick('heavy'),pick('quick'),pick('guard')],ids=new Set(hand.map(c=>c.instanceId));this.deck={drawPile:all.filter(c=>!ids.has(c.instanceId)),discardPile:[],exhaustPile:[],hand}}
   else this.deck=refillHand(this.deck,5);
   this.commands.clear();this.planning=this.timeline.filter(n=>n.team==='player').sort((a,b)=>b.speed-a.speed);this.planIndex=0;this.selected=undefined;this.renderTimeline();this.renderHand();this.focus();this.renderEnemyIntents()
 }
@@ -438,7 +442,7 @@ private damage(a:Actor,n:number,balanceDamage=1,deferDeath=false,deathStyle:Deat
     const text=this.add.text(a.root.x,a.root.y-70,feedback,{fontFamily:'sans-serif',fontSize:justBroken?'20px':'15px',fontStyle:'bold',color,backgroundColor:'#080b12dd',padding:{x:8,y:3}}).setOrigin(.5).setDepth(95);
     this.combatLayer.add(text);
     this.tweens.add({targets:text,y:text.y-28,alpha:0,duration:620,ease:'Cubic.easeOut',onComplete:()=>text.destroy()});
-    if(justBroken){const ring=this.add.ellipse(a.root.x,a.root.y,94,28,0xffc35c,.25).setStrokeStyle(3,0xffd37a).setDepth(90);this.combatLayer.add(ring);this.tweens.add({targets:ring,scale:2,alpha:0,duration:420,onComplete:()=>ring.destroy()})}
+    if(justBroken)this.resultFxPresenter.playCollapse(a);
     return{justBroken,died}
   }
 private shield(a:Actor,n:number){a.shield=Math.min(50,a.shield+n);this.refreshActor(a)}
