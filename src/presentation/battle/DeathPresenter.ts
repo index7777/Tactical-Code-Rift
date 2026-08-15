@@ -9,6 +9,9 @@ export class DeathPresenter {
   constructor(private scene:Phaser.Scene,private combatLayer:Phaser.GameObjects.Container){}
 
   play(actor:VisualActor,enemy:boolean,style:DeathStyle='normal'){
+    // Death owns the actor from this point onward. Idle/bobbing animation must
+    // not continue underneath the collapse pose.
+    if(actor.sprite){actor.sprite.anims.stop();this.scene.tweens.killTweensOf(actor.sprite);actor.sprite.setAngle(0)}
     const color=enemy?0xff536f:0x8eeeff,scale=style==='heavy'?1.7:style==='relay'?1.45:1.2;
     const life=this.scene.add.rectangle(actor.root.x,actor.root.y+42,84,4,color,.95).setDepth(110);this.combatLayer.add(life);
     this.scene.tweens.add({targets:life,scaleX:.02,alpha:0,duration:style==='heavy'?480:330,ease:'Cubic.easeIn',onComplete:()=>life.destroy()});

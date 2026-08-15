@@ -175,3 +175,9 @@ STATUS = APPEND_ONLY
 - 使用者校正後採用：堅守是原地立架，不是攻擊迎擊。Resolver 已移除堅守的直接交鋒資格。
 - 堅守只在自己的節拍原地播放支援並取得護盾；敵方技能仍保留原殺生線並以單方面攻擊命中，是否先取得護盾由雙方本輪時序決定。
 - 新增 `GuardResolution` 測試，固定驗證節拍為 `support → enemy-one-sided` 且不存在 `clash`。
+
+## 2026-08-15：斷命停止待機動畫
+
+- 問題：斷命只關閉互動並播放倒地 Tween，玩家的 `hero-idle` 影格循環與敵人的浮動 Tween 沒有停止，造成倒地後仍持續待機。
+- 修正：`DeathPresenter` 取得斷命角色後立即停止 Sprite Animator、殺掉 Sprite 循環 Tween 並清除殘留 Sprite 旋轉，再由共用側面倒地接管角色。
+- 範圍：敵我雙方共用同一條死亡入口，避免敵人之後出現相同問題。
