@@ -6,14 +6,18 @@ STATUS = AUTHORITATIVE_INDEX
 
 ## 現行權威文件
 
-1. `CURRENT_COMBAT_SPEC.md`：現行戰鬥規則。
-2. `YOKAI_RAILWAY_DEMO_PLAN.md`：戰鬥視覺、HUD、殺生線與 Demo 階段方向。
-3. `COMBAT_ACCEPTANCE_CHECKLIST.md`：完成狀態與畫面自證門檻。
-4. `ARCHITECTURE.md`：目前 TypeScript／Phaser／Vite 技術架構。
-5. `FX_CROSS_ENGINE_SPEC.md`：現行 FX runtime 與未來移植參數。
-6. `GAMEPLAY_INSPIRATIONS.md`：參考作品與原創差異界線。
-7. `PLANNING_LOG.md`：每次建議、決策、批次範圍與結果的永久紀錄。
-8. `DEMO_ASSET_PLAN.md`：通用卡型、怪物、場景、FX 與低生成成本素材規劃。
+1. `HANDOFF.md`：新對話的現況、已驗證內容、工作樹警告與下一決策點。
+2. `CURRENT_COMBAT_SPEC.md`：現行戰鬥規則。
+3. `YOKAI_RAILWAY_DEMO_PLAN.md`：戰鬥視覺、HUD、殺生線與 Demo 階段方向。
+4. `COMBAT_ACCEPTANCE_CHECKLIST.md`：完成狀態與畫面自證門檻。
+5. `ARCHITECTURE.md`：目前 TypeScript／Phaser／Vite 技術架構。
+6. `FX_CROSS_ENGINE_SPEC.md`：現行 FX runtime 與未來移植參數。
+7. `GAMEPLAY_INSPIRATIONS.md`：參考作品與原創差異界線。
+8. `PLANNING_LOG.md`：每次建議、決策、批次範圍與結果的永久紀錄。
+9. `DEMO_ASSET_PLAN.md`：通用卡型、怪物、場景、FX 與低生成成本素材規劃。
+10. `art-bible.md`：AI 美術生成、整合、實機驗收與拒絕樣本的總規格。
+11. `characters/README.md`：Character Master 索引與角色資產生成門檻。
+12. `areas/README.md`：Area Art Bible 索引與戰鬥背景規格。
 
 ## 支援性文件
 

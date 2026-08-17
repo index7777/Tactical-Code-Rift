@@ -1,7 +1,7 @@
 import{dealEnemySkillsForArchetypes}from'../battle/EnemySkills';
 import{readMonsterRule,resolveMonsterClashPower,resolveMonsterHit}from'../battle/MonsterRules';
 import type{EnemyArchetype,EnemySkill}from'../battle/BattleTypes';
-import{commitPlayedCards,createTeamDeckState,cycleUncommittedCards,refillHand,type BattleCard,type CardFamily,type TeamDeckState}from'../cards/BattleCards';
+import{commitPlayedCards,createTeamDeckState,refillHand,type BattleCard,type CardFamily,type TeamDeckState}from'../cards/BattleCards';
 
 type Strategy='tactical'|'naive';
 interface SimActor{hp:number;shield:number;balance:number;alive:boolean;archetype?:EnemyArchetype;traitReady:boolean;exposed:boolean;broken:boolean}
@@ -31,11 +31,11 @@ function simulateOne(seed:number,strategy:Strategy,metrics:Counters,maxRounds=18
       if(!card)card=available.find(candidate=>candidate.definitionId==='guard'||candidate.definitionId==='cover');if(!card)continue;available.splice(available.indexOf(card),1);played.push(card);metrics.cardPlays[card.definitionId]++;actions--;
       const playerIndex=intent.targetIndex<0?pickTarget(players,random):intent.targetIndex,player=players[playerIndex];if(!player?.alive)continue;
       if(card.definitionId==='guard'){metrics.cardHits.guard++;player.shield+=card.shield??0;enemyHurts(player,intent.skill,role,round);intent.targetIndex=-1;continue}
-      if(card.definitionId==='cover'){if(card.clashPower>=intent.skill.clashPower){metrics.cardHits.cover++;intent.targetIndex=-1}else{player.shield+=card.shield??0;enemyHurts(player,intent.skill,role,round);intent.targetIndex=-1}continue}
+      if(card.definitionId==='cover'){player.shield+=card.shield??0;if(card.clashPower>=intent.skill.clashPower)metrics.cardHits.cover++;else enemyHurts(player,intent.skill,role,round);intent.targetIndex=-1;continue}
       const enemy=enemies[intent.enemyIndex]!,read=readMonsterRule(role,card,enemy);if(read.state==='danger')metrics.ruleTriggers[role]++;else if(read.state==='counter')metrics.ruleCounters[role]++;
       if(resolveMonsterClashPower(role,card)>=intent.skill.clashPower){const hit=resolveMonsterHit(role,card,enemy);if(hit.consumeTrait)enemy.traitReady=false;const dealt=hurt(enemy,hit.damage,hit.balanceDamage);metrics.cardHits[card.definitionId]++;metrics.cardDamage[card.definitionId]+=dealt.hpLoss;enemy.exposed=enemy.alive;if(card.assist&&enemy.alive){const relay=hurt(enemy,6,2);metrics.relayDamage+=relay.hpLoss;metrics.cardDamage[card.definitionId]+=relay.hpLoss}if(hit.backlashBalance&&player.alive){const backlash=hurt(player,0,hit.backlashBalance);if(backlash.broke&&!firstPlayerBreak){firstPlayerBreak=round;metrics.firstPlayerBreakRounds.push(round)}}intent.targetIndex=-1}
     }
-    if(actions>0){const cycle=available.find(card=>card.definitionId==='cycle');if(cycle&&available.filter(card=>!hostile(card)).length>=2){played.push(cycle);metrics.cardPlays.cycle++;metrics.cardHits.cycle++;const protectedIds=new Set(played.map(card=>card.instanceId)),result=cycleUncommittedCards(deck,protectedIds,cycle.cycleCount??0,random);deck=result.state;actions--}}
+    if(actions>0){const cycle=available.find(card=>card.definitionId==='cycle'),target=players.filter(actor=>actor.alive).sort((a,b)=>a.balance-b.balance)[0];if(cycle&&target&&target.balance<8){played.push(cycle);target.balance=Math.min(8,target.balance+(cycle.restoreBalance??0));target.exposed=cycle.clearExposed?false:target.exposed;metrics.cardPlays.cycle++;metrics.cardHits.cycle++;actions--}}
     available.filter(card=>!played.some(used=>used.instanceId===card.instanceId)).forEach(card=>metrics.cardUnused[card.definitionId]++);
     for(const intent of intents)if(intent.targetIndex>=0){const target=players[intent.targetIndex]?.alive?players[intent.targetIndex]:players[pickTarget(players,random)];if(target)enemyHurts(target,intent.skill,roles[intent.enemyIndex]!,round)}
     deck=commitPlayedCards(deck,played);deck=refillHand(deck,5,random);

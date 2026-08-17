@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "asset": "references/rejected/characters/heroine-sd-flat-pose-sheet-candidate-v1.png",
+      "source": "assets/candidates/characters/heroine/heroine-sd-flat-pose-sheet-candidate-v1.png",
+      "category": "characters",
+      "code": "style-drift",
+      "reason": "Removing internal value changes flattened the approved detailed SD anime cel-shaded direction into a simplified vector-like style.",
+      "spec": "docs/characters/player-a-heroine.md",
+      "rejectedAt": "2026-08-17T11:11:31.975806+00:00"
+    },
+    {
+      "asset": "references/rejected/characters/heroine-recoil-master-candidate-v1.png",
+      "source": "assets/candidates/characters/heroine/heroine-recoil-master-candidate-v1.png",
+      "category": "characters",
+      "code": "wrong-production-scope",
+      "reason": "Ordinary hit recoil must reuse the active pose with runtime displacement, rotation, tint, hit-stop and FX; a separate full character drawing adds cost and conflicts with the adopted low-cost animation rule.",
+      "spec": "docs/characters/player-a-heroine.md",
+      "rejectedAt": "2026-08-17T11:11:32.317586+00:00"
+    },
+    {
+      "asset": "references/rejected/characters/chikage-sd-side-master-candidate-v1.png",
+      "source": "assets/candidates/characters/chikage/chikage-sd-side-master-candidate-v1.png",
+      "category": "characters",
+      "code": "alpha-failure",
+      "reason": "Checkerboard transparency was baked into an RGB image; the reusable character master requires genuine alpha with no background pixels.",
+      "spec": "docs/characters/player-b.md",
+      "rejectedAt": "2026-08-17T11:38:45.950604+00:00"
+    },
+    {
+      "asset": "references/rejected/characters/chikage-sd-side-master-candidate-v2.png",
+      "source": "assets/candidates/characters/chikage/chikage-sd-side-master-candidate-v2.png",
+      "category": "characters",
+      "code": "pivot-failure",
+      "reason": "The extracted RGBA subject keeps 64 px of transparent space below the sandals, which breaks the shared 0.965 foot pivot and makes the runtime sprite float.",
+      "spec": "docs/characters/player-b.md",
+      "rejectedAt": "2026-08-17T11:40:32.006706+00:00"
+    },
+    {
+      "asset": "references/rejected/characters/chikage-sd-side-master-candidate-v3.png",
+      "source": "assets/candidates/characters/chikage/chikage-sd-side-master-candidate-v3.png",
+      "category": "characters",
+      "code": "alpha-failure",
+      "reason": "Third and final automatic attempt baked the checkerboard into RGB again and began repainting details instead of preserving the v2 subject. Automatic iteration stopped at the configured limit.",
+      "spec": "docs/characters/player-b.md",
+      "rejectedAt": "2026-08-17T11:41:45.471934+00:00"
+    }
+  ]
+}

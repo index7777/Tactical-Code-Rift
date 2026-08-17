@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tactical Rift Art Pipeline"
+  short_description: "Consistent character and battlefield art production QA"
+  default_prompt: "Use $tactical-rift-art-pipeline to produce or revise one game art asset through master-reference and in-game screenshot validation."

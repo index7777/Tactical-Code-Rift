@@ -85,18 +85,18 @@ export class ClashPresenter {
     // A cover intercept happens on the hostile route immediately before the
     // protected actor. Only a direct face-to-face clash uses centre stage.
     const clashX = clash.source === 'intercept' && protectedActor
-      ? Phaser.Math.Clamp(protectedActor.root.x - 150, 760, 900)
+      ? Phaser.Math.Clamp(protectedActor.root.x + 150, 380, 520)
       : 640;
-    const playerEntryX = clashX + 80;
-    const enemyEntryX = clashX - 80;
+    const playerEntryX = clashX - 80;
+    const enemyEntryX = clashX + 80;
     player.root.setDepth(55);
     enemy.root.setDepth(55);
     this.focusCamera((player.root.x + enemy.root.x) / 2, (player.root.y + enemy.root.y) / 2, 1.08);
 
     if (clash.source === 'intercept' && protectedActor) {
       const intentTrail=this.scene.add.graphics().setDepth(48);
-      intentTrail.lineStyle(8,0x7b1830,.16).lineBetween(enemy.root.x+35,enemy.root.y,protectedActor.root.x-30,protectedActor.root.y);
-      intentTrail.lineStyle(2,0xff526b,.72).lineBetween(enemy.root.x+35,enemy.root.y,protectedActor.root.x-30,protectedActor.root.y);
+      intentTrail.lineStyle(8,0x7b1830,.16).lineBetween(enemy.root.x-35,enemy.root.y,protectedActor.root.x+30,protectedActor.root.y);
+      intentTrail.lineStyle(2,0xff526b,.72).lineBetween(enemy.root.x-35,enemy.root.y,protectedActor.root.x+30,protectedActor.root.y);
       this.combatLayer.add(intentTrail);
       protectedActor.root.setAlpha(.62);
       this.focusCamera(clashX,clashY,1.08);
@@ -107,7 +107,7 @@ export class ClashPresenter {
         this.move(enemy.root,enemyEntryX,clashY,300,'Cubic.easeIn'),
         this.move(player.root,playerEntryX,clashY,210,'Back.easeOut'),
       ]);
-      this.burst(playerEntryX-16,clashY+12,0x62ddff,8);
+      this.burst(playerEntryX+16,clashY+12,0x62ddff,8);
       this.scene.cameras.main.shake(75,.004);
       this.scene.tweens.add({targets:intentTrail,alpha:0,duration:120,onComplete:()=>intentTrail.destroy()});
       protectedActor.root.setAlpha(1);
@@ -119,11 +119,11 @@ export class ClashPresenter {
     }
     this.focusCamera(clashX, clashY, 1.16);
 
-    const playerCard = this.scene.add.text(clashX+100, clashY - 112, `${clash.player.card.name}\n威力 ${clash.playerPower}`, {
+    const playerCard = this.scene.add.text(clashX-100, clashY - 112, `${clash.player.card.name}\n威力 ${clash.playerPower}`, {
       fontFamily: 'sans-serif', fontSize: '19px', fontStyle: 'bold', align: 'center', color: '#dffaff', backgroundColor: '#155268', padding: { x: 18, y: 10 },
     }).setOrigin(.5).setDepth(70).setAlpha(0).setScale(.86);
     this.combatLayer.add(playerCard);
-    const enemyCard = this.scene.add.text(clashX-100, clashY - 112, `${clash.enemy.enemySkill!.name}\n威力 ${clash.enemyPower}`, {
+    const enemyCard = this.scene.add.text(clashX+100, clashY - 112, `${clash.enemy.enemySkill!.name}\n威力 ${clash.enemyPower}`, {
       fontFamily: 'sans-serif', fontSize: '19px', fontStyle: 'bold', align: 'center', color: '#fff0f2', backgroundColor: '#713142', padding: { x: 18, y: 10 },
     }).setOrigin(.5).setDepth(70).setAlpha(0).setScale(.86);
     this.combatLayer.add(enemyCard);
@@ -132,7 +132,7 @@ export class ClashPresenter {
     await this.wait(420);
     this.sound('sword-swish', .55);
     playHeroinePose(player.sprite,'strike');
-    await Promise.all([this.move(player.root, clashX+16, clashY, 135, 'Cubic.easeIn'), this.move(enemy.root, clashX-16, clashY, 135, 'Cubic.easeIn')]);
+    await Promise.all([this.move(player.root, clashX-16, clashY, 135, 'Cubic.easeIn'), this.move(enemy.root, clashX+16, clashY, 135, 'Cubic.easeIn')]);
     this.sound('sword-impact', .72);
     if(player.sprite)player.sprite.setAngle(0);
     if(enemy.sprite)enemy.sprite.setAngle(0);
@@ -161,7 +161,7 @@ export class ClashPresenter {
       const playerWon = clash.winner === 'player';
       const winner = playerWon ? player : enemy;
       const loser = playerWon ? enemy : player;
-      const direction = playerWon ? -1 : 1;
+      const direction = playerWon ? 1 : -1;
       await this.weaponStagger(loser,direction);
       this.resultFx.playBreak(loser,direction);
       this.scene.tweens.add({targets:loser.root,alpha:.32,duration:55,yoyo:true,repeat:2});
@@ -196,8 +196,8 @@ export class ClashPresenter {
     } else {
       this.burst(clashX, clashY - 13, 0xffffff, 18);
       await Promise.all([
-        this.move(player.root, player.root.x + 28, player.root.y, 80, 'Back.easeOut'),
-        this.move(enemy.root, enemy.root.x - 28, enemy.root.y, 80, 'Back.easeOut'),
+        this.move(player.root, player.root.x - 28, player.root.y, 80, 'Back.easeOut'),
+        this.move(enemy.root, enemy.root.x + 28, enemy.root.y, 80, 'Back.easeOut'),
       ]);
       if (holdForRelay) return;
     }

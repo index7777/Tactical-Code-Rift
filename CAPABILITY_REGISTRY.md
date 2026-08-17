@@ -40,11 +40,14 @@ GENERATED_BUILD_VENDOR_ROOTS = dist, node_modules
 
 ```text
 ASSET_PIPELINE_APPLICABLE = YES
-ASSET_PIPELINE_SPEC_READY = PARTIAL
+ASSET_PIPELINE_SPEC_READY = READY_FOR_CANDIDATE_QA
 ASSET_PIPELINE_RUNTIME_READY = YES_FOR_COMBAT_SHOWCASE
 ```
 
 Specification evidence:
+
+- `docs/art-bible.md`、Character Master／Area Spec、approved／rejected indexes 與專案 Art Skill 已建立。
+- deterministic validator、rejection registrar 與最多三次自動迭代規則已建立；正式 approval 仍需 Art Director。
 
 - 四份資產規格檔存在於專案根目錄；要求的 `optional-assets/` 目錄不存在。
 - `asset_manifest.schema.json` 可解析並通過 Draft 2020-12 meta-schema 驗證。

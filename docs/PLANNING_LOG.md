@@ -354,3 +354,45 @@ STATUS = APPEND_ONLY
 - 驗證：`npm run test` 26 files／108 tests passed；`npm run build` passed；`git diff --check` 無內容錯誤（僅既有 LF→CRLF 提示）。在 1280×720 瀏覽器實際 4V4 畫面驗收，console 無 error，新 PA 無綠邊、無素材越界、未遮住殺生線；其餘三名仍為舊佔位角色。
 - 共用角色接入：依試玩需求，PA～PD 暫時全部使用同一套精緻 SD 待機／備戰／倒地資產，以便一次驗收四人站位、攻擊與死亡 hook。敵方維持怪物資產，避免破壞怪物類型辨識；正式角色仍須逐名替換。
 - 共用角色畫面驗證：1280×720、4V4 實際瀏覽器畫面確認 PA～PD 均已換為同一套 SD 角色，四個站位無互相重疊、無綠邊、未遮斷殺生線；敵方三種怪物資產與顯示邏輯未變，console 無 error。
+
+## 2026-08-15 — 第一世界 Demo 戰鬥 BG 最小資產集
+
+- Demo 背景收斂為八個 source asset：兩個共用遠景、車頂兩層、停靠月台兩層、Boss 地標一層、共用前景遮罩一層。探索／事件目前不是戰鬥節點，不先製作專用戰鬥 BG。
+- 車頂構圖經三次修正：第一版車頂只佔底部約 20%、第二版遠緣仍低於最上排腳底，均判退；第三版把車頂遠緣放在畫面高度約 24%，讓邏輯座標 `y=182..458` 的四排角色都落在同一可戰地面。
+- `rooftop-composite-candidate-v1.png` 已保存為構圖候選。中央戰場低對比、硬體只在極端邊緣；沒有角色、UI、文字、殺生線、攻擊 FX、粒子或速度線。
+- Gate：先做 1280×720 真實 4V4 疊圖驗證，再生成／繪製真正分層素材；不得直接把整體候選裁切成假分層並宣稱完成。
+- 第一次 runtime 疊圖：站位與地面通過，但 v1 屋頂明度使黑衣非焦點角色幾乎融入；直接提高 18% 的嘗試又過亮而判退。v2 採中間冷藍灰明度並降低縫線對比，作為第二次 runtime 驗證候選。
+- 第二次 runtime 疊圖：v2 角色與殺生線可讀性通過，但月亮與上方時序 token 重疊。v3 把較小、較暗的月亮移至畫面中央 `y≈16%`，離開時序安全區且不落在角色站位後方。
+- 最終 v3 疊圖驗收：1280×720 4V4 中，四排角色腳底皆位於車頂、黑衣角色輪廓可讀、被動殺生線仍可追蹤、月亮不再與時序 token 重疊，console 無 error。v3 可作 Demo rooftop runtime candidate；正式視差拆層仍未完成。
+## 2026-08-17｜現行畫面與玩法一致性審查
+
+- 使用 1280×720 實際瀏覽器畫面檢查 `?battle=1` 首屏及選取快斬後的目標預覽；頁面正常載入、無 framework overlay，console 無 error／warning。
+- 畫面高度分配大致符合既定方向：上方時序約 10%、中央戰場約 65%、底部手牌約 25%，4V4 仍保有中央演出空間。角色與卡牌沒有首屏裁切。
+- 尚未通過新手可讀性門檻：被動殺生線過淡且多線交叉時難追蹤；左側敵方意圖卡、敵人本體與 HUD 距離過近；聚焦後主線清楚，但青色預覽線與紅色殺生線的方向／因果角色仍需更明確。
+- 上方時序維持只顯示角色代號與最終時序值，沒有重新塞入卡名；此項符合現行規格。底部牌庫／棄牌數字可見，但正式棄牌按鈕尚未存在。
+- 規則衝突：`整備＝棄 2 補 2` 已在最新設計討論中被否決；抽牌、棄牌不得再和整備綁定。現行程式、卡面、模擬、`CURRENT_COMBAT_SPEC.md` 與驗收表仍是舊規則，在新效果定案前只能標記為待替換，不能視為正式完成。
+- 規則衝突：`掩護`卡面宣告護符 9，但截刀形成交鋒後，runtime 只比較威力並處理勝負，沒有取得護符；卡面與結算不一致。
+- 規則衝突：正式規格要求死亡者尚未執行的卡不消耗，但 `CombatResolutionController.committedCards()` 目前收集所有非空指令，尚未依死亡取消結果剔除，存在死亡後仍棄牌的風險。
+- 截刀規則本身一致：原目標正面迎擊不做速度門檻；其他角色幫忙改線先比較「角色速度＋卡牌時序」是否嚴格高於敵方最終時序，成功形成交鋒後才以卡面交鋒威力判定勝負。速度回答能否趕到，卡面回答能否破招。
+- 旅程狀態目前只保存路線節點，不保存隊伍 HP；每場戰鬥重新建立滿 HP 角色。因此現階段沒有回血牌不會造成跨戰鬥軟鎖，但正式主線是否採 HP 持續、車站治療或治療卡仍未定案，不應先加回血牌。
+- `GAMEPLAY_INSPIRATIONS.md` 主體仍保留共享 AP、脈衝時序與三槽連攜等舊內容，雖在尾端標為歷史靈感，仍容易被誤讀；現行規則一律以 `CURRENT_COMBAT_SPEC.md` 及 runtime 為準，後續應拆出或封存舊段落。
+- 刀光資產與呼叫點存在，但本次首屏／規劃預覽不能證明戰鬥中可辨識；依使用者實機回報，目前仍視為「演出未完成」，必須用固定攻擊情境截取命中幀後才可改狀態。
+- 平衡證據衝突：實際戰鬥建立敵我角色時皆為 HP 100／護符 20／架勢 10；完整模擬則使用玩家 HP 44／敵人 HP 40／護符 0／架勢 8。現有 71% 勝率與 11.17 平均輪數不能代表目前瀏覽器 Demo，必須統一資料來源後重跑。
+## 2026-08-17 — AI Art Production Pipeline 與戰場方向交換
+
+- 採用：建立 Art Bible、Character Master／Area Spec、approved／rejected reference 機制與專案 Art Skill。
+- 邊界：候選圖不因存在於 runtime 目錄而自動核准；每次最多三次自動迭代，正式核准保留給 Art Director。
+- 角色：Player A 僅為 candidate master；Player B／C／D 因缺少身分核准資料而停止猜測並標記 blocked。
+- 背景：Area 01「雨暮山線」以中央 45–50% 低噪音、明確接地與低妖異強度作為驗收規則。
+- 實作：戰場慣例改為玩家在左、敵人在右；同步調整站位、朝向、殺生線、截刀、交鋒進場、卡面位置與擊退方向。
+- 驗證：Art Skill `quick_validate` 通過；`npm run test` 27 files／108 tests 通過；`npm run build` 通過；`git diff --check` 無 whitespace error。
+- 資產檢查：Player A candidate 通過 alpha／bbox，但 `foot-baseline-margin` 失敗（bottom gap 32 px）；rooftop v4 尺寸與 16:9 通過，但中央 edge density 0.0235 高於外側 0.0204，不能自動核准，兩者保留 candidate。
+- 實機：1280×720 與 844×390 均確認玩家在左、敵人在右；角色朝中央，紅色殺生線由右側敵人連向左側玩家，底部戰鬥操作仍可見。手機橫向採等比縮放並留側邊 letterbox，後續屬 UI responsive 優化，不阻擋本次方向交換。
+- 角色新增：使用者指定 Player B 名稱為「千景」並提供身份設計 reference。先建立 Character Master Spec 與單一側視 SD master candidate；依 Art Pipeline，在 master 核准前不批量衍生動作素材。
+- 千景素材批次結果：三次 side-view SD master 自動嘗試均未通過。v1／v3 為烘焙棋盤格的 RGB `alpha-failure`；v2 為 RGBA 且造型完整，但腳底透明留白 64 px，觸發 `pivot-failure`。依 Art Pipeline 停止第四次生成，未接入 runtime、未生成衍生動作。
+- 千景裁切與實機批次：使用者同意下一步後，對 v2 執行 deterministic alpha crop；輸出 1407×970 RGBA、bottom gap 10 px、bbox area ratio 0.967，全部自動檢查通過。以 runtime-trial 接到 Player B，未升級為 approved、未衍生正式動作。
+- 千景 runtime QA：1280×720／844×390 4V4 截圖確認 PB 位於玩家左側第二列、面向右側中央，腳底貼合、薙刀未碰相鄰 HUD、手機縮圖仍可辨識主要 silhouette。狀態升為 `RUNTIME_QA_PASS_PENDING_ART_DIRECTOR_APPROVAL`，不等於正式核准。
+- 角色新增：使用者指定 Player C 為「朧」並提供身份設計 reference。採純綠幕生成＋deterministic chroma cleanup，先做單一朝右側視 SD master；核准前不生成衍生動作。
+- 朧素材批次：第一代純綠幕候選經 deterministic cleanup／crop 後為 656×861 RGBA、bottom gap 10 px、bbox area ratio 0.922，自動檢查全部通過；以 runtime-trial 配置 Player C，等待實機與 Art Director 核准。
+- 朧 runtime QA：1280×720 首驗接地與站列通過；844×390 發現黑衣在非焦點 alpha 0.55 下觸發 `silhouette-lost`。未重生素材，改以 `darkSilhouette` runtime 最低 alpha 0.72 後複驗通過，狀態升為 `RUNTIME_QA_PASS_PENDING_ART_DIRECTOR_APPROVAL`。
+- 接手文件批次：建立 `docs/HANDOFF.md` 作為新對話現況入口，記錄權威閱讀順序、現行玩法、玩家左／敵人右、Art Pipeline、角色／背景／音樂狀態、dirty worktree 安全規則、最新驗證與下一決策點；`docs/README.md` 已將其列為第一份權威文件。

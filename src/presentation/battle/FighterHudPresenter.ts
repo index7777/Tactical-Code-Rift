@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 
 export interface FighterHudState {
   hp: number;
+  maxHp?: number;
   shield: number;
   balance: number;
   exposed: boolean;
@@ -42,7 +43,7 @@ export class FighterHudPresenter {
   }
 
   refresh(view: FighterHudView, state: FighterHudState, animate = true) {
-    const targetWidth = 58 * Phaser.Math.Clamp(state.hp, 0, 100) / 100;
+    const targetWidth = 58 * Phaser.Math.Clamp(state.hp, 0, state.maxHp ?? 100) / (state.maxHp ?? 100);
     this.scene.tweens.killTweensOf(view.hpEcho);
     view.hpFill.width = targetWidth;
     if (animate && view.hpEcho.width > targetWidth) {
