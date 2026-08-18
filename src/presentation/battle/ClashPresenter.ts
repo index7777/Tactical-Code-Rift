@@ -137,10 +137,12 @@ export class ClashPresenter {
     this.sound('sword-impact', .72);
     if(player.sprite)player.sprite.setAngle(0);
     if(enemy.sprite)enemy.sprite.setAngle(0);
+    // 交鋒瞬間：玩家在左揮向右（flipX=true），敵人在右揮向左（flipX=false）；同時渲染兩道刀光呈現對砍。
+    // 舊 code 只畫 flipX=false 一道（假設敵人在左）——玩家改站左後看起來像玩家用敵刀砍過去。
+    this.slash(clashX, clashY - 13, true);
+    this.bladeCut(clashX,clashY-13,true,0xfff3c4);
     this.slash(clashX, clashY - 13, false);
-    this.bladeCut(clashX,clashY-13,false,0xfff3c4);
-    if (clash.winner === 'tie') this.slash(clashX, clashY - 13, true);
-    if (clash.winner === 'tie') this.bladeCut(clashX,clashY-13,true,0xffffff);
+    this.bladeCut(clashX,clashY-13,false,0xffffff);
     this.burst(clashX, clashY - 13, 0xffed9c, 12);
     this.scene.cameras.main.shake(130, .011);
     this.scene.time.timeScale = .35;
@@ -174,8 +176,10 @@ export class ClashPresenter {
       this.sound('sword-swish', .72);
       playHeroinePose(winner.sprite,'strike');
       await this.move(winner.root, loser.root.x - direction * 48, loser.root.y, 125, 'Cubic.easeIn');
-      this.slash(loser.root.x, loser.root.y - 5, !playerWon);
-      this.bladeCut(loser.root.x,loser.root.y-5,!playerWon,playerWon?0x9fe8ff:0xff7487);
+      // 破招追擊：勝方在左（playerWon）→ 揮向右，flipX=true；勝方在右（enemy 勝）→ flipX=false。
+      // 舊 !playerWon 假設 winner 在右，玩家改站左後方向反了。
+      this.slash(loser.root.x, loser.root.y - 5, playerWon);
+      this.bladeCut(loser.root.x,loser.root.y-5,playerWon,playerWon?0x9fe8ff:0xff7487);
       this.burst(loser.root.x, loser.root.y - 5, playerWon ? 0x67e8ff : 0xff6b78, 16);
       this.sound('sword-impact', .9);
       this.scene.cameras.main.shake(170, .014);

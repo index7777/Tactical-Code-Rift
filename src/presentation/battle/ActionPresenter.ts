@@ -31,7 +31,9 @@ export class ActionPresenter {
     playHeroinePose(attacker.sprite,'strike');
     await this.move(attacker.root, contactX, target.root.y, 150, 'Cubic.easeIn');
     if (mode === 'flank') badge.setText(`${card.name}\n側襲`);
-    this.slash(target.root.x, target.root.y - 5, enemy);
+    // 斬擊方向：flipX 由攻擊者→目標方向決定（direction>0 = 攻擊者在左，揮向右需 flipX=true）；
+    // 不再用 enemy 旗標硬綁，避免玩家改站左邊後斬擊方向反了。
+    this.slash(target.root.x, target.root.y - 5, direction > 0);
     this.cardImpact(target.root.x,target.root.y-5,card.definitionId);
     this.scene.sound.play('sword-impact', { volume: .82 });
     this.scene.cameras.main.shake(130, .01);
@@ -66,12 +68,14 @@ export class ActionPresenter {
       this.move(source.root, source.x, source.y, 180, 'Quad.easeOut'),
       this.move(ally.root, contactX, target.root.y, 180, 'Cubic.easeIn'),
     ]);
-    const handoff=this.scene.add.rectangle((source.root.x+ally.root.x)/2,target.root.y-14,96,3,0xffd56f,.85).setDepth(103).setRotation(-.12*direction);this.combatLayer.add(handoff);this.bladeArc(target.root.x,target.root.y-8,0xffd56f,!enemy);this.scene.tweens.add({targets:handoff,scaleX:1.45,alpha:0,duration:220,onComplete:()=>handoff.destroy()});
+    const handoff=this.scene.add.rectangle((source.root.x+ally.root.x)/2,target.root.y-14,96,3,0xffd56f,.85).setDepth(103).setRotation(-.12*direction);this.combatLayer.add(handoff);this.bladeArc(target.root.x,target.root.y-8,0xffd56f,direction>0);this.scene.tweens.add({targets:handoff,scaleX:1.45,alpha:0,duration:220,onComplete:()=>handoff.destroy()});
     // The target keeps the first hit's recoil pose until this second blade lands.
     await this.wait(55);
     this.scene.sound.play('sword-swish', { volume: .78 });
     playHeroinePose(ally.sprite,'strike');
-    this.slash(target.root.x, target.root.y - 5, enemy);
+    // 斬擊方向：flipX 由攻擊者→目標方向決定（direction>0 = 攻擊者在左，揮向右需 flipX=true）；
+    // 不再用 enemy 旗標硬綁，避免玩家改站左邊後斬擊方向反了。
+    this.slash(target.root.x, target.root.y - 5, direction > 0);
     this.scene.sound.play('sword-impact', { volume: .9 });
     this.scene.cameras.main.shake(150, .013);
     await this.move(target.root, target.root.x + direction * 42, target.root.y, 85, 'Quad.easeOut');

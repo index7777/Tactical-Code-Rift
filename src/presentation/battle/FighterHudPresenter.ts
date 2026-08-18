@@ -5,6 +5,9 @@ export interface FighterHudState {
   hp: number;
   maxHp?: number;
   shield: number;
+  // 臨時護甲：由護符（guard）灌入，回合結束時清零；HUD 顯示與 shield 併計，
+  // 讓玩家看到本回合實際能吸收的傷害量。
+  tempShield?: number;
   balance: number;
   exposed: boolean;
   broken: boolean;
@@ -66,8 +69,18 @@ export class FighterHudPresenter {
     } else {
       view.hpEcho.width = targetWidth;
     }
-    const shieldCount = Math.min(4, Math.ceil(state.shield / 5));
-    view.shieldMarks.forEach((mark, index) => mark.setVisible(index < shieldCount));
+    const totalShield = state.shield + (state.tempShield ?? 0);
+    const shieldCount = Math.min(4, Math.ceil(totalShield / 5));
+    const permanentCount = Math.min(4, Math.ceil(state.shield / 5));
+    view.shieldMarks.forEach((mark, index) => {
+      const visible = index < shieldCount;
+      mark.setVisible(visible);
+      if (visible) {
+        // 臨時護甲用較淺色 + 微透明區分；永久 shield 走原本亮青色。
+        const temporary = index >= permanentCount;
+        mark.setFillStyle(temporary ? 0xc6f4ff : 0x8de8ee, temporary ? 0.78 : 0.95);
+      }
+    });
     const stanceCount = Math.min(5, Math.ceil(state.balance / 2));
     view.balanceMarks.forEach((mark, index) => {
       const active = index < stanceCount;

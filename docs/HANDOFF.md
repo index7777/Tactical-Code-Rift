@@ -5,6 +5,47 @@ STATUS = AUTHORITATIVE_HANDOFF
 更新時間：2026-08-18（Asia/Taipei）
 基準 commit：`745cd65`，但目前工作樹包含大量尚未 commit 的有效實作與資產，**不得 reset、checkout 或清除 untracked files**。
 
+## 2026-08-18 護符改臨時護甲 / 怪物母版接入 / 千景朧上場 / 斬擊方向修正（待 Windows 驗證）
+
+### Batch 2
+
+**護符改臨時護甲（tempShield）**：
+- `src/core/battle/VitalResolver.ts`：`VitalState` 加 `tempShield` 欄位；`resolveDamage` 吸收順位改為 tempShield → shield → hp。
+- `src/core/battle/VitalResolver.test.ts`：新增兩個 tempShield 案例；原有測試補 `tempShield: 0`。
+- `src/core/battle/StatusLifecycle.ts` / `.test.ts`：`RoundStatus` 加 `tempShield?`；`clearEndOfRoundStatuses` 於回合結束把 tempShield 歸零（不論存活）。
+- `src/presentation/scenes/BootScene.ts`：`Actor` interface 加 `tempShield`；初始化 `tempShield:0`；`damage()` 把 result.tempShield 寫回；`shield()` 改灌 tempShield 而非 shield（`guard` / `cover` 都走這條）。
+- `src/presentation/battle/FighterHudPresenter.ts`：HUD 顯示 `shield + tempShield` 合計，臨時護甲用較淺色 (0xc6f4ff, α 0.78) 區分。
+- `src/core/balance/CombatSimulation.ts`：`SimActor` 加 tempShield；`hurt()` 吸收順位對齊；guard/cover 灌 tempShield；回合開頭清零。
+- 效果：護符不再是「單擊吸收即銷」，變成「加 12 臨時護甲、本回合有效、下回合清零」，同時也讓 cover 截刀者有一回合防禦餘量。
+
+**六隻第一區怪物母版接入**：
+- `assets/candidates/monsters/rainfall-ridgeline/noose-ghost/`、`lost-monk/`：新建資料夾，放入 `<id>-master-reference.png`。
+- `public/assets/battle/generated/monsters/rainfall-ridgeline/<id>-master-runtime-v1.png`：wet-corpse / lantern-child / mountain-hound / wayfarer-umbrella / noose-ghost / lost-monk 六隻母版 PNG runtime 已複製。
+- `docs/monsters/noose-ghost.md`、`docs/monsters/lost-monk.md`：新增規格文件（identity、palette、weapon dimensions、silhouette、allowed／forbidden variations、approval gate）。
+- `src/presentation/scenes/BootScene.ts`：preload 六隻怪改載 `-master-runtime-v1.png`；rain-warrior / rain-boss 仍為 SVG placeholder（未生圖）。`addActor` 導入 `hasMasterTexture`：有母版時 `monsterKey=monster-<id>` 且不 tint、以 heroineDisplayHeight(ec)+10 為目標高度用 `setDisplaySize` 縮放；沒有母版走舊 yokai/enemy + tint 差異化。
+- 根目錄的 8 個原始 PNG（千景／朧／濡骸／提燈童／山犬／辻傘／縊鬼／迷途僧）**未刪除**，保留原檔待使用者處理。
+
+**千景／朧上場**：
+- `src/presentation/scenes/BootScene.ts`：`init(data)` 現在也接 `pc`/`ec` 並 clamp 到 1–4；進入 journey battle（`battle-*` / `elite-1` / `boss-1`）強制 `this.pc=4`，讓 PA/PB/PC/PD 都生成。修正舊 bug：Q/W/A/S 與 P+/P− 按鈕的 `scene.restart({pc,ec})` 之前 init 沒接住，pc/ec 會停在 class field 初始值。
+
+**斬擊 FX 方向修正**（玩家左／敵方右鏡像後方向反了）：
+- `src/presentation/battle/ActionPresenter.ts`：`attack` 與 `relay` 的 `this.slash(...)` `flipX` 改由 `direction > 0` 決定（direction = attacker.x < target.x ? 1 : -1）；`bladeArc` 於 relay 也同步。
+- `src/presentation/battle/ClashPresenter.ts`：交鋒瞬間同時渲染 flipX=true 與 flipX=false 兩道刀光（不再只畫敵方朝向那一道）；破招追擊的 `slash` / `bladeCut` `flipX` 改為 `playerWon`。
+
+**文件補「站位與方向」規則**：
+- `docs/CURRENT_COMBAT_SPEC.md`：新增「站位與方向（不可反悔）」段；`堅守` 條目改寫為 tempShield 語意。
+- `docs/art-bible.md`：新增「戰場方向規則（美術／FX 必讀）」段；明訂玩家 x<640、敵方 x>640、斬擊素材基準朝向 right-to-left、runtime 依座標翻 flipX、FX sheet 需附 direction 記錄。
+
+### Windows 端驗證 TODO
+
+1. `npm run test`：`VitalResolver`、`StatusLifecycle` 新增案例應通過；其餘既有測試不應退化。
+2. `npm run build`：TypeScript 應通過（新增 `tempShield` 欄位所有 constructor 已同步）。
+3. 實機（`?journey=1` → `battle-1`）：
+   - 玩家隊伍應顯示 4 人（PA 女主角 / PB 千景 / PC 朧 / PD 女主角備用）。
+   - 敵方 2 隻怪應顯示新母版（濡骸／提燈童等），不再是 kamaitachi 剪影。
+   - 玩家攻擊時斬擊由左往右揮；敵方攻擊時由右往左揮。
+   - 出護符卡後 HUD 顯示淺色臨時護甲圖示；下一回合開始應清零。
+
 ## 2026-08-17／08-18 靜態稽核與平衡調整批次（已完成 Windows 端驗證）
 
 以下 20+ 檔的異動由 Cowork session 完成，已透過 device bridge 寫回工作樹；2026-08-18 已在 Windows 端完成測試／建置／diff 驗證。
