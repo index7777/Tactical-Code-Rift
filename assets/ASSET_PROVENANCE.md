@@ -49,6 +49,8 @@ Project-authored journey prototype: `public/assets/journey/world01/train-token-t
 
 ## Yokai Railway candidate review
 
+| `public/assets/battle/weapon-slash-cc0/classic-slash-sheet.png` | bevouliin | CC0 | [OpenGameArt Weapon Slash - Effect](https://opengameart.org/content/weapon-slash-effect) | Candidate integrated for prototype review; not Art-Director approved. |
+
 | Candidate | Author | License | Source | Decision |
 |---|---|---|---|---|
 | `public/assets/battle/samurai.png` | sebshady | CC0 1.0 | https://opengameart.org/content/samurai-sprites | Approved for gameplay prototype only. The 3/4-view frames are knowingly used as temporary stand-ins. |

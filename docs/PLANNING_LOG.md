@@ -747,3 +747,9 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - 使用者回饋：原斬擊仍不像刀，黑方塊表示千景／朧 pose texture 在部分 runtime／部署環境載入失敗。
 - 修正：斬擊改為厚外弧＋白色內刃＋命中白閃＋方向性碎片，交鋒與單體攻擊共用；HeroinePose 切換 texture 前檢查 texture manager，缺圖時保留 Master，不再把失敗 key 渲染成黑方塊。
 - 驗證：HeroinePose 5/5、build、diff check 通過。Vercel 需重新部署本批 build 後才能看到新 FX 與 fallback。
+
+## 2026-08-18｜CC0 刀斬素材候選接入與怪物母版審核門
+
+- 使用者否決原程序化斬擊，要求改用免費可商用資產；採用 OpenGameArt `Weapon Slash - Effect` 的 CC0 Classic 6 幀序列，組成 `public/assets/battle/weapon-slash-cc0/classic-slash-sheet.png`，ActionPresenter 與 ClashPresenter 改以播放序列取代舊單張斬擊。
+- 怪物不再批量視為完成。濡骸先做為第一張候選母版預覽；只有使用者核准後，才製作提燈童，依序逐隻審核。
+- 狀態：斬擊候選已接入待實機截圖驗收；濡骸母版仍為候選，未核准；其餘怪物暫停生成。
