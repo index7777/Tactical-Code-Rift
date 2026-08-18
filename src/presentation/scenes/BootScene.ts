@@ -152,8 +152,10 @@ private addActor(f:Fighter){
       sprite=this.add.sprite(0,-8,heroine?playerTexture:enemyTexture).setFlipX(heroine&&!poseLocked).setData('heroine',heroine).setData('poseLocked',poseLocked).setData('poseAssetPrefix',chikage?'chikage':oboro?'oboro':undefined).setData('heroBaseY',-8).setData('darkSilhouette',oboro);
     if(heroine){sprite.setData('heroHeight',heroineDisplayHeight(this.pc));playHeroinePose(sprite,'idle')}
     else if(hasMasterTexture){
-      // 母版原圖 ~2000px，需按顯示高度縮放；沿用玩家 heroine 高度尺，讓比例對齊。
-      const targetHeight=heroineDisplayHeight(this.ec)+10;
+      // 母版原圖 ~2000px，需按顯示高度縮放；比玩家 heroine 略小 4px 以避免遮住上方時序條與行動資訊。
+      // rain-warrior（精英）例外，比一般怪高 10px，用剪影比例表達精英強度。
+      const eliteBoost=f.archetype==='rain-warrior'?10:0;
+      const targetHeight=heroineDisplayHeight(this.ec)-4+eliteBoost;
       const src=sprite.texture.getSourceImage()as{width:number;height:number};
       if(src.width>0&&src.height>0)sprite.setDisplaySize(Math.round(targetHeight*src.width/src.height),targetHeight);
     }
@@ -521,11 +523,16 @@ private damage(a:Actor,n:number,balanceDamage=1,deferDeath=false,deathStyle:Deat
     a.hp=result.hp;a.shield=result.shield;a.tempShield=result.tempShield;a.balance=result.balance;a.alive=deferDeath&&died?true:result.alive;a.broken=result.broken;
     if(died&&!deferDeath){a.hit.disableInteractive();a.exposed=false;a.hud.setAlpha(.35);this.deathPresenter.play(a,[...this.enemies.values()].includes(a),deathStyle);const actorId=[...this.players.entries(),...this.enemies.entries()].find(([,actor])=>actor===a)?.[0],node=this.timeline.find(item=>item.actorId===actorId);if(actorId&&(this.previewTargetId===actorId||this.intentFocus===actorId)){this.previewTargetId=undefined;this.intentFocus=undefined}if(node?.team==='player')this.skipBonusNext.delete(node.actorId)}
     this.refreshActor(a);
+    // 受擊 sprite 紅閃 110ms（永久 tint 有的怪物會保留原 tint，heroine 使用 poseLocked 也會被保留）。
+    if(hpLoss>0&&a.sprite){const prev=a.sprite.tintTopLeft??0xffffff;a.sprite.setTint(0xff5060);this.time.delayedCall(110,()=>{if(!a.alive&&!deferDeath)return;if(prev===0xffffff)a.sprite.clearTint();else a.sprite.setTint(prev)})}
+    // 傷害數字：從 1.6× 彈到 1.0×（Back.easeOut），字體加黑 stroke，heavy／崩勢字更大；上升距離 44px。
     const feedback=died&&!deferDeath?'':justBroken?'崩勢！':justShattered?'破符！':hpLoss>0?`−${hpLoss}`:balanceDamage>0&&n===0?`架勢 −${balanceDamage}`:`護符 −${blocked}`,color=justBroken?'#ffcf75':justShattered?'#9ff5ff':balanceDamage>0&&n===0?'#ffcf75':'#ff8294';
     if(feedback){
-      const text=this.add.text(a.root.x,a.root.y-70,feedback,{fontFamily:'sans-serif',fontSize:justBroken?'20px':'15px',fontStyle:'bold',color,backgroundColor:'#080b12dd',padding:{x:8,y:3}}).setOrigin(.5).setDepth(95);
+      const heavyText=justBroken||justShattered||hpLoss>=8;
+      const text=this.add.text(a.root.x,a.root.y-70,feedback,{fontFamily:'sans-serif',fontSize:heavyText?'26px':'18px',fontStyle:'bold',color,stroke:'#000',strokeThickness:4,backgroundColor:'#080b12dd',padding:{x:9,y:4}}).setOrigin(.5).setDepth(95).setScale(1.6);
       this.combatLayer.add(text);
-      this.tweens.add({targets:text,y:text.y-28,alpha:0,duration:620,ease:'Cubic.easeOut',onComplete:()=>text.destroy()});
+      this.tweens.add({targets:text,scale:1,duration:190,ease:'Back.easeOut'});
+      this.tweens.add({targets:text,y:text.y-44,alpha:0,duration:720,ease:'Cubic.easeOut',onComplete:()=>text.destroy()});
     }
     if(justBroken)this.resultFxPresenter.playCollapse(a);
     return{justBroken,died}

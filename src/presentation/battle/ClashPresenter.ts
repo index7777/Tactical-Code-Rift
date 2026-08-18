@@ -31,6 +31,33 @@ export class ClashPresenter {
     this.scene.sound.play(key, { volume });
   }
 
+  // 打擊音效分級 helper（與 ActionPresenter 同語意，但獨立實作避免跨檔耦合）。
+  private playImpact(kind:'clash'|'heavy'|'break'|'death'){
+    const cfg={clash:{d:-200,v:.82},heavy:{d:-400,v:1},break:{d:-700,v:1},death:{d:-500,v:.92}}[kind];
+    this.scene.sound.play('sword-impact',{volume:cfg.v,detune:cfg.d});
+    if(kind==='clash')this.scene.time.delayedCall(28,()=>this.scene.sound.play('sword-impact',{volume:.55,rate:.55}));
+    if(kind==='heavy')this.scene.time.delayedCall(60,()=>this.scene.sound.play('sword-impact',{volume:.5,detune:-800,rate:.65}));
+    if(kind==='break')this.scene.time.delayedCall(48,()=>this.scene.sound.play('sword-impact',{volume:.72,detune:-620}));
+  }
+
+  // hit-stop + 全螢幕白閃。回傳 Promise 供 await。
+  private async impactFreeze(kind:'clash'|'heavy'|'break'){
+    const ms=kind==='clash'?90:kind==='heavy'?110:140;
+    const flashAlpha=kind==='clash'?.42:kind==='heavy'?.55:.7;
+    const w=this.scene.cameras.main.width,h=this.scene.cameras.main.height;
+    const overlay=this.scene.add.rectangle(w/2,h/2,w,h,0xffffff,flashAlpha).setDepth(200).setScrollFactor(0);
+    this.combatLayer.add(overlay);
+    this.scene.tweens.add({targets:overlay,alpha:0,duration:Math.max(90,ms+40),ease:'Cubic.easeOut',onComplete:()=>overlay.destroy()});
+    this.scene.time.timeScale=kind==='break'?.08:kind==='heavy'?.12:.18;
+    await new Promise<void>(r=>this.scene.time.delayedCall(ms,r));
+    this.scene.time.timeScale=1;
+  }
+
+  private hitFlash(sprite?:Phaser.GameObjects.Sprite){
+    if(!sprite)return;const prev=sprite.tintTopLeft??0xffffff;sprite.setTint(0xff5060);
+    this.scene.time.delayedCall(110,()=>{if(prev===0xffffff)sprite.clearTint();else sprite.setTint(prev)});
+  }
+
   private slash(x: number, y: number, flipX: boolean) {
     const fx = this.scene.add.sprite(x, y, 'slash-cc0').setDepth(100).setScale(.56).setFlipX(flipX).setAlpha(0); this.combatLayer.add(fx); fx.play('slash-cc0');
     this.scene.tweens.add({ targets: fx, alpha: 1, scale: .72, angle: flipX ? -12 : 12, duration: 80, yoyo: true, hold: 55, onComplete: () => fx.destroy() });
@@ -118,13 +145,16 @@ export class ClashPresenter {
         this.move(enemy.root,enemyEntryX,clashY,280),
       ])
     }
-    this.focusCamera(clashX, clashY, 1.16);
+    // 交鋒瞬間 zoom 拉更近，離開遠景平的觀感。
+    this.focusCamera(clashX, clashY, 1.24);
 
-    const playerCard = this.scene.add.text(clashX-100, clashY - 112, `${clash.player.card.name}\n威力 ${clash.playerPower}`, {
+    // 卡片位置上移到 clashY-160，避開母版尺寸的角色頭部；y 座標若過低（角色貼近上邊界）自動吸回螢幕內。
+    const cardY = Math.max(60, clashY - 160);
+    const playerCard = this.scene.add.text(clashX-108, cardY, `${clash.player.card.name}\n威力 ${clash.playerPower}`, {
       fontFamily: 'sans-serif', fontSize: '19px', fontStyle: 'bold', align: 'center', color: '#dffaff', backgroundColor: '#155268', padding: { x: 18, y: 10 },
     }).setOrigin(.5).setDepth(70).setAlpha(0).setScale(.86);
     this.combatLayer.add(playerCard);
-    const enemyCard = this.scene.add.text(clashX+100, clashY - 112, `${clash.enemy.enemySkill!.name}\n威力 ${clash.enemyPower}`, {
+    const enemyCard = this.scene.add.text(clashX+108, cardY, `${clash.enemy.enemySkill!.name}\n威力 ${clash.enemyPower}`, {
       fontFamily: 'sans-serif', fontSize: '19px', fontStyle: 'bold', align: 'center', color: '#fff0f2', backgroundColor: '#713142', padding: { x: 18, y: 10 },
     }).setOrigin(.5).setDepth(70).setAlpha(0).setScale(.86);
     this.combatLayer.add(enemyCard);
@@ -134,7 +164,7 @@ export class ClashPresenter {
     this.sound('sword-swish', .55);
     playHeroinePose(player.sprite,'strike');
     await Promise.all([this.move(player.root, clashX-16, clashY, 135, 'Cubic.easeIn'), this.move(enemy.root, clashX+16, clashY, 135, 'Cubic.easeIn')]);
-    this.sound('sword-impact', .72);
+    this.playImpact('clash');
     if(player.sprite)player.sprite.setAngle(0);
     if(enemy.sprite)enemy.sprite.setAngle(0);
     // 交鋒瞬間：玩家在左揮向右（flipX=true），敵人在右揮向左（flipX=false）；同時渲染兩道刀光呈現對砍。
@@ -144,14 +174,13 @@ export class ClashPresenter {
     this.slash(clashX, clashY - 13, false);
     this.bladeCut(clashX,clashY-13,false,0xffffff);
     this.burst(clashX, clashY - 13, 0xffed9c, 12);
-    this.scene.cameras.main.shake(130, .011);
-    this.scene.time.timeScale = .35;
-    await this.wait(55);
-    this.scene.time.timeScale = 1;
+    this.scene.cameras.main.shake(160, .014);
+    // 拚刀時 hit-stop + 全螢幕白閃；tie 分支後續會再加鎖刀動畫延長節奏。
+    await this.impactFreeze('clash');
 
     // Skill cards are a reveal phase, not a persistent result HUD. Retire the
     // same instances at impact so they cannot be read as a second card pair.
-    this.scene.tweens.add({ targets: [playerCard, enemyCard], alpha: 0, y: clashY - 126, duration: 110, ease: 'Quad.easeIn' });
+    this.scene.tweens.add({ targets: [playerCard, enemyCard], alpha: 0, y: cardY - 14, duration: 110, ease: 'Quad.easeIn' });
     await this.wait(120);
     playerCard.destroy();
     enemyCard.destroy();
@@ -175,14 +204,20 @@ export class ClashPresenter {
       await this.move(winner.root, windupX, winner.root.y, 100, 'Quad.easeOut');
       this.sound('sword-swish', .72);
       playHeroinePose(winner.sprite,'strike');
+      // 破招追擊：勝方發動 windup 前把鏡頭拉到 loser 身上放大 1.42，讓補刀有必殺鏡頭感。
+      this.focusCamera(loser.root.x, loser.root.y, 1.42);
       await this.move(winner.root, loser.root.x - direction * 48, loser.root.y, 125, 'Cubic.easeIn');
       // 破招追擊：勝方在左（playerWon）→ 揮向右，flipX=true；勝方在右（enemy 勝）→ flipX=false。
       // 舊 !playerWon 假設 winner 在右，玩家改站左後方向反了。
-      this.slash(loser.root.x, loser.root.y - 5, playerWon);
-      this.bladeCut(loser.root.x,loser.root.y-5,playerWon,playerWon?0x9fe8ff:0xff7487);
+      // 更正：base slash 為左向揮擊，勝方在**右**才需 flipX=true。
+      // playerWon → 勝方=player 在左 → flipX=false；enemy 贏 → 勝方在右 → flipX=true。
+      this.slash(loser.root.x, loser.root.y - 5, !playerWon);
+      this.bladeCut(loser.root.x,loser.root.y-5,!playerWon,playerWon?0x9fe8ff:0xff7487);
       this.burst(loser.root.x, loser.root.y - 5, playerWon ? 0x67e8ff : 0xff6b78, 16);
-      this.sound('sword-impact', .9);
-      this.scene.cameras.main.shake(170, .014);
+      this.playImpact('break');
+      this.scene.cameras.main.shake(240, .022);
+      this.hitFlash(loser.sprite);
+      await this.impactFreeze('break');
       const defeated=onFollowThrough?.()??false;
       if(defeated&&!holdForRelay){
         await Promise.all([
@@ -202,10 +237,24 @@ export class ClashPresenter {
       loser.root.setAngle(0);
       await this.wait(90);
     } else {
-      this.burst(clashX, clashY - 13, 0xffffff, 18);
+      // 相殺（tie）重做：不再是「burst 一下就分開」，而是「兩人卡住 400ms，鎖刀微振、鏡頭壓進、慢動作，然後彈開」。
+      this.focusCamera(clashX, clashY, 1.32, 160);
+      // 鎖刀微抖：雙方 root 高頻震動 3 拍，模擬刀鋒卡住彼此的張力。
+      this.scene.tweens.add({targets:[player.root,enemy.root],x:'+=5',yoyo:true,repeat:3,duration:55,ease:'Sine.easeInOut'});
+      // 額外雙 bladeCut 反向疊，強化「兩把刀鎖住」的視覺。
+      this.bladeCut(clashX-6, clashY-8, false, 0xffd989);
+      this.bladeCut(clashX+6, clashY-8, true, 0xffffff);
+      this.burst(clashX, clashY - 13, 0xffffff, 22);
+      // 慢動作 220ms 讓玩家真的看到刀鋒鎖在一起。
+      this.scene.time.timeScale = .18;
+      await this.wait(220);
+      this.scene.time.timeScale = 1;
+      // 兩人彈開之前補一次 impact 音（低頻疊播）與 shake，做為分離瞬間的收音。
+      this.playImpact('clash');
+      this.scene.cameras.main.shake(140, .012);
       await Promise.all([
-        this.move(player.root, player.root.x - 28, player.root.y, 80, 'Back.easeOut'),
-        this.move(enemy.root, enemy.root.x + 28, enemy.root.y, 80, 'Back.easeOut'),
+        this.move(player.root, player.root.x - 34, player.root.y, 110, 'Back.easeOut'),
+        this.move(enemy.root, enemy.root.x + 34, enemy.root.y, 110, 'Back.easeOut'),
       ]);
       if (holdForRelay) return;
     }
