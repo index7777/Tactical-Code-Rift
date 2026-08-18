@@ -1,0 +1,33 @@
+{
+  "asset": "public\\assets\\battle\\generated\\characters\\oboro\\oboro-sd-attack-runtime-v2.png",
+  "kind": "character",
+  "passed": true,
+  "checks": [
+    {
+      "name": "readable",
+      "passed": true,
+      "detail": "670x900 RGBA"
+    },
+    {
+      "name": "true-alpha",
+      "passed": true,
+      "detail": "bands=('R', 'G', 'B', 'A')"
+    },
+    {
+      "name": "non-empty-alpha-bbox",
+      "passed": true,
+      "detail": "bbox=(8, 8, 662, 892)"
+    },
+    {
+      "name": "foot-baseline-margin",
+      "passed": true,
+      "detail": "bottom_gap=8px"
+    },
+    {
+      "name": "usable-crop",
+      "passed": true,
+      "detail": "bbox_area_ratio=0.959"
+    }
+  ],
+  "manualReviewRequired": true
+}

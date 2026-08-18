@@ -35,6 +35,7 @@ export class ClashPresenter {
     const fx = this.scene.add.image(x, y, 'slash-fx').setDepth(100).setScale(.25).setFlipX(flipX).setAlpha(0); this.combatLayer.add(fx);
     this.scene.tweens.add({ targets: fx, alpha: 1, scale: .72, angle: flipX ? -12 : 12, duration: 80, yoyo: true, hold: 55, onComplete: () => fx.destroy() });
   }
+  private bladeCut(x:number,y:number,flip=false,color=0xfff3c4){const g=this.scene.add.graphics().setDepth(104);g.lineStyle(12,color,.9);g.beginPath();g.arc(x,y,52,flip?Math.PI*.12:Math.PI*.88,flip?Math.PI*.88:Math.PI*1.88,false);g.strokePath();g.lineStyle(3,0xffffff,.98);g.beginPath();g.arc(x,y,52,flip?Math.PI*.18:Math.PI*.94,flip?Math.PI*.78:Math.PI*1.82,false);g.strokePath();this.combatLayer.add(g);const flash=this.scene.add.circle(x,y,13,0xffffff,.95).setDepth(105);this.combatLayer.add(flash);this.scene.tweens.add({targets:[g,flash],alpha:0,scale:1.5,duration:160,ease:'Cubic.easeOut',onComplete:()=>{g.destroy();flash.destroy()}});for(let i=0;i<8;i++){const shard=this.scene.add.rectangle(x,y,18,3,0xffffff,.85).setDepth(105).setRotation((i-4)*.38);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x+(i-4)*22,y:y+(i%2?1:-1)*(22+i*4),alpha:0,duration:190,onComplete:()=>shard.destroy()})}}
 
   private focusCamera(x: number, y: number, zoom = 1.14) {
     this.scene.cameras.main.pan(x, y, 190, 'Sine.easeInOut');
@@ -137,7 +138,9 @@ export class ClashPresenter {
     if(player.sprite)player.sprite.setAngle(0);
     if(enemy.sprite)enemy.sprite.setAngle(0);
     this.slash(clashX, clashY - 13, false);
+    this.bladeCut(clashX,clashY-13,false,0xfff3c4);
     if (clash.winner === 'tie') this.slash(clashX, clashY - 13, true);
+    if (clash.winner === 'tie') this.bladeCut(clashX,clashY-13,true,0xffffff);
     this.burst(clashX, clashY - 13, 0xffed9c, 12);
     this.scene.cameras.main.shake(130, .011);
     this.scene.time.timeScale = .35;
@@ -172,6 +175,7 @@ export class ClashPresenter {
       playHeroinePose(winner.sprite,'strike');
       await this.move(winner.root, loser.root.x - direction * 48, loser.root.y, 125, 'Cubic.easeIn');
       this.slash(loser.root.x, loser.root.y - 5, !playerWon);
+      this.bladeCut(loser.root.x,loser.root.y-5,!playerWon,playerWon?0x9fe8ff:0xff7487);
       this.burst(loser.root.x, loser.root.y - 5, playerWon ? 0x67e8ff : 0xff6b78, 16);
       this.sound('sword-impact', .9);
       this.scene.cameras.main.shake(170, .014);

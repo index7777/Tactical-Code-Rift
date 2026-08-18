@@ -17,7 +17,9 @@ export function playHeroinePose(sprite:Phaser.GameObjects.Sprite|undefined,pose:
   const prefix=sprite.getData('poseAssetPrefix') as string|undefined;
   if(poseLocked&&prefix){
     const poseSprite=sprite as Phaser.GameObjects.Sprite&{setTexture?: (key:string)=>unknown};
-    poseSprite.setTexture?.(pose==='idle'?`${prefix}-idle`:`${prefix}-${pose}`);
+    const key=pose==='idle'?`${prefix}-idle`:`${prefix}-${pose}`;
+    const textureManager=(sprite as Phaser.GameObjects.Sprite&{scene?:Phaser.Scene}).scene?.textures as {exists?: (textureKey:string)=>boolean}|undefined;
+    if(textureManager?.exists?.(key)!==false)poseSprite.setTexture?.(key);
   }else if(!poseLocked)sprite.play(`heroine-${pose}`);
   const source=sprite.texture.getSourceImage()as{width:number;height:number};
   // The down drawing is naturally much wider and shorter. Keeping it at the

@@ -729,3 +729,21 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - 實作：新增 `tools/generate_character_pose_trials.py`，從核准 Master deterministic 產生千景／朧 `ready / attack / hit / down`，不改身份設計；BootScene 與 HeroinePose 已載入並切換這些 runtime-trial 圖。
 - FX：快斬雙刀弧、重斬厚弧＋地面衝擊、破甲裂片、牽制冷色束縛環、接力金色交接刀路、整備綠色回復環、堅守護盾橢圓、掩護截斷符號均已分流。
 - 驗收狀態：素材 deterministic validator 對 ready 與 crop 後候選通過；須再完成 1280×720／844×390 的 idle、attack、hit、down 截圖人工驗收，未通過前維持 runtime-trial。
+
+## 2026-08-18｜第一區雨暮山線怪物與路線 Demo
+
+- 採用 6 種普通怪規則：濡骸（基礎交鋒）、提燈童（高速截刀）、山犬（高速壓線）、辻傘（慢速重擊）、縊鬼（高架勢傷害）、迷途僧（牽制）；精英為雨夜武者（居合／踏込／崩し），Boss 為雨暮山主。
+- 路線改為出發 → battle-1 → 上／下分線各 2 戰 → 精英 → Boss；移除第一區的伙伴、事件與探索節點，保留事件型別供未來擴充。
+- 新增路線視覺素材：`route-bg-rainfall-ridgeline.svg`、`track-segment.svg`、`node-icons.svg`；JourneyScene 已接入雨暮山背景與俯視列車 token。
+
+## 2026-08-18｜斬擊 FX 加強與角色 texture 載入修正
+
+- 問題：原本交鋒仍以 `slash-fx` 圖片作主視覺，刀刃感不足；千景／朧新增 pose texture 需要明確載入並切換，否則部署版可能出現黑方塊或缺圖。
+- 修正：ClashPresenter 新增雙層刀刃弧（厚色刃光＋白色刃緣拖尾）；ActionPresenter 保留卡型專屬 FX。BootScene 明確 preload 千景／朧 pose v1/v2，HeroinePose 依 Master prefix 切換 texture，idle 時切回 Master。
+- 驗證：本地 runtime pose 檔案均存在，validator 對實際使用的 v2 attack 素材通過；build、角色測試與 diff check 待本批完成後執行。
+
+## 2026-08-18｜刀斬拖尾與缺圖 fallback
+
+- 使用者回饋：原斬擊仍不像刀，黑方塊表示千景／朧 pose texture 在部分 runtime／部署環境載入失敗。
+- 修正：斬擊改為厚外弧＋白色內刃＋命中白閃＋方向性碎片，交鋒與單體攻擊共用；HeroinePose 切換 texture 前檢查 texture manager，缺圖時保留 Master，不再把失敗 key 渲染成黑方塊。
+- 驗證：HeroinePose 5/5、build、diff check 通過。Vercel 需重新部署本批 build 後才能看到新 FX 與 fallback。
