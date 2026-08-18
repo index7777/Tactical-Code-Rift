@@ -1,0 +1,33 @@
+{
+  "asset": "D:\\Tactical-Code-Rift\\public\\assets\\battle\\generated\\characters\\oboro\\oboro-sd-hit-runtime-v1.png",
+  "kind": "character",
+  "passed": false,
+  "checks": [
+    {
+      "name": "readable",
+      "passed": true,
+      "detail": "775x946 RGBA"
+    },
+    {
+      "name": "true-alpha",
+      "passed": true,
+      "detail": "bands=('R', 'G', 'B', 'A')"
+    },
+    {
+      "name": "non-empty-alpha-bbox",
+      "passed": true,
+      "detail": "bbox=(94, 69, 713, 897)"
+    },
+    {
+      "name": "foot-baseline-margin",
+      "passed": false,
+      "detail": "bottom_gap=49px"
+    },
+    {
+      "name": "usable-crop",
+      "passed": true,
+      "detail": "bbox_area_ratio=0.699"
+    }
+  ],
+  "manualReviewRequired": true
+}

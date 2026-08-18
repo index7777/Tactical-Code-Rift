@@ -1,0 +1,33 @@
+{
+  "asset": "D:\\Tactical-Code-Rift\\public\\assets\\battle\\generated\\characters\\oboro\\oboro-sd-down-runtime-v2.png",
+  "kind": "character",
+  "passed": true,
+  "checks": [
+    {
+      "name": "readable",
+      "passed": true,
+      "detail": "475x357 RGBA"
+    },
+    {
+      "name": "true-alpha",
+      "passed": true,
+      "detail": "bands=('R', 'G', 'B', 'A')"
+    },
+    {
+      "name": "non-empty-alpha-bbox",
+      "passed": true,
+      "detail": "bbox=(8, 8, 467, 349)"
+    },
+    {
+      "name": "foot-baseline-margin",
+      "passed": true,
+      "detail": "bottom_gap=8px"
+    },
+    {
+      "name": "usable-crop",
+      "passed": true,
+      "detail": "bbox_area_ratio=0.923"
+    }
+  ],
+  "manualReviewRequired": true
+}

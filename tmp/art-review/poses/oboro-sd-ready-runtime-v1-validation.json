@@ -1,0 +1,33 @@
+{
+  "asset": "D:\\Tactical-Code-Rift\\public\\assets\\battle\\generated\\characters\\oboro\\oboro-sd-ready-runtime-v1.png",
+  "kind": "character",
+  "passed": true,
+  "checks": [
+    {
+      "name": "readable",
+      "passed": true,
+      "detail": "676x881 RGBA"
+    },
+    {
+      "name": "true-alpha",
+      "passed": true,
+      "detail": "bands=('R', 'G', 'B', 'A')"
+    },
+    {
+      "name": "non-empty-alpha-bbox",
+      "passed": true,
+      "detail": "bbox=(26, 26, 650, 861)"
+    },
+    {
+      "name": "foot-baseline-margin",
+      "passed": true,
+      "detail": "bottom_gap=20px"
+    },
+    {
+      "name": "usable-crop",
+      "passed": true,
+      "detail": "bbox_area_ratio=0.875"
+    }
+  ],
+  "manualReviewRequired": true
+}

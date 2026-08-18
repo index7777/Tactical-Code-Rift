@@ -723,3 +723,9 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 
 - 問題：底部 y=548 的狀態框會把行動 log 顯示在戰場與卡牌區之間，佔用畫面並干擾角色／殺生線閱讀。
 - 修正：保留內部 `status` 作為輸入驗證與 debug state sink，但不再加入玩家可見 HUD，也不保留底部欄位框。
+
+## 2026-08-18｜千景／朧動作候選與卡型 FX 完整化
+
+- 實作：新增 `tools/generate_character_pose_trials.py`，從核准 Master deterministic 產生千景／朧 `ready / attack / hit / down`，不改身份設計；BootScene 與 HeroinePose 已載入並切換這些 runtime-trial 圖。
+- FX：快斬雙刀弧、重斬厚弧＋地面衝擊、破甲裂片、牽制冷色束縛環、接力金色交接刀路、整備綠色回復環、堅守護盾橢圓、掩護截斷符號均已分流。
+- 驗收狀態：素材 deterministic validator 對 ready 與 crop 後候選通過；須再完成 1280×720／844×390 的 idle、attack、hit、down 截圖人工驗收，未通過前維持 runtime-trial。

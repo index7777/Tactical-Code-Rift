@@ -31,6 +31,10 @@ Project-authored journey prototype: `public/assets/journey/world01/train-token-t
 
 千景與朧不新增猜測性的衍生立繪。兩者的 Master texture 由 `HeroinePose.ts` 共用於 idle／ready／strike／hit，並以 Phaser 位移、碰撞停頓、染色與 FX 完成攻擊表現；down 則使用同一張 Master 的 52% 高度、78° 倒地旋轉與低彩 tint。這是可回復的 runtime trial，不代表兩名角色的 Master 或任何衍生 pose 已獲 Art Director 核准。
 
+### 2026-08-18 approved-master pose trials
+
+千景與朧獲 Art Director 核准後，以 `tools/generate_character_pose_trials.py` 從各自 Master deterministic 產生 `ready / attack / hit / down` 候選。候選沒有重繪、FX、背景或文字；攻擊衝擊仍由 Phaser runtime FX 負責。`ready` 為 v1，旋轉／染色後 pose 經 alpha crop 為 v2；目前均為 runtime-trial，待實機截圖驗收。
+
 ## Usage notes
 
 - No Canva output is used. The PA slot now intentionally uses one project-generated heroine candidate for browser scale/composite evaluation; it is not release-approved final art and does not establish provenance for the user's external style references.

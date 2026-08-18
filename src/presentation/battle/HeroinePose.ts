@@ -14,7 +14,11 @@ export function heroineDisplayHeight(playerCount:number):number{
 export function playHeroinePose(sprite:Phaser.GameObjects.Sprite|undefined,pose:HeroinePose):void{
   if(!sprite?.getData('heroine'))return;
   const poseLocked=Boolean(sprite.getData('poseLocked'));
-  if(!poseLocked)sprite.play(`heroine-${pose}`);
+  const prefix=sprite.getData('poseAssetPrefix') as string|undefined;
+  if(poseLocked&&prefix){
+    const poseSprite=sprite as Phaser.GameObjects.Sprite&{setTexture?: (key:string)=>unknown};
+    poseSprite.setTexture?.(pose==='idle'?`${prefix}-idle`:`${prefix}-${pose}`);
+  }else if(!poseLocked)sprite.play(`heroine-${pose}`);
   const source=sprite.texture.getSourceImage()as{width:number;height:number};
   // The down drawing is naturally much wider and shorter. Keeping it at the
   // standing display height would enlarge the body during death.
