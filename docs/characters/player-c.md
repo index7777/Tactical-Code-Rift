@@ -1,6 +1,6 @@
 # Character Master Spec：Player C／朧
 
-STATUS = RUNTIME_QA_PASS_PENDING_ART_DIRECTOR_APPROVAL
+STATUS = APPROVED_BY_ART_DIRECTOR_2026-08-18
 
 - Identity reference：`references/characters/oboro/oboro-design-reference-v1.png`（使用者提供；只作設計依據，來源與發行權利待確認）。
 - Master reference candidate：`assets/candidates/characters/oboro/oboro-sd-side-master-candidate-v1-cropped.png`。第一代綠幕生成後只經 deterministic chroma cleanup 與 alpha crop；自動檢查通過，等待實機與 Art Director 核准。

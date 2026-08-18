@@ -8,10 +8,15 @@ export class ActionPresenter {
   private move(o: Phaser.GameObjects.Container, x: number, y: number, d = 210, ease = 'Quad.easeInOut') { return new Promise<void>((r) => this.scene.tweens.add({ targets: o, x, y, duration: d, ease, onComplete: () => r() })); }
   private wait(ms: number) { return new Promise<void>((r) => this.scene.time.delayedCall(ms, r)); }
   private slash(x: number, y: number, flipX: boolean) { const fx = this.scene.add.image(x, y, 'slash-fx').setDepth(100).setScale(.25).setFlipX(flipX).setAlpha(0); this.combatLayer.add(fx); this.scene.tweens.add({ targets: fx, alpha: 1, scale: .68, duration: 80, yoyo: true, hold: 55, onComplete: () => fx.destroy() }); }
+  private bladeArc(x:number,y:number,color:number=0xffe8b0,flip=false){const g=this.scene.add.graphics().setDepth(103);g.lineStyle(7,color,.95);g.beginPath();g.arc(x,y,42,flip?Math.PI*.15:Math.PI*.85,flip?Math.PI*.85:Math.PI*1.85,false);g.strokePath();this.combatLayer.add(g);this.scene.tweens.add({targets:g,alpha:0,scale:1.35,duration:180,ease:'Cubic.easeOut',onComplete:()=>g.destroy()})}
   private cardImpact(x:number,y:number,definitionId?:string){
     if(definitionId==='break'){for(let i=0;i<5;i++){const shard=this.scene.add.rectangle(x,y,14+i*2,3,0xffd36b,1).setRotation(-.8+i*.35).setDepth(102);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x-42+i*21,y:y-30+(i%2)*34,angle:70-i*25,alpha:0,duration:290,onComplete:()=>shard.destroy()})}}
     else if(definitionId==='delay'){const ring=this.scene.add.ellipse(x,y,52,84,0x6fb8d5,.08).setStrokeStyle(3,0x9cecff,.9).setDepth(101);this.combatLayer.add(ring);this.scene.tweens.add({targets:ring,scaleX:1.7,scaleY:.65,alpha:0,duration:330,ease:'Cubic.easeOut',onComplete:()=>ring.destroy()})}
-    else if(definitionId==='heavy'){const shock=this.scene.add.rectangle(x,y+28,124,5,0xffd8a0,.8).setDepth(101);this.combatLayer.add(shock);this.scene.tweens.add({targets:shock,scaleX:1.8,alpha:0,duration:260,onComplete:()=>shock.destroy()})}
+    else if(definitionId==='heavy'){this.bladeArc(x,y,0xffd8a0);const shock=this.scene.add.rectangle(x,y+28,124,5,0xffd8a0,.8).setDepth(101);this.combatLayer.add(shock);this.scene.tweens.add({targets:shock,scaleX:1.8,alpha:0,duration:260,onComplete:()=>shock.destroy()})}
+    else if(definitionId==='quick'){this.bladeArc(x,y,0x9fe8ff);this.bladeArc(x+10,y-8,0x67cfff,true)}
+    else if(definitionId==='guard'){const shield=this.scene.add.ellipse(x,y,72,92,0x7dd9ff,.12).setStrokeStyle(4,0xc6f4ff,.95).setDepth(101);this.combatLayer.add(shield);this.scene.tweens.add({targets:shield,scale:.72,alpha:0,duration:300,onComplete:()=>shield.destroy()})}
+    else if(definitionId==='cover'){const intercept=this.scene.add.triangle(x,y-18,0,44,24,0,48,44,0x8eeeff,.85).setDepth(102);this.combatLayer.add(intercept);this.scene.tweens.add({targets:intercept,y:y-48,alpha:0,duration:240,onComplete:()=>intercept.destroy()})}
+    else if(definitionId==='cycle'){const ring=this.scene.add.circle(x,y,28,0x8fe6c0,.14).setStrokeStyle(3,0xb9ffe3,.9).setDepth(101);this.combatLayer.add(ring);this.scene.tweens.add({targets:ring,scale:1.6,alpha:0,duration:320,onComplete:()=>ring.destroy()})}
   }
   private resetCamera() { this.scene.cameras.main.pan(640, 360, 250, 'Sine.easeInOut'); this.scene.cameras.main.zoomTo(1, 250, 'Sine.easeInOut'); }
 
@@ -61,7 +66,7 @@ export class ActionPresenter {
       this.move(source.root, source.x, source.y, 180, 'Quad.easeOut'),
       this.move(ally.root, contactX, target.root.y, 180, 'Cubic.easeIn'),
     ]);
-    const handoff=this.scene.add.rectangle((source.root.x+ally.root.x)/2,target.root.y-14,96,3,0xffd56f,.85).setDepth(103).setRotation(-.12*direction);this.combatLayer.add(handoff);this.scene.tweens.add({targets:handoff,scaleX:1.45,alpha:0,duration:220,onComplete:()=>handoff.destroy()});
+    const handoff=this.scene.add.rectangle((source.root.x+ally.root.x)/2,target.root.y-14,96,3,0xffd56f,.85).setDepth(103).setRotation(-.12*direction);this.combatLayer.add(handoff);this.bladeArc(target.root.x,target.root.y-8,0xffd56f,!enemy);this.scene.tweens.add({targets:handoff,scaleX:1.45,alpha:0,duration:220,onComplete:()=>handoff.destroy()});
     // The target keeps the first hit's recoil pose until this second blade lands.
     await this.wait(55);
     this.scene.sound.play('sword-swish', { volume: .78 });
@@ -128,6 +133,9 @@ export class ActionPresenter {
     const actor = this.players.get(actorId)!; const target = this.players.get(targetId)!;
     const badge = this.scene.add.text(actor.root.x, actor.root.y - 90, card.name, { fontFamily: 'sans-serif', fontSize: '16px', fontStyle: 'bold', align: 'center', color: '#fff', backgroundColor: '#376d59', padding: { x: 14, y: 8 } }).setOrigin(.5).setDepth(70);
     if(actorId!==targetId)await this.move(actor.root, target.root.x - 75, target.root.y, 190, 'Back.easeOut');
+    if(card.definitionId==='guard')this.cardImpact(target.root.x,target.root.y-12,'guard');
+    else if(card.definitionId==='cover')this.cardImpact(target.root.x,target.root.y-12,'cover');
+    else if(card.definitionId==='cycle')this.cardImpact(target.root.x,target.root.y-12,'cycle');
     this.scene.tweens.add({ targets: target.root, scale: 1.12, duration: 160, yoyo: true });
     await this.wait(260); badge.destroy(); if(actorId!==targetId)await this.move(actor.root, actor.x, actor.y);
   }

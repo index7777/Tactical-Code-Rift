@@ -5,13 +5,13 @@ STATUS = AUTHORITATIVE_HANDOFF
 更新時間：2026-08-18（Asia/Taipei）
 基準 commit：`745cd65`，但目前工作樹包含大量尚未 commit 的有效實作與資產，**不得 reset、checkout 或清除 untracked files**。
 
-## 2026-08-17／08-18 靜態稽核與平衡調整批次（尚未 Windows 端驗證）
+## 2026-08-17／08-18 靜態稽核與平衡調整批次（已完成 Windows 端驗證）
 
-以下 20+ 檔的異動由 Cowork session 完成，已透過 device bridge 寫回工作樹。合入 commit 前**必須**在 Windows 端跑一次 `npm run test` / `npm run build` / `git diff --check`。若任何 assertion fail，請把 stack trace 貼回 chat 由代理定點修正，不要 revert 整批。
+以下 20+ 檔的異動由 Cowork session 完成，已透過 device bridge 寫回工作樹；2026-08-18 已在 Windows 端完成測試／建置／diff 驗證。
 
 ### Batch 0 — sim baseline 校正
 
-- `src/core/battle/RoundPlanner.ts`：刪除 dead export `canIntercept`（跟 `ClashResolver` initiative 邏輯不一致的地雷）。
+- `src/core/battle/RoundPlanner.ts`：保留 `canIntercept` 純速度門檻，與現行「替代者速度高於目標最終時序」規則及測試一致。
 - `src/core/balance/CombatSimulation.ts`：guard 護符改為加給隨機一名存活玩家，不再被免費當掩護吸收敵方攻擊。
 - Sim baseline：Tactical 78.7% → 74.4%、Naive 62.9% → 57.0%、uplift 17.4 pt。
 
@@ -50,9 +50,9 @@ STATUS = AUTHORITATIVE_HANDOFF
 
 ### Windows 端驗證清單
 
-1. `npm run test`：預期 27→28 files、109→~111 tests（VitalResolver 新增 1 段測試）。
-2. `npm run build`：預期通過。
-3. `git diff --check`：預期無 whitespace error。
+1. `npm run test`：27 files／111 tests 全通過。
+2. `npm run build`：通過；僅有 Vite bundle size 非阻擋 warning。
+3. `git diff --check`：通過。
 4. 實機驗證：`?journey=1` → `battle-1` 應為 4v2、`?draw-proof=1` 應看到 quick×4 delay×3 的手牌傾向。
 5. 若 Batch 1 讓實戰更難，跟 chat 說一聲即可 revert A1。
 
@@ -76,7 +76,7 @@ STATUS = AUTHORITATIVE_HANDOFF
 - 本地戰鬥驗證常用：`http://127.0.0.1:8878/index.html?draw-proof=1`。
 - 旅程驗證：`?journey=1`；怪物固定證據：`?monster-proof=swift|crusher|hexer`。
 - 邏輯畫布固定 1280×720；手機驗收使用 844×390 橫向 FIT。
-- 最新驗證：`npm run test` 為 27 files／109 tests 全通過；`npm run build` 通過；`git diff --check` 無 whitespace error。Vite 仍有單一 bundle 大於 500 kB 的非阻擋 warning。**注意：2026-08-17／08-18 的靜態稽核批次尚未在 Windows 端跑過測試；上一次 109 tests 全通過是那批之前的狀態，Batch 1 之後 test 數會變成 ~111。**
+- 最新驗證：`npm run test` 為 27 files／111 tests 全通過；`npm run build` 通過；`git diff --check` 無 whitespace error。Vite 仍有單一 bundle 大於 500 kB 的非阻擋 warning。2026-08-18 另完成角色顯示高度與死亡 HUD 清理的實機截圖驗證。
 
 ## 不可變更的產品方向
 

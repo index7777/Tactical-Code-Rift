@@ -17,6 +17,7 @@ Project-authored journey prototype: `public/assets/journey/world01/train-token-t
 | `../music/world-01/zone1-train-bgm.mp3` | World 01 train-route BGM | User-provided project asset | Provenance/license pending; prototype runtime only | Supplied directly to the project on 2026-08-15 |
 | `../music/world-01/zone1-boss-bgm.mp3` | World 01 boss-battle BGM | User-provided project asset | Provenance/license pending; prototype runtime only | Supplied directly to the project on 2026-08-15 |
 | `heroine-sd-idle-v1.png`, `heroine-sd-ready-v1.png`, `heroine-sd-down-v1.png` | Original heroine SD side-view minimum pose set | Built-in ImageGen + project chroma cleanup／cell extraction scripts | Project-generated candidates; release approval pending | `assets/candidates/characters/heroine/` |
+| `heroine-sd-down-v2.png` | Deterministic alpha-cropped heroine down pose for PD death runtime | Project crop script; no repainting | Runtime trial; visual approval pending | Derived from `heroine-sd-down-v1.png`; 598×295 RGBA; 9 px baseline gap |
 | `world01-rooftop-composite-candidate-v3.png` | World 01 moving-train rooftop battle composition candidate | Built-in ImageGen using the project visual-target candidate as style／layout reference only | Project-generated runtime trial; not release-approved and not yet layered | Source at `assets/candidates/backgrounds/world01/`; v1／v2 retained for comparison; no characters, UI, text, lines or attack FX baked in |
 | `references/characters/chikage/chikage-design-reference-v1.png` | Chikage identity／costume reference | User-provided image | Ownership and release provenance pending; reference-only | Supplied directly on 2026-08-17; not production-ready |
 | `assets/candidates/characters/chikage/chikage-sd-side-master-candidate-v1.png` | Chikage SD side master attempt 1 | Built-in ImageGen using the user-provided identity reference | Rejected: `alpha-failure` | Checkerboard baked into RGB |
@@ -25,6 +26,10 @@ Project-authored journey prototype: `public/assets/journey/world01/train-token-t
 | `chikage-sd-side-master-runtime-trial-v1.png` | Deterministically cropped Chikage v2 side master | Project crop script; no repainting | Runtime trial; Art Director approval pending | `assets/candidates/characters/chikage/chikage-sd-side-master-candidate-v2-cropped.png`; RGBA, bottom gap 10 px |
 | `references/characters/oboro/oboro-design-reference-v1.png` | Oboro identity／costume reference | User-provided image | Ownership and release provenance pending; reference-only | Supplied directly on 2026-08-17; not production-ready |
 | `oboro-sd-side-master-runtime-trial-v1.png` | Oboro SD side master candidate | Built-in ImageGen＋project deterministic chroma cleanup／crop | Runtime trial; Art Director approval pending | `assets/candidates/characters/oboro/oboro-sd-side-master-candidate-v1-cropped.png`; 656×861 RGBA, bottom gap 10 px |
+
+### 2026-08-18 runtime pose completion (trial)
+
+千景與朧不新增猜測性的衍生立繪。兩者的 Master texture 由 `HeroinePose.ts` 共用於 idle／ready／strike／hit，並以 Phaser 位移、碰撞停頓、染色與 FX 完成攻擊表現；down 則使用同一張 Master 的 52% 高度、78° 倒地旋轉與低彩 tint。這是可回復的 runtime trial，不代表兩名角色的 Master 或任何衍生 pose 已獲 Art Director 核准。
 
 ## Usage notes
 

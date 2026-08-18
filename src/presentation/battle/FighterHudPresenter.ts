@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 
 export interface FighterHudState {
+  alive: boolean;
   hp: number;
   maxHp?: number;
   shield: number;
@@ -16,6 +17,11 @@ export interface FighterHudView {
   shieldMarks: Phaser.GameObjects.Rectangle[];
   balanceMarks: Phaser.GameObjects.Arc[];
   state: Phaser.GameObjects.Text;
+}
+
+export function fighterHudStatus(state:Pick<FighterHudState,'alive'|'broken'|'exposed'>):string{
+  if(!state.alive)return '';
+  return state.broken?'崩勢':state.exposed?'破綻':'';
 }
 
 export class FighterHudPresenter {
@@ -43,6 +49,15 @@ export class FighterHudPresenter {
   }
 
   refresh(view: FighterHudView, state: FighterHudState, animate = true) {
+    view.root.setVisible(state.alive);
+    if (!state.alive) {
+      view.state.setVisible(false);
+      view.shieldMarks.forEach(mark => mark.setVisible(false));
+      view.balanceMarks.forEach(mark => mark.setVisible(false));
+      view.hpFill.width = 0;
+      view.hpEcho.width = 0;
+      return;
+    }
     const targetWidth = 58 * Phaser.Math.Clamp(state.hp, 0, state.maxHp ?? 100) / (state.maxHp ?? 100);
     this.scene.tweens.killTweensOf(view.hpEcho);
     view.hpFill.width = targetWidth;
@@ -59,7 +74,7 @@ export class FighterHudPresenter {
       mark.setFillStyle(active ? (state.balance <= 3 ? 0xff526b : 0xd8ae4b) : 0x2d281d, active ? 1 : .28);
       mark.setScale(state.balance <= 3 && active ? 1.18 : 1);
     });
-    const status = state.broken ? '崩勢' : state.exposed ? '破綻' : '';
+    const status = fighterHudStatus(state);
     view.state.setText(status).setBackgroundColor(state.broken ? '#a11e36' : '#6b2e55').setVisible(Boolean(status));
   }
 }

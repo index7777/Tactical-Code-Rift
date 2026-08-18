@@ -1,6 +1,6 @@
 # Character Master Spec：Player B／千景
 
-STATUS = RUNTIME_QA_PASS_PENDING_ART_DIRECTOR_APPROVAL
+STATUS = APPROVED_BY_ART_DIRECTOR_2026-08-18
 
 - Identity reference：`references/characters/chikage/chikage-design-reference-v1.png`（使用者提供；只作設計依據，來源與發行權利待確認）。
 - Master reference candidate：`assets/candidates/characters/chikage/chikage-sd-side-master-candidate-v2-cropped.png`。由 v2 僅做 deterministic alpha crop，沒有重新生成或改畫；自動檢查通過，等待實機與 Art Director 核准。

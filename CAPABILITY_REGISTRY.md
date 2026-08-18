@@ -17,8 +17,8 @@ GENERATED_BUILD_VENDOR_ROOTS = dist, node_modules
 
 | Capability | Provider | Policy | Status | Evidence |
 |---|---|---|---|---|
-| semantic_navigation | Serena 1.7.0 | AUTO_SAFE | READY | `Tactical-Code-Rift` 已激活；TypeScript LSP ready。`BootScene`、`resolveBattleBeats`、`applyPlannedInitiative` 命名符號及引用查詢成功；`BootScene.ts` diagnostics 無 error/warning。 |
-| dependency_graph | Graphify CLI | AUTO_SAFE | READY_WITH_WARNING | 權威範圍限定 `src`；`graphify extract src --code-only --no-cluster --out .` 建立 112 nodes／279 edges。dependency 與 `affected resolveBattleBeats` 查詢成功。`BootScene.ts` 高度單行壓縮造成 AST partial-extraction warning，待格式化／拆分。 |
+| semantic_navigation | Serena 1.7.0 | AUTO_SAFE | READY | 2026-08-18 已修復 CodexSandboxUsers 對 `C:\\Users\\Index7` 根目錄只有 Traverse 的 ACL 問題。`PYTHONIOENCODING=utf-8 serena project health-check` 成功啟動 TypeScript LSP，並完成 `CombatResolutionController` 的 symbols、named-symbol、references smoke tests。 |
+| dependency_graph | Graphify CLI | AUTO_SAFE | READY_WITH_WARNING | 權威範圍限定 `src`；2026-08-18 `graphify extract src --code-only --no-cluster --out .` 更新為 306 nodes／824 edges，query smoke 通過；`BootScene.ts`、`JourneyScene.ts` 高度壓縮造成 AST partial-extraction warning，待格式化／拆分。 |
 | exact_search | rg / native | AUTO_SAFE | READY | 精確專案文字查詢成功 |
 | build_verification | project-native | AUTO_SAFE | READY | Canonical command: `npm run build` |
 | test_verification | project-native | AUTO_SAFE | READY | Canonical command: `npm run test`; ATB、input、route tests |
@@ -64,10 +64,10 @@ Runtime evidence:
 ## Readiness
 
 ```text
-PROJECT_TOOLING_READY = PARTIAL
+PROJECT_TOOLING_READY = READY_WITH_WARNING
 ```
 
-原因：Web 技術棧、source、build、test、Serena 與 Graphify smoke test 已建立；但 `BootScene` 圖譜抽取仍有單行壓縮警告，且平台封裝尚未執行。
+Web 技術棧、source、build、test、Serena 與 Graphify smoke tests 均已驗證。`BootScene.ts`、`JourneyScene.ts` 仍有圖譜 AST partial-extraction warning；平台封裝是產品後續工作，不阻塞 core bootstrap。
 
 ## Resolution Rules
 

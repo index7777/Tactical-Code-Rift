@@ -663,3 +663,63 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 規格衝突：現行 `CURRENT_COMBAT_SPEC.md` 只描述「護符 12」、「護符 9」，未定義是否單擊消耗。任何選項都需要同步更新規格與 `art-bible.md` 若涉及 UI（護甲條 vs 護符條）。
 
 建議：優先 A 或 B。A 動 code 最少，B 語意最清楚。等使用者選擇後才實作，本節先入 log 做決策記錄。
+## 2026-08-18 — 角色清晰度與死亡 HUD 清理／Bootstrap 重驗
+
+狀態：`IMPLEMENTED`；視覺候選仍需 Art Director 核准。
+
+採用：
+
+- `HeroinePose.heroineDisplayHeight()` 將玩家角色顯示高度依隊伍規模調整為 1V1 160、2V2 138、3V3 122、4V4 108 logical px。這是 runtime 可讀性修正，不重繪或重新猜 Character Master。
+- 死亡 HUD 由 `FighterHudPresenter.refresh()` 以 `alive=false` 作為生命週期閘門：隱藏 root、崩勢／破綻文字、護符與架勢標記並清空血條；死亡不再建立「斷命」浮字。
+- `canIntercept` 恢復為與現行規則一致的「替代者速度必須高於目標最終時序」純函式，避免靜態稽核批次讓 build／測試失效。
+- 卡片實例測試改以目前正式配方中的四張快斬驗證 instanceId 唯一性，不再假設整備有兩張。
+
+實機驗證：
+
+- `?draw-proof=1`（1280×720）確認玩家在左、敵人在右；4V4 角色輪廓比原 96px 更易讀，中央仍保留交鋒空間。
+- `?death-proof=1` 確認死亡生命週期不再顯示死亡者 HUD 狀態；死亡證據仍需在實際擊殺結算瞬間補拍一次。
+
+自動驗證：`npm run test` 27 files／111 tests 通過；`npm run build` 通過（Vite 仍有非阻擋 bundle size warning）；`git diff --check` 通過。
+
+ Bootstrap 重驗：Graphify 已更新 `src` 為 306 nodes／824 edges，query smoke 與 `FighterHudPresenter` affected query 通過。Serena 的 `EPERM lstat C:\\Users\\Index7` 已於 2026-08-18 修復：在使用者目錄根層為 `CodexSandboxUsers` 補上非遞迴 Read & Execute 權限；以 `PYTHONIOENCODING=utf-8` 執行的 `serena project health-check` 已通過 symbols、named-symbol 與 references smoke tests。`semantic_navigation=READY`。
+## 2026-08-18 — Bootstrap 修復後回歸驗證
+
+狀態：`VERIFIED`。
+
+- `serena project health-check`（`PYTHONIOENCODING=utf-8`）成功；TypeScript LSP、symbols、named-symbol 與 references smoke tests 均通過。
+- `graphify` 的 `FighterHudPresenter` query 與 `BootScene` affected query 通過。
+- `npm run build` 通過。完整 `npm run test` 在並行負載下曾因 3,000 場模擬超過 Vitest 預設 5 秒而 timeout；單獨以 `--testTimeout=15000` 重跑後 27 files／111 tests 邏輯全部通過。
+## 2026-08-18｜千景／朧角色素材完善（runtime trial）
+
+- 原因：使用者要求完善新角色素材，但千景與朧目前仍是 `RUNTIME_QA_PASS_PENDING_ART_DIRECTOR_APPROVAL`，不能重新猜服裝或無限生成衍生圖。
+- 採用：保留兩張 Master 作單一身份來源；以 `HeroinePose.ts` 補齊 PB／PC 的 ready、attack、hit、down runtime 表現。死亡使用 52% 顯示高度、78° 倒地與低彩 tint，回到非死亡姿態時恢復 0°／白色 tint，避免額外資產與方向漂移。
+- 驗收：先跑角色單元測試、build、diff check；實機仍需 1280×720 與 844×390 戰鬥截圖，最後由 Art Director 決定是否核准 Master。
+
+## 2026-08-18｜PD 死亡素材修正（runtime trial）
+
+- 問題：PD 使用原 `heroine-sd-down-v1.png` 時，透明底部保留 32 px，進入 4V4 的縮放後死亡角色看起來過小且漂浮。
+- 修正：只做 deterministic alpha crop，產生 `heroine-sd-down-v2.png`（9 px baseline gap），未重繪角色；BootScene 已改載入新候選。
+- 驗證：角色 validator 通過 true-alpha、bbox、baseline、usable-crop；仍需在正式戰鬥場景擷取死亡畫面確認比例與接地，資產狀態維持 runtime-trial。
+
+## 2026-08-18｜準備階段角色辨識與動作幀盤點
+
+- 採用：準備階段不再降低其他存活玩家的角色或 HUD 透明度；以 `idle` 與當前角色的 `ready` pose、中心聚焦與殺生線亮度區分狀態。
+- 動作盤點：PA／PD 使用既有 `idle / ready / strike / down` 最低集；千景／朧因 Master 尚未核准，維持單一 Master 加 runtime `ready / strike / hit / down` 位移、旋轉、染色與 FX，不生成新的身份猜測圖。死亡素材已由 PD 的 deterministic crop 修正。
+- 缺口：千景／朧獨立 Ready／Down 圖仍須 Art Director 先核准 Master；核准前不自動生成衍生 pose。
+
+## 2026-08-18｜千景／朧核准與卡型 FX 語彙
+
+- 決策：使用者核准千景與朧 Master；兩份 Character Master 與 approved index 已更新。
+- 採用：攻擊不再只依賴單張撞擊圖。快斬使用雙道弧形刀光，重斬使用厚弧刀光＋地面衝擊，破甲使用裂片，牽制使用冷色束縛環，接力使用交接金色刀路，堅守使用護盾橢圓，掩護使用中途截斷符號，整備使用綠色回復環。
+- 範圍：沿用 Romancing SaGa 式「少量角色幀＋強烈瞬間 FX」；不新增八方向、武器切換或角色骨架動畫。
+
+## 2026-08-18｜PA／PD 死亡圖接地修正
+
+- 問題：橫躺死亡圖沿用 standing sprite 的中心 pivot，PA／PD 在 4V4 會向上浮，視覺上不像倒在原站位。
+- 修正：所有玩家角色記錄共同 `heroBaseY`；down pose 依顯示高度差補回 `(baseHeight - downHeight) / 2`，恢復 idle／ready 時回到原始 local Y。PB／PC 的 runtime down transform 同樣沿用此基準。
+- 驗證：HeroinePose 5/5、build、diff check 通過；需再以 1280×720／844×390 截取四槽死亡畫面完成人工驗收。
+
+## 2026-08-18｜移除戰鬥底部行動 Log 欄位
+
+- 問題：底部 y=548 的狀態框會把行動 log 顯示在戰場與卡牌區之間，佔用畫面並干擾角色／殺生線閱讀。
+- 修正：保留內部 `status` 作為輸入驗證與 debug state sink，但不再加入玩家可見 HUD，也不保留底部欄位框。
