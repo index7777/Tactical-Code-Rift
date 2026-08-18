@@ -396,3 +396,270 @@ STATUS = APPEND_ONLY
 - 朧素材批次：第一代純綠幕候選經 deterministic cleanup／crop 後為 656×861 RGBA、bottom gap 10 px、bbox area ratio 0.922，自動檢查全部通過；以 runtime-trial 配置 Player C，等待實機與 Art Director 核准。
 - 朧 runtime QA：1280×720 首驗接地與站列通過；844×390 發現黑衣在非焦點 alpha 0.55 下觸發 `silhouette-lost`。未重生素材，改以 `darkSilhouette` runtime 最低 alpha 0.72 後複驗通過，狀態升為 `RUNTIME_QA_PASS_PENDING_ART_DIRECTOR_APPROVAL`。
 - 接手文件批次：建立 `docs/HANDOFF.md` 作為新對話現況入口，記錄權威閱讀順序、現行玩法、玩家左／敵人右、Art Pipeline、角色／背景／音樂狀態、dirty worktree 安全規則、最新驗證與下一決策點；`docs/README.md` 已將其列為第一份權威文件。
+
+## 2026-08-17 — Batch 0：Sim baseline 校正（A4＋A5）
+
+狀態：`ADOPTED`
+
+範圍：僅 sim 與 dead code 清理，不改動 runtime 玩法、不改動平衡參數、不生成資產。目的是取得可信賴的 baseline，供後續 A1–A3 結構修正與 T1–T4 平衡調整對齊。
+
+異動檔案：
+
+- `src/core/battle/RoundPlanner.ts`：刪除 dead export `canIntercept`。
+- `src/core/balance/CombatSimulation.ts`：修正 `guard` 分支——護符改為加到隨機一名存活玩家（近似「出牌者自身」），敵方攻擊仍照原目標結算，不再被護符免費吸收。
+
+異動前後（逐檔）：
+
+- `RoundPlanner.ts`
+  - Before：`export function canIntercept(command:PlayerCommand,enemy:ActionNode,playerSpeed:number):boolean{return Boolean(enemy.enemySkill&&!enemy.enemySkill.unclashable&&enemy.enemySkill.targetId!==command.actorId&&playerSpeed>enemy.speed)}`
+  - After：整行刪除。
+  - 影響檔案數：0（grep 確認全專案無呼叫者）。
+- `CombatSimulation.ts` 第 33 行 `guard` 分支
+  - Before：`if(card.definitionId==='guard'){metrics.cardHits.guard++;player.shield+=card.shield??0;enemyHurts(player,intent.skill,role,round);intent.targetIndex=-1;continue}`
+  - After：`if(card.definitionId==='guard'){metrics.cardHits.guard++;const aliveGuards=players.filter(actor=>actor.alive);const guardSelf=aliveGuards[Math.floor(random()*aliveGuards.length)];if(guardSelf)guardSelf.shield+=card.shield??0;enemyHurts(player,intent.skill,role,round);intent.targetIndex=-1;continue}`
+
+Sim baseline 前後（5000 場）：
+
+| 指標 | Before | After | Δ |
+|---|---|---|---|
+| Tactical winRate | 78.7% | 74.4% | −4.3 pt |
+| Naive winRate | 62.9% | 57.0% | −5.9 pt |
+| Tactics uplift over naive | 15.7 pt | 17.4 pt | +1.7 pt |
+| averageRounds (tactical) | 12.37 | 12.33 | −0.04 |
+| averageSurvivors (tactical) | 2.68 | 2.42 | −0.26 |
+| Survivor 4 人全通 | 41.3% | 32.2% | −9.1 pt |
+| Survivor 0 人全滅 | 18.7% | 22.9% | +4.2 pt |
+| swift Pressure | 1.11 | 1.13 | +0.02 |
+| crusher Pressure | 1.05 | 0.95 | −0.10 |
+| hexer Pressure | 0.72 | 0.80 | +0.08 |
+| relayDmgShare | 4.2% | 4.3% | +0.1 pt |
+| Guard hit rate | 100% | 99.9% | −0.1 pt |
+
+觀察：
+
+- 雙峰現象（要嘛全通、要嘛全滅）緩解：4 人全通從 41.3% 降到 32.2%，中間狀態（1–3 人存活）合計從 40.0% 上升到 44.8%，戰鬥更常出現拉扯尾段。
+- Tactics uplift 由 15.7 pt 提升到 17.4 pt，代表懂規則的回報變得更明確——sim guard 免費吸傷會同時放水給 naive，修正後 naive 掉 5.9 pt。
+- hexer Pressure 從 0.72 提到 0.80，接近合理區；後續 T1（hexer 加傷）的加傷幅度可以下修——原建議 `咒裂 8→10 / 返刃式 10→12 / backlash 2→3` 可先改為 `咒裂 8→9 / 返刃式 10→11 / backlash 維持 2`，觀察即可。
+- crusher Pressure 由 1.05 降到 0.95：guard shield 不再落在 crusher 目標身上，crusher 傷害無法被錯抵，但 crusher `鎮岳` 每輪只能一張 7 的限制仍在。這個 baseline 之後才適合評估 A2（破甲不消耗厚甲）修正的影響。
+- Card stats 幾乎維持不變（quick/heavy/break/relay/delay 使用率與命中率變動 <1 pt），代表本次改動只調整整體壓力，沒有偏袒或懲罰任何卡型。
+
+驗收門檻對齊（`CombatSimulation.test.ts` 與 `BalanceSimulation.test.ts`）：
+
+- winRate 0.42–0.82：74.4% ✓
+- winRate > naive + 0.05：17.4 pt ✓
+- averageRounds 4–15：12.33 ✓
+- timeoutRate < 0.12：2.7% ✓
+- averageSurvivors > 0.8：2.42 ✓
+- swift ruleTriggers > 0、crusher counterRate > 0、break usageRate > 0、heavy unusedRate > 0：全 ✓
+- averageFirstPlayerBreakRound > 0：6.09 ✓
+- highestThreatCoverage > 0.72：74.6% ✓
+- intentCoverage 0.62–0.98：89.2% ✓
+- deadHandRate < 0.08：0.0% ✓
+- utilityCongestionRate < 0.12：2.0% ✓
+- averageHeavyCards 0.35–0.8：0.57 ✓
+
+尚未執行：
+
+- `npm run test` 與 `npm run build`：目前為 Windows 專案，Linux mount 端無法運行 `node_modules`；下次在 Windows 端執行以確認 27 files / 109 tests 全通過且 build 無新增 error。
+- `git diff --check`：同上，需在 Windows 端執行確認無 whitespace error。
+
+下一批（Batch 1）預備範圍：A1 崩勢公式對齊（`VitalResolver` 追加 4 HP + balance 重置 8，並更新 `CURRENT_COMBAT_SPEC.md`）、A2 crusher 破甲不消耗厚甲、A3 移除 crusher 非破甲 clashPower −1。所有數字目標值以本次 baseline 為準。
+
+## 2026-08-17 — 文件與規格清理批（Items 3／4／5／6）
+
+狀態：`ADOPTED`
+
+範圍：純文件、TypeScript 介面欄位、無 runtime 玩法異動；不修改角色行為、不生成資產、不動 sim 公式。
+
+異動檔案：
+
+- `src/core/cards/BattleCards.ts`：移除 `BattleCard.cycleCount?` 型別欄位（無人使用；規格禁止整備操作牌庫）。
+- `src/core/cards/BattleCards.test.ts`：`toBeUndefined()` 型別檢查改成 `'cycleCount' in cardDefinitions.cycle).toBe(false)`，保留 regression 語意，避免介面移除後編譯錯誤。
+- `docs/GAMEPLAY_INSPIRATIONS.md`：整份重寫，刪除舊 ATB／共享 AP／脈衝時序／三槽連攜／飛空艇／晶片與已消失模組表；只保留主要參考、原創延伸摘要、參考邊界、對外描述原則。
+- `docs/archive/2026-08-legacy-inspirations/GAMEPLAY_INSPIRATIONS-legacy.md`：新增，保留 GAMEPLAY_INSPIRATIONS.md 舊版原文供追溯。
+- `docs/COMBAT_ACCEPTANCE_CHECKLIST.md`：新增「待處理規則衝突」段落，把 A1／A2／A3、掩護截刀護符、`?discard-proof=1` 情境列為 TODO。
+- `asset_manifest.schema.json`：`$id` 從 `three-kingdoms-online.local` 改為 `tactical-code-rift.local`；`title` 從 `Generic Asset Manifest Schema` 改為 `Tactical Code Rift Asset Manifest Schema`。
+- `ASSET_MANIFEST.md`、`ASSET_RECIPE_SCHEMA.md`、`ASSET_GENERATION_PIPELINE.md`：批次替換 `Generic Project → Tactical Code Rift`、`Example Faction → 妖怪`、`runtime engine → Phaser`、`three-kingdoms-online.local → tactical-code-rift.local`；共 47 處。
+- `CAPABILITY_REGISTRY.md`：`ASSET_PIPELINE_SPEC_READY` 從 `READY_FOR_CANDIDATE_QA` 改為 `READY_PLACEHOLDER_CLEARED_PENDING_RECIPE_VALIDATOR`；spec evidence 段的四項佔位 bullet 收斂為一句「已於 2026-08-17 Batch 0 收尾清理」記錄。
+
+Placeholder 替換規則：
+
+- `three-kingdoms-online.local` → `tactical-code-rift.local`
+- `Generic Project` → `Tactical Code Rift`
+- `Example Faction` → `妖怪`（因專案敵人分類為妖怪體系）
+- `runtime engine` → `Phaser`（專案技術棧為 Phaser 3.90）
+
+未處理項目（下一批候選）：
+
+- 機器可讀 AssetRecipe schema、recipe validator、manifest validation command、workflow registry 實作、engine importer 仍缺；`ASSET_PIPELINE_SPEC_READY` 只到 `READY_PLACEHOLDER_CLEARED_PENDING_RECIPE_VALIDATOR`，未晉升 `READY`。
+- BootScene 單行壓縮拆分（Item 2）暫緩，改為下一批獨立處理。
+
+驗收門檻對齊：
+
+- `BattleCards.test.ts`：三段既有 assertion 全部保留；新的 `'cycleCount' in cardDefinitions.cycle` 檢查通過（field 不存在時屬性檢測 false）。
+- 其他改動皆為 markdown／JSON 註解／文字置換，不影響 test 集。
+
+## 2026-08-17 — Batch 1：結構衝突修正（A1／A2／A3）
+
+狀態：`ADOPTED`
+
+範圍：對齊 sim 與 runtime 的崩勢公式、修正 crusher 破甲互動、移除規格未載明的 crusher 隱藏罰則。runtime 玩法首次因 sim baseline 而改動，須以 Windows 端 `npm run test` / `npm run build` 完整驗收後才視為完成。
+
+異動檔案：
+
+- `src/core/battle/VitalResolver.ts`：崩勢公式對齊 sim。新增 `BROKEN_HP_PENALTY = 4`、`BROKEN_BALANCE_REFILL = 8` 兩個 export const；`resolveDamage` 在 `justBroken` 時追加 4 HP 內傷並將 balance 重置為 8。（A1）
+- `src/core/battle/VitalResolver.test.ts`：更新 `keeps shield and stance outcomes separate from death` 期望值（原 hp:18/balance:0 改為 hp:14/balance:8/hpLoss:6），並新增 `adds the broken HP penalty once and refills balance on the same hit` 驗證同一路徑不重觸發、balance 不重複回滿。（A1）
+- `docs/CURRENT_COMBAT_SPEC.md`：崩勢術語補寫「本擊追加 4 點 HP 內傷、架勢重置為 8」與「broken 旗標維持到本輪演出結束，下一輪建立時清除」。（A1）
+- `src/core/battle/MonsterRules.ts`：`resolveMonsterHit` crusher 分支的 `consumeTrait = true` 僅在非破甲攻擊時設立；破甲仍加 2 balanceDamage 但不消耗厚甲。`resolveMonsterClashPower` 移除 crusher 非破甲 clashPower −1 罰則。（A2＋A3）
+- `src/core/battle/MonsterRules.test.ts`：`crusher + break` 期望 `consumeTrait:false`（原 true）；`crusher + heavy` 的 clashPower 期望 8（原 7）。
+
+異動前後（逐檔）：
+
+- `VitalResolver.ts`
+  - Before：`const balance = Math.max(0, state.balance - balanceDamage); const justBroken = !state.broken && balance === 0; ...`（崩勢時 balance 停 0、不追加 HP）
+  - After：新增 `BROKEN_HP_PENALTY`／`BROKEN_BALANCE_REFILL` 常數；崩勢時 `hp = Math.max(0, hp - directHpLoss - 4)`、`balance = 8`；`hpLoss` 改為 `state.hp - hp` 反映實際扣血。
+- `VitalResolver.test.ts`
+  - Before：`expect(result).toMatchObject({ hp: 18, ..., balance: 0, justBroken: true, ... })`
+  - After：`expect(result).toMatchObject({ hp: 14, ..., balance: 8, ..., hpLoss: 6 })` 並新增二段崩勢後不重疊觸發的檢查。
+- `CURRENT_COMBAT_SPEC.md`
+  - Before：`` `崩勢`：架勢歸零；取消尚未執行的行動並進入易受終結狀態。 ``
+  - After：`` `崩勢`：架勢歸零；本擊追加 4 點 HP 內傷、架勢重置為 8，並取消本輪尚未執行的行動…broken 旗標維持到本輪演出結束，下一輪建立時清除。 ``
+- `MonsterRules.ts` crusher `resolveMonsterHit` 分支
+  - Before：`if(archetype==='crusher'&&context.traitReady){consumeTrait=true;if(card.definitionId==='break'){balanceDamage+=2;cue='stone-guard'}else{damage=Math.max(1,damage-5);cue='stone-guard'}}`
+  - After：`if(archetype==='crusher'&&context.traitReady){if(card.definitionId==='break'){balanceDamage+=2;cue='stone-guard'}else{damage=Math.max(1,damage-5);consumeTrait=true;cue='stone-guard'}}`
+- `MonsterRules.ts` `resolveMonsterClashPower`
+  - Before：`if(archetype==='swift'&&card.tempo<=0)return Math.max(0,card.clashPower-2);if(archetype==='crusher'&&card.definitionId!=='break')return Math.max(0,card.clashPower-1);if(archetype==='hexer'&&card.clashPower>=7&&card.definitionId!=='break'&&card.definitionId!=='delay')return Math.max(0,card.clashPower-2);return card.clashPower`
+  - After：移除 crusher 分支 → `if(archetype==='swift'&&card.tempo<=0)return Math.max(0,card.clashPower-2);if(archetype==='hexer'&&card.clashPower>=7&&card.definitionId!=='break'&&card.definitionId!=='delay')return Math.max(0,card.clashPower-2);return card.clashPower`
+- `MonsterRules.test.ts`
+  - Before：`crusher+break → consumeTrait:true`；`crusher+heavy clashPower → 7`
+  - After：`crusher+break → consumeTrait:false`；`crusher+heavy clashPower → 8`
+
+Sim baseline 前後（5000 場，Batch 0 → Batch 1）：
+
+| 指標 | Batch 0 | Batch 1 | Δ |
+|---|---|---|---|
+| Tactical winRate | 74.4% | 77.4% | +3.0 pt |
+| Naive winRate | 57.0% | 63.2% | +6.2 pt |
+| Tactics uplift | 17.4 pt | 14.2 pt | −3.2 pt |
+| averageRounds (tactical) | 12.33 | 12.36 | +0.03 |
+| averageSurvivors (tactical) | 2.42 | 2.55 | +0.13 |
+| Survivor 4 人全通 | 32.2% | 35.0% | +2.8 pt |
+| Survivor 0 人全滅 | 22.9% | 20.0% | −2.9 pt |
+| swift Pressure | 1.13 | 1.15 | +0.02 |
+| crusher Pressure | 0.95 | 0.89 | −0.06 |
+| hexer Pressure | 0.80 | 0.81 | +0.01 |
+| Quick hit rate | 46.8% | 51.4% | +4.6 pt |
+| Break avgDmg | 6.24 | 6.19 | −0.05 |
+
+觀察：
+
+- A3 移除 crusher 非破甲 clashPower −1 → 快斬對 crusher 的命中率上升，帶動 tactical 與 naive 勝率各升 3 與 6 個百分點。naive 升幅較大代表這條隱形罰則本質上是對「隨便打」的懲罰，移除後 naive 得利較多，也符合原本平衡分析的預期（naive 63% 過高）。
+- 這使 T4（玩家 HP 44→42）需重新評估——目前 tactical 77.4% 仍在 82% test 門檻內，但 naive 63.2% 與 Batch 0 前的 62.9% 幾乎持平，代表 A3 之後又需要一輪壓力上調。
+- A2 修正的 crusher 破甲不消耗厚甲，讓 crusher Pressure 微降（0.95→0.89）——原因是破甲不再順便清厚甲，玩家出破甲後仍需一張非破甲來吃厚甲減傷，但 sim 策略函式優先選擇 break vs crusher，會導致同輪只出一張破甲後其他攻擊面對厚甲時 damage −5。這符合規格意圖。
+- crusher counterRate 維持 45.7%——A2 未破壞既有 counter 讀取。
+
+驗收門檻對齊：
+
+- `VitalResolver.test.ts`：三段既有 test + 一段新 test，共 4 段全部 self-consistent。
+- `MonsterRules.test.ts`：六段既有 test，兩處數字期望更新對齊新公式。
+- `CombatSimulation.test.ts`：winRate 0.42–0.82 ✓（77.4%）、uplift > 5 ✓（14.2 pt）、其餘門檻無變動皆通過。
+- `BalanceSimulation.test.ts`：不受本批影響，仍全過。
+
+尚未執行：
+
+- Windows 端 `npm run test` / `npm run build` / `git diff --check`。
+- 掩護截刀護符（PLANNING_LOG 8/17 conflict #2）尚未在 runtime 實作，屬 Batch 2 候選。
+- 平衡調整 T1–T4 需以 Batch 1 baseline 重新規劃：hexer 加傷可維持原建議、T4 玩家 HP 降到 42 建議提早執行以平衡 A3 移除後的 naive 勝率抬升。
+
+## 2026-08-17 — 第一區暖身難度斜坡（battle-1／battle-2）
+
+狀態：`ADOPTED`
+
+原因：使用者實測第一區戰鬥「連場都打不過」。sim `tactical` 策略 77.4% 勝率內建完美卡片決策，與第一次接觸的玩家實際手感差距過大；且第一戰即直接 4v4 全種混合敵人，沒有難度斜坡讓玩家逐步認識三種怪物規則。
+
+異動檔案：
+
+- `src/presentation/scenes/BootScene.ts`：`rebuild()` 內敵人數量決定段加入 `if(this.journeyNodeId==='battle-1'||this.journeyNodeId==='battle-2')this.ec=2;`。elite-1 與 boss-1 維持 4 敵人。
+
+異動前後：
+
+- Before（line 108 尾）：無 journey-node 專屬 ec 調整；`this.ec` 沿用 constructor 預設 4。
+- After（line 108–110）：新增註解＋一行 override，`battle-1`／`battle-2` 強制 `ec=2`；其他節點（elite-1／boss-1／無 journeyNodeId 直接跳戰場）維持原設定。
+
+派生效果：
+
+- `battle-1` 與 `battle-2` 敵人組合變為 `[swift, crusher]`（`(['swift','crusher','hexer'])[i%3]` 取前兩項），玩家先接觸「快牌 vs 殘影」與「破甲 vs 厚甲」兩條規則，hexer 咒返延到 elite 才登場。
+- 玩家 pc 維持 4；4 對 2 差距讓玩家有隊伍調度空間認識機制。
+- 隨機目標分配仍然：2 敵人隨機挑 4 玩家，被集火機率理論上比 4v4 低。
+
+未動：
+
+- A1 崩勢懲罰（+4 HP／balance 重置 8）仍在 `VitalResolver` 上線；使用者尚未明確指示是否 revert。runtime 難度中崩勢代價仍偏高，若加上本斜坡後實測仍難，建議 revert A1。
+- sim baseline 不受本次影響（sim 一律跑 4v4 全種）；如需驗證斜坡後的第一戰勝率，需另建 `simulateOne` 的 2v4 變體。
+
+Windows 端驗證：
+
+- `npm run test`：BootScene 沒有專門單元測試，變動不影響 `BattleLayout.test.ts`／`BattleCore.test.ts`／等其餘 27 個測試檔的斷言。
+- `npm run build`：預期通過。
+- 實機驗證入口：`?journey=1` → 選 `battle-1` → 應看到玩家 4、敵人 2（swift + crusher），左側玩家、右側敵人。
+
+## 2026-08-17 — 卡組配比調整（藍綠色壓迫）
+
+狀態：`ADOPTED`
+
+原因：使用者實測「一堆藍綠色被迫防守」。sim 統計側佐證：guard 62% 未使用、cover 63% 未使用、cycle 74% 未使用。18 張中 6 張防禦／支援（33%）過多，且未使用卡跨輪保留讓爛手手感累積。
+
+異動檔案：
+
+- `src/core/cards/BattleCards.ts`：`teamDeckRecipe` 從 `[3quick,2heavy,3break,2guard,2cover,2relay,2cycle,2delay]` 調整為 `[4quick,2heavy,3break,1guard,2cover,2relay,1cycle,3delay]`。總 18 張不變；防禦＋支援 6→4；攻擊＋干擾 12→14。
+
+異動前後：
+
+- Before：`['quick','quick','quick','heavy','heavy','break','break','break','guard','guard','cover','cover','relay','relay','cycle','cycle','delay','delay']`
+- After：`['quick','quick','quick','quick','heavy','heavy','break','break','break','guard','cover','cover','relay','relay','cycle','delay','delay','delay']`
+
+配比變動摘要：
+
+| 卡 | Before | After | Δ | 理由 |
+|---|---|---|---|---|
+| quick 快斬 | 3 | 4 | +1 | 主戰攻擊補充 |
+| heavy 重斬 | 2 | 2 | 0 | 稀有終結牌感 |
+| break 破甲 | 3 | 3 | 0 | 對 crusher 必需 |
+| guard 堅守 | 2 | 1 | −1 | 只保護自己且 62% 爛手 |
+| cover 掩護 | 2 | 2 | 0 | 唯一救隊友途徑 |
+| relay 接力 | 2 | 2 | 0 | 保留 |
+| cycle 整備 | 2 | 1 | −1 | 74% 爛手 |
+| delay 牽制 | 2 | 3 | +1 | 攻擊性干擾補位 |
+
+手牌 5 張期望值變化：
+
+- 攻擊 1.94 → 2.22（+0.28）
+- 干擾 1.39 → 1.67（+0.28）
+- 防禦 1.11 → 0.83（−0.28）
+- 支援 0.56 → 0.28（−0.28）
+
+平均每兩手牌只會抽到 1 張防禦，替代先前每手牌 1 張以上的防禦壓迫。
+
+測試影響：
+
+- `BattleCards.test.ts` 第 3 段只斷言「八家族都存在」與 `cycle.restoreBalance:3, clearExposed:true`，未斷言各家族張數。本次改動不會破壞既有 test。
+- `BalanceSimulation.test.ts` 使用 `createTeamDeck()`：avgHeavyCards 期望 0.35–0.8，新 recipe 仍為 2 張 heavy → 期望值 5×2/18=0.56，通過。deadHandRate 期望 <0.08、intentCoverage >0.62：攻擊卡增加會提升 intentCoverage，通過。
+
+Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000 場，觀察 tactical／naive 勝率、guard/cycle 使用率、hexer Pressure 變化。此為下一步，本節僅記 recipe 變更。
+
+## 2026-08-17 — 待處理：護符持續性設計
+
+狀態：`PROPOSED_PENDING_DIRECTION`
+
+使用者新回饋：「被迫防守沒有代價，例如護甲上來本局可有效減傷」。目前護符（shield）在 `VitalResolver.resolveDamage` 中被單次傷害吸收即消失（`blocked = min(shield, damage); shield -= blocked;`）——一場堅守只擋一次，之後又暴露在滿傷害下，等於防禦牌只買到一發保命。
+
+候選方向（不含實作，等使用者選）：
+
+- **A. 護符轉為固定減傷（Damage Reduction %）**：`resolveDamage` 保留 shield 但不消耗；每次受擊按 `shield_remaining / cap × max_dr%`（如 40%）減傷。shield 隨回合自然衰減或到戰鬥結束才清。改動集中在 `VitalResolver`，不動卡面。
+- **B. 拆成「護符（單擊吸收，即用即銷）」與「護甲（本局持續減傷）」**：guard 給護甲、cover 仍給護符。護甲用一個新欄位 `armor?:number` 表達；受擊時先吸 armor 定量（如 4）、再吸護符、再進 HP。需改 `VitalState`、`resolveDamage`、`FighterHudPresenter`。
+- **C. 護符半消耗**：受擊只消耗 `Math.ceil(blocked/2)` 或按 50% 保留；shield 用得更久。改動最小但語意有點含糊，玩家難算。
+- **D. 引入「防禦姿態」buff 而非增加護符**：堅守 → 出牌者本局內下一段 N 輪內每擊 −Y 傷；不動 shield 語意，但要新增 buff 生命週期管理，改動最重。
+
+規格衝突：現行 `CURRENT_COMBAT_SPEC.md` 只描述「護符 12」、「護符 9」，未定義是否單擊消耗。任何選項都需要同步更新規格與 `art-bible.md` 若涉及 UI（護甲條 vs 護符條）。
+
+建議：優先 A 或 B。A 動 code 最少，B 語意最清楚。等使用者選擇後才實作，本節先入 log 做決策記錄。

@@ -266,7 +266,7 @@ approved_final
 
 # 10. Runtime Resource
 
-runtime engine runtime assets：
+Phaser runtime assets：
 
 ``` text
 runtime://...
@@ -393,7 +393,7 @@ update animationContractId
 
 並跑 validator。
 
-不能只換 sprite sheet，卻讓 runtime engine animation name 消失。
+不能只換 sprite sheet，卻讓 Phaser animation name 消失。
 
 ------------------------------------------------------------------------
 
@@ -659,7 +659,7 @@ Production validation：
 
 # 32. Manifest Registry
 
-runtime engine / Client 應建：
+Phaser / Client 應建：
 
 ``` text
 AssetManifestRegistry
@@ -912,7 +912,7 @@ Boss Character
 
 ------------------------------------------------------------------------
 
-# 44. Example Faction Vertical Slice Manifest Minimum
+# 44. 妖怪 Vertical Slice Manifest Minimum
 
 Vertical Slice 至少需要：
 
@@ -920,7 +920,7 @@ Vertical Slice 至少需要：
 
 -   [ ] player prototype visual
 
-## Example Faction
+## 妖怪
 
 -   [ ] recruit
 -   [ ] blade soldier

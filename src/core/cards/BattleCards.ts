@@ -15,7 +15,6 @@ export interface BattleCard {
   balanceDamage?: number;
   shield?: number;
   assist?: boolean;
-  cycleCount?: number;
   delayTarget?: number;
   restoreBalance?: number;
   clearExposed?: boolean;
@@ -34,7 +33,7 @@ export const cardDefinitions: Readonly<Record<CardFamily, Omit<BattleCard, 'inst
   delay: { definitionId: 'delay', name: '牽制', clashPower: 4, tempo: 2, intent: 'disruption', tags: ['攻擊', '干擾', '牽制'], description: '傷害 5｜目標時序 −2', damage: 5, balanceDamage: 1, delayTarget: 2 },
 };
 
-export const teamDeckRecipe: readonly CardFamily[] = ['quick','quick','quick','heavy','heavy','break','break','break','guard','guard','cover','cover','relay','relay','cycle','cycle','delay','delay'];
+export const teamDeckRecipe: readonly CardFamily[] = ['quick','quick','quick','quick','heavy','heavy','break','break','break','guard','cover','cover','relay','relay','cycle','delay','delay','delay'];
 
 export function createTeamDeck(): BattleCard[] { return teamDeckRecipe.map((id,index)=>({...cardDefinitions[id],tags:[...cardDefinitions[id].tags],instanceId:`${id}-${index}`})) }
 export function shuffleCards(cards:BattleCard[],random:()=>number=Math.random):BattleCard[]{const result=[...cards];for(let index=result.length-1;index>0;index--){const swap=Math.floor(random()*(index+1));[result[index],result[swap]]=[result[swap]!,result[index]!]}return result}

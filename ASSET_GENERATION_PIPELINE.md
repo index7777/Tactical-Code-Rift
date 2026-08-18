@@ -8,13 +8,13 @@
 > product-specific assumptions into this shared template.
 
 **Document:** `ASSET_GENERATION_PIPELINE.md`\
-**Scope:** Free/local visual asset generation for Generic Project\
+**Scope:** Free/local visual asset generation for Tactical Code Rift\
 **Primary Milestone:** Representative Vertical Slice Vertical Slice\
 **Primary Tools:** ComfyUI + local image model + imagededup + Pixelorama
-(or equivalent local editor) + runtime engine\
+(or equivalent local editor) + Phaser\
 **Primary Goal:** 建立不依賴付費圖片 API 的資產生產流程，讓 Codex 只負責
 structured recipe / queue / binding / validation，而由本地 pipeline
-完成批次生成、去重、清理與 runtime engine 匯入。
+完成批次生成、去重、清理與 Phaser 匯入。
 
 ------------------------------------------------------------------------
 
@@ -41,7 +41,7 @@ Pixelorama Cleanup / Sprite Normalization
 ↓
 Approved Prototype Asset
 ↓
-runtime engine Import
+Phaser Import
 ↓
 validate-assets
 ↓
@@ -144,7 +144,7 @@ Model 由 `ModelProfile` 管理，不寫死到每個 Recipe。
 -   spritesheet assembly
 -   animation cleanup
 
-## runtime engine
+## Phaser
 
 -   runtime import
 -   SpriteFrames
@@ -361,7 +361,7 @@ modelProfileId
 
 ``` text
 1. Player Prototype
-2. Example Faction Blade Soldier
+2. 妖怪 Blade Soldier
 3. Boss Character
 ```
 
@@ -373,7 +373,7 @@ Recipe
 → Dedup
 → Review
 → Cleanup
-→ runtime engine
+→ Phaser
 → Manifest
 ```
 
@@ -383,7 +383,7 @@ Recipe
 
 Player： - 確認角色比例、camera、readability
 
-Example Faction Blade Soldier： - 確認普通敵人的 faction visual language
+妖怪 Blade Soldier： - 確認普通敵人的 faction visual language
 
 Boss Character： - 確認 Boss scale、silhouette、identity
 
@@ -413,7 +413,7 @@ cast
 
 # 18. Art Direction Gate
 
-POC 進 runtime engine 後人工確認：
+POC 進 Phaser 後人工確認：
 
 ``` text
 camera
@@ -591,7 +591,7 @@ hit/effect frames
 
 ------------------------------------------------------------------------
 
-# 28. runtime engine Import
+# 28. Phaser Import
 
 Approved source 放：
 
@@ -614,7 +614,7 @@ Gameplay 綁定 Stable VisualId，不直接綁 PNG path。
 
 ------------------------------------------------------------------------
 
-# 29. runtime engine Import Automation
+# 29. Phaser Import Automation
 
 建議實作：
 
@@ -630,7 +630,7 @@ AnimationContract
 OutputProfile
 ```
 
-建立/更新 runtime engine runtime resources。
+建立/更新 Phaser runtime resources。
 
 ------------------------------------------------------------------------
 
@@ -689,7 +689,7 @@ Art Direction Freeze 後：
 
 ``` text
 Wave 1
-Player + core Example Faction enemies
+Player + core 妖怪 enemies
 
 Wave 2
 Elite Character + Boss Character
@@ -828,7 +828,7 @@ frames
 textures
 ```
 
-Inventory / Market / Guild layout 由 runtime engine Control
+Inventory / Market / Guild layout 由 Phaser Control
 組合，不生成成單一巨型 bitmap。
 
 ------------------------------------------------------------------------
@@ -934,7 +934,7 @@ seed
 7. Dedup
 8. Human select
 9. Pixelorama cleanup
-10. runtime engine import
+10. Phaser import
 11. validate-assets
 12. Update Manifest
 13. Bind VisualId
@@ -1065,7 +1065,7 @@ LICENSE_BLOCKED
 
 ------------------------------------------------------------------------
 
-# 54. Example Faction Generation Queues
+# 54. 妖怪 Generation Queues
 
 第一批：
 
@@ -1126,7 +1126,7 @@ local model works
 candidates generated
 dedup works
 Pixelorama cleanup usable
-runtime engine import works
+Phaser import works
 validate-assets works
 Manifest update works
 No paid API required
@@ -1148,7 +1148,7 @@ Boss Character
 approved_prototype
 ```
 
-並能在 runtime engine preview / Vertical Slice scene 正常：
+並能在 Phaser preview / Vertical Slice scene 正常：
 
 ``` text
 display
@@ -1172,10 +1172,10 @@ play death animation
 6. Implement compact generation CLI
 7. Install/configure imagededup
 8. Install/configure Pixelorama
-9. Create runtime engine asset preview/import path
+9. Create Phaser asset preview/import path
 10. Create 3 POC Recipes
 11. Generate Player / Blade Soldier / Boss Character
-12. Human review in runtime engine
+12. Human review in Phaser
 13. Freeze Art Direction v1 only if approved
 ```
 
@@ -1193,7 +1193,7 @@ Workflow registry status
 Generation CLI status
 Dedup status
 Pixelorama status
-runtime engine import status
+Phaser import status
 POC assets generated
 POC review required
 Blockers

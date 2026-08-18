@@ -40,7 +40,7 @@ GENERATED_BUILD_VENDOR_ROOTS = dist, node_modules
 
 ```text
 ASSET_PIPELINE_APPLICABLE = YES
-ASSET_PIPELINE_SPEC_READY = READY_FOR_CANDIDATE_QA
+ASSET_PIPELINE_SPEC_READY = READY_PLACEHOLDER_CLEARED_PENDING_RECIPE_VALIDATOR
 ASSET_PIPELINE_RUNTIME_READY = YES_FOR_COMBAT_SHOWCASE
 ```
 
@@ -51,8 +51,7 @@ Specification evidence:
 
 - 四份資產規格檔存在於專案根目錄；要求的 `optional-assets/` 目錄不存在。
 - `asset_manifest.schema.json` 可解析並通過 Draft 2020-12 meta-schema 驗證。
-- Schema `$id` 仍指向 `three-kingdoms-online.local`。
-- 文件仍含 `Generic Project`、`Example Faction` 與未決的 `runtime engine` 佔位內容。
+- Schema `$id`、`Generic Project`、`Example Faction` 與 `runtime engine` 佔位內容已於 2026-08-17 Batch 0 收尾清理，替換為 `tactical-code-rift.local`／`Tactical Code Rift`／`妖怪`／`Phaser`。
 - 尚無機器可讀 AssetRecipe schema、recipe validator、manifest validation command、workflow registry 實作或引擎 importer。
 
 Runtime evidence:

@@ -2,8 +2,59 @@
 
 STATUS = AUTHORITATIVE_HANDOFF
 
-更新時間：2026-08-17（Asia/Taipei）
+更新時間：2026-08-18（Asia/Taipei）
 基準 commit：`745cd65`，但目前工作樹包含大量尚未 commit 的有效實作與資產，**不得 reset、checkout 或清除 untracked files**。
+
+## 2026-08-17／08-18 靜態稽核與平衡調整批次（尚未 Windows 端驗證）
+
+以下 20+ 檔的異動由 Cowork session 完成，已透過 device bridge 寫回工作樹。合入 commit 前**必須**在 Windows 端跑一次 `npm run test` / `npm run build` / `git diff --check`。若任何 assertion fail，請把 stack trace 貼回 chat 由代理定點修正，不要 revert 整批。
+
+### Batch 0 — sim baseline 校正
+
+- `src/core/battle/RoundPlanner.ts`：刪除 dead export `canIntercept`（跟 `ClashResolver` initiative 邏輯不一致的地雷）。
+- `src/core/balance/CombatSimulation.ts`：guard 護符改為加給隨機一名存活玩家，不再被免費當掩護吸收敵方攻擊。
+- Sim baseline：Tactical 78.7% → 74.4%、Naive 62.9% → 57.0%、uplift 17.4 pt。
+
+### Batch 1 — 結構衝突修正（A1／A2／A3）
+
+- `src/core/battle/VitalResolver.ts`：崩勢公式對齊 sim（**目前 pending 使用者決定是否 revert**——見下方待決區）。新增 `BROKEN_HP_PENALTY=4`、`BROKEN_BALANCE_REFILL=8`；崩勢時追加 4 HP 內傷、balance 重置為 8。
+- `src/core/battle/VitalResolver.test.ts`：對應更新期望值 + 新增崩勢不重複觸發的斷言。
+- `docs/CURRENT_COMBAT_SPEC.md`：崩勢術語補寫「本擊追加 4 點 HP 內傷、架勢重置為 8」。
+- `src/core/battle/MonsterRules.ts`：crusher 破甲不再消耗厚甲；移除 crusher 非破甲 clashPower −1 罰則。
+- `src/core/battle/MonsterRules.test.ts`：`crusher+break` 期望 `consumeTrait:false`；`crusher+heavy` clashPower 期望 8。
+- Sim baseline：Tactical 77.4%、Naive 63.2%、uplift 14.2 pt。
+
+### 文件與規格清理（Items 3／4／5／6）
+
+- `src/core/cards/BattleCards.ts`：`BattleCard.cycleCount?` dead field 移除。
+- `src/core/cards/BattleCards.test.ts`：regression assertion 改為 `'cycleCount' in cardDefinitions.cycle` runtime 檢查。
+- `docs/GAMEPLAY_INSPIRATIONS.md`：整份重寫，刪除舊 ATB／共享 AP／脈衝時序／三槽連攜與已消失模組表。
+- `docs/archive/2026-08-legacy-inspirations/GAMEPLAY_INSPIRATIONS-legacy.md`：舊版存檔。
+- `docs/COMBAT_ACCEPTANCE_CHECKLIST.md`：新增「待處理規則衝突」段落，把 A1／A2／A3、掩護截刀護符、`?discard-proof=1` 情境列 TODO。
+- `asset_manifest.schema.json`：`$id` / `title` 專案化。
+- `ASSET_MANIFEST.md`、`ASSET_RECIPE_SCHEMA.md`、`ASSET_GENERATION_PIPELINE.md`：47 處 placeholder 替換（`three-kingdoms-online.local → tactical-code-rift.local`、`Generic Project → Tactical Code Rift`、`Example Faction → 妖怪`、`runtime engine → Phaser`）。
+- `CAPABILITY_REGISTRY.md`：`ASSET_PIPELINE_SPEC_READY` 更新為 `READY_PLACEHOLDER_CLEARED_PENDING_RECIPE_VALIDATOR`。
+
+### 第一區暖身難度斜坡
+
+- `src/presentation/scenes/BootScene.ts`：`rebuild()` 內針對 `journeyNodeId==='battle-1'||'battle-2'` 強制 `ec=2`；elite-1／boss-1 維持 4 敵人。派生效果：battle-1／battle-2 敵人組合為 `[swift, crusher]`，玩家先接觸速度與破甲兩條規則，hexer 延到 elite。
+
+### 卡組配比重整（藍綠色壓迫）
+
+- `src/core/cards/BattleCards.ts`：`teamDeckRecipe` 從 `[3quick, 2heavy, 3break, 2guard, 2cover, 2relay, 2cycle, 2delay]` 改為 `[4quick, 2heavy, 3break, 1guard, 2cover, 2relay, 1cycle, 3delay]`。總 18 張不變；防禦＋支援 6→4；攻擊＋干擾 12→14。手牌預期防禦張數 1.11→0.83。
+
+### 使用者尚待決策（未動 code）
+
+- **A1 崩勢懲罰是否 revert**：使用者實測「連場都打不過」，A1 讓 runtime 每次崩勢多吃 4 HP 是可疑原因；`CURRENT_COMBAT_SPEC.md` 原本沒定義這個懲罰，是由 sim 反推補上的。Revert 會影響 `VitalResolver.ts`、`VitalResolver.test.ts`、`CURRENT_COMBAT_SPEC.md`、以及 sim 內 `hurt()` 對齊。
+- **護符持續性設計方向**：使用者反映「被迫防守沒有代價」。四個候選（A 減傷 % / B 拆護符＋護甲 / C 半消耗 / D 防禦姿態 buff）已寫入 PLANNING_LOG 該節，等使用者選方向後才實作。目前 `VitalResolver.resolveDamage` 仍為單擊吸收即銷。
+
+### Windows 端驗證清單
+
+1. `npm run test`：預期 27→28 files、109→~111 tests（VitalResolver 新增 1 段測試）。
+2. `npm run build`：預期通過。
+3. `git diff --check`：預期無 whitespace error。
+4. 實機驗證：`?journey=1` → `battle-1` 應為 4v2、`?draw-proof=1` 應看到 quick×4 delay×3 的手牌傾向。
+5. 若 Batch 1 讓實戰更難，跟 chat 說一聲即可 revert A1。
 
 ## 新對話第一步
 
@@ -25,7 +76,7 @@ STATUS = AUTHORITATIVE_HANDOFF
 - 本地戰鬥驗證常用：`http://127.0.0.1:8878/index.html?draw-proof=1`。
 - 旅程驗證：`?journey=1`；怪物固定證據：`?monster-proof=swift|crusher|hexer`。
 - 邏輯畫布固定 1280×720；手機驗收使用 844×390 橫向 FIT。
-- 最新驗證：`npm run test` 為 27 files／109 tests 全通過；`npm run build` 通過；`git diff --check` 無 whitespace error。Vite 仍有單一 bundle 大於 500 kB 的非阻擋 warning。
+- 最新驗證：`npm run test` 為 27 files／109 tests 全通過；`npm run build` 通過；`git diff --check` 無 whitespace error。Vite 仍有單一 bundle 大於 500 kB 的非阻擋 warning。**注意：2026-08-17／08-18 的靜態稽核批次尚未在 Windows 端跑過測試；上一次 109 tests 全通過是那批之前的狀態，Batch 1 之後 test 數會變成 ~111。**
 
 ## 不可變更的產品方向
 
@@ -128,11 +179,14 @@ PB／PC 目前只有 Master 圖。`poseLocked` 讓攻擊、受擊與死亡暫用
 
 如果新對話沒有更明確的新指令，先停在下列決策點，不自行大量生圖：
 
-1. 請 Art Director 核准或否決千景 Master。
-2. 請 Art Director 核准或否決朧 Master。
-3. 核准後，每名角色只先做最低成本 `Ready`、`Down`；普通 Attack／Hit／Break 優先用 Master／Ready＋runtime FX，不擴增骨架與方向圖。
-4. 等使用者提供 Player D 名稱與身份 reference，再重複同一 Pipeline。
-5. 所有角色 Master 穩定後，再統一檢查四人並排的比例、色值、武器安全範圍與 4V4 手機縮圖。
+1. **Windows 端跑一次 `npm run test` / `npm run build` / `git diff --check` 驗證 2026-08-17／08-18 靜態稽核批次**（見上方段落）。
+2. 使用者實測 battle-1 是否已回到可玩範圍；若仍不通，跟代理確認 A1 revert。
+3. 使用者選護符持續性方向（PLANNING_LOG 該節列 A/B/C/D 四選項）。
+4. 請 Art Director 核准或否決千景 Master。
+5. 請 Art Director 核准或否決朧 Master。
+6. 核准後，每名角色只先做最低成本 `Ready`、`Down`；普通 Attack／Hit／Break 優先用 Master／Ready＋runtime FX，不擴增骨架與方向圖。
+7. 等使用者提供 Player D 名稱與身份 reference，再重複同一 Pipeline。
+8. 所有角色 Master 穩定後，再統一檢查四人並排的比例、色值、武器安全範圍與 4V4 手機縮圖。
 
 ## 交付前最低驗證
 

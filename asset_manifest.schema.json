@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://three-kingdoms-online.local/schemas/asset_manifest.schema.json",
-  "title": "Generic Asset Manifest Schema",
+  "$id": "https://tactical-code-rift.local/schemas/asset_manifest.schema.json",
+  "title": "Tactical Code Rift Asset Manifest Schema",
   "type": "object",
   "additionalProperties": false,
   "required": [

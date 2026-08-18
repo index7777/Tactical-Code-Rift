@@ -37,7 +37,7 @@ Dedup / Normalize
 ↓
 Pixelorama / Aseprite cleanup
 ↓
-runtime engine Import
+Phaser Import
 ↓
 ASSET_MANIFEST
 ```
@@ -863,7 +863,7 @@ occupied / burned
 }
 ```
 
-實際 tile size 可依 runtime engine prototype 調整，但一旦 Vertical Slice
+實際 tile size 可依 Phaser prototype 調整，但一旦 Vertical Slice
 art direction freeze，需固定。
 
 ------------------------------------------------------------------------
@@ -969,7 +969,7 @@ background motif
 實際 UI layout：
 
 ``` text
-runtime engine Control Components
+Phaser Control Components
 ```
 
 不要把 Inventory / Market / Guild UI 做成整張不可拆圖片。
@@ -1189,7 +1189,7 @@ art/approved/
 
 ------------------------------------------------------------------------
 
-# 51. runtime engine Import Binding
+# 51. Phaser Import Binding
 
 Recipe 最終需輸出：
 
@@ -1435,7 +1435,7 @@ local compatible image model
 +
 Pixelorama
 +
-runtime engine
+Phaser
 ```
 
 Aseprite 可 optional。
@@ -1652,7 +1652,7 @@ layout 由 importer contract 固定。
 
 ------------------------------------------------------------------------
 
-# 78. runtime engine Animation Names
+# 78. Phaser Animation Names
 
 Canonical：
 
@@ -1797,13 +1797,13 @@ Vertical Slice 第一批只生成：
 ## NPC
 
 ``` text
-Example Faction雜兵
+妖怪雜兵
 Common Enemy
-Example Faction弓手
-Example Faction力士
+妖怪弓手
+妖怪力士
 太平道信徒
-Example Faction術士
-Example Faction護法
+妖怪術士
+妖怪護法
 ```
 
 ## Boss
@@ -2224,7 +2224,7 @@ human-edited flag
 ``` text
 one prompt file per PNG
 one recipe per animation frame
-hardcoded runtime engine PNG path inside NPC gameplay data
+hardcoded Phaser PNG path inside NPC gameplay data
 random undocumented seed
 asset IDs based on filenames
 AI-generated UI as one giant bitmap
@@ -2233,7 +2233,7 @@ Boss visual reused unchanged from normal mob
 
 ------------------------------------------------------------------------
 
-# 111. Example Faction Example --- Blade Soldier
+# 111. 妖怪 Example --- Blade Soldier
 
 ``` json
 {
@@ -2274,7 +2274,7 @@ Boss visual reused unchanged from normal mob
 
 ------------------------------------------------------------------------
 
-# 112. Example Faction Example --- Boss Character
+# 112. 妖怪 Example --- Boss Character
 
 ``` json
 {
@@ -2315,9 +2315,9 @@ Boss visual reused unchanged from normal mob
 
 ``` text
 Player prototype
-Example Faction blade soldier
-Example Faction archer
-Example Faction caster
+妖怪 blade soldier
+妖怪 archer
+妖怪 caster
 Elite Character
 Boss Character
 Village prop set
@@ -2326,7 +2326,7 @@ Basic icons
 Basic VFX
 ```
 
-全部從 Recipe → Approved Prototype → runtime engine Manifest。
+全部從 Recipe → Approved Prototype → Phaser Manifest。
 
 ------------------------------------------------------------------------
 
@@ -2380,10 +2380,10 @@ YES
 6. Define ComfyUI WorkflowRegistry
 7. Create first 3 POC recipes:
    - Player
-   - Example Faction Blade Soldier
+   - 妖怪 Blade Soldier
    - Boss Character
 8. Generate local candidates
-9. Review inside runtime engine Vertical Slice
+9. Review inside Phaser Vertical Slice
 10. Freeze art direction only after in-game validation
 ```
 
@@ -2391,7 +2391,7 @@ YES
 
 # 116. Final Rule
 
-Generic Project 的資產生成原則：
+Tactical Code Rift 的資產生成原則：
 
 > **Codex describes intent as structured data; the asset pipeline
 > performs generation.**
