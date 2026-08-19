@@ -1,20 +1,21 @@
 name: Runtime Evidence Main Hotfix
 
 on:
-  push:
+  pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
+    if: github.head_ref == 'fix/runtime-evidence-production'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: fix/runtime-evidence-production
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -58,12 +59,12 @@ jobs:
           npm ci
           npm run build
           npm test
-      - name: Commit exact source and self-delete
+      - name: Commit exact source to hotfix branch
         run: |
-          rm .github/workflows/runtime-evidence-main-hotfix.yml
+          rm -f .github/workflows/runtime-evidence-production-fix.yml .runtime-evidence-trigger
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/presentation/scenes/BootScene.ts src/presentation/battle/ActionPresenter.ts src/presentation/battle/ClashPresenter.ts
-          git add -u .github/workflows/runtime-evidence-main-hotfix.yml
+          git add -u .github/workflows/runtime-evidence-production-fix.yml .runtime-evidence-trigger || true
           git commit -m "fix: remove production battle ids and red hit tint"
-          git push origin HEAD:main
+          git push origin HEAD:fix/runtime-evidence-production
