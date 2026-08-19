@@ -25,10 +25,11 @@ export function playHeroinePose(sprite:Phaser.GameObjects.Sprite|undefined,pose:
   // The down drawing is naturally much wider and shorter. Keeping it at the
   // standing display height would enlarge the body during death.
   const isDown=pose==='down';
-  const height=Number(sprite.getData('heroHeight'))*(isDown?0.52:1);
+  const baseHeight=Number(sprite.getData('heroHeight'));
+  // Dedicated PB/PC down masters are authored death poses; never apply the legacy fallback shrink/rotation.
+  const height=baseHeight*(isDown?(poseLocked?0.9:0.52):1);
   if(height>0&&source.width>0&&source.height>0)sprite.setDisplaySize(Math.round(height*source.width/source.height),height);
   const baseY=Number(sprite.getData('heroBaseY')??-8);
-  const baseHeight=Number(sprite.getData('heroHeight'));
   const runtimePosition=sprite as Phaser.GameObjects.Sprite&{setY?: (y:number)=>unknown};
   runtimePosition.setY?.(baseY+(isDown?Math.max(0,(baseHeight-height)/2):0));
   // PB/PC currently share their approved-pending Master texture for all
@@ -36,7 +37,7 @@ export function playHeroinePose(sprite:Phaser.GameObjects.Sprite|undefined,pose:
   // second drawing: a short fall angle plus a muted tint communicates Down.
   if(poseLocked){
     const runtimeSprite=sprite as Phaser.GameObjects.Sprite&{setAngle?: (angle:number)=>unknown;setTint?: (tint:number)=>unknown};
-    runtimeSprite.setAngle?.(isDown?78:0);
-    runtimeSprite.setTint?.(isDown?0x8d7888:0xffffff);
+    runtimeSprite.setAngle?.(0);
+    runtimeSprite.setTint?.(isDown?0xb9aab4:0xffffff);
   }
 }

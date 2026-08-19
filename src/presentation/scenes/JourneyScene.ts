@@ -6,9 +6,9 @@ const labels:Record<StoryNodeType,string>={departure:'出發',battle:'迎擊',ev
 const colors:Record<StoryNodeType,number>={departure:0x477889,battle:0x963d50,event:0x74578c,exploration:0x367360,companion:0x3b7896,elite:0xb56a34,boss:0x8e263c};
 
 export class JourneyScene extends Phaser.Scene{
-  private journeyMusic?:Phaser.Sound.BaseSound;private loopTimer?:Phaser.Time.TimerEvent;private leavingMap=false;private journeyMusicLoadPending=false;
+  private journeyMusic?:Phaser.Sound.BaseSound;private loopTimer?:Phaser.Time.TimerEvent;private leavingMap=false;
   constructor(){super('JourneyScene')}
-  preload(){this.load.image('journey-bg-world01','assets/journey/world01/route-bg-rainfall-ridgeline.svg');this.load.image('journey-train-token','assets/journey/world01/train-token-topdown.svg')}
+  preload(){this.load.audio('journey-world-01','assets/music/world-01/zone1-train-bgm.mp3');this.load.image('journey-bg-world01','assets/journey/world01/route-bg-rainfall-ridgeline.svg');this.load.image('journey-train-token','assets/journey/world01/train-token-topdown.svg')}
   create(){
     this.startJourneyMusic();
     const state=(this.registry.get('journey-state')as JourneyState|undefined)??createJourneyState();this.registry.set('journey-state',state);
@@ -26,19 +26,11 @@ export class JourneyScene extends Phaser.Scene{
   private selectNode(state:JourneyState,nodeId:string,x:number,y:number){
     const next=moveJourney(state,nodeId);this.registry.set('journey-state',next);const node=next.route.nodes.find(n=>n.id===nodeId)!,train=this.children.list.find(o=>o.getData('train'))as Phaser.GameObjects.Image;
     this.input.enabled=false;this.tweens.add({targets:train,x,y:y+58,duration:720,ease:'Sine.easeInOut',onComplete:()=>{
-      if(node.type==='battle'||node.type==='elite')this.leaveJourneyMusic(()=>this.scene.start('BootScene',{journeyNodeId:node.id,battlefield:node.type==='elite'?'wayside':'rooftop'}));
-      else if(node.type==='boss'){this.input.enabled=true;this.add.text(640,610,'王節點已記錄｜等待 Boss 製作批次',{fontFamily:'sans-serif',fontSize:'18px',color:'#ffd0a0',backgroundColor:'#39151ddd',padding:{x:16,y:8}}).setOrigin(.5)}
+      if(node.type==='battle'||node.type==='elite'||node.type==='boss'){const veil=this.add.rectangle(640,360,1280,720,node.type==='boss'?0x26080d:0x061016,0).setDepth(200),label=this.add.text(640,360,node.type==='boss'?'終點・雨暮驛':node.type==='elite'?'精英遭遇':'戰鬥開始',{fontFamily:'serif',fontSize:node.type==='boss'?'34px':'26px',fontStyle:'bold',color:'#fff1d6'}).setOrigin(.5).setDepth(201).setAlpha(0);this.tweens.add({targets:veil,alpha:.92,duration:360});this.tweens.add({targets:label,alpha:1,duration:260});this.time.delayedCall(420,()=>this.leaveJourneyMusic(()=>this.scene.start('BootScene',{journeyNodeId:node.id,battlefield:node.type==='elite'?'wayside':'rooftop'})))}
       else{this.input.enabled=true;this.add.text(640,610,`${labels[node.type]}節點已記錄｜內容於角色與 Boss 完成後補入`,{fontFamily:'sans-serif',fontSize:'16px',color:'#ccecf0',backgroundColor:'#102a32dd',padding:{x:16,y:8}}).setOrigin(.5);this.time.delayedCall(850,()=>this.scene.restart())}
     }})
   }
   private startJourneyMusic(){
-    if(!this.cache.audio.exists('journey-world-01')){
-      if(this.journeyMusicLoadPending)return;
-      this.journeyMusicLoadPending=true;
-      this.load.once('filecomplete-audio-journey-world-01',()=>{this.journeyMusicLoadPending=false;if(this.scene.isActive())this.startJourneyMusic()});
-      this.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR,()=>{this.journeyMusicLoadPending=false});
-      this.load.audio('journey-world-01','assets/music/world-01/zone1-train-bgm.mp3');this.load.start();return;
-    }
     this.leavingMap=false;this.journeyMusic=this.sound.get('journey-world-01')??this.sound.add('journey-world-01',{loop:false,volume:0});
     if(!this.journeyMusic.isPlaying)this.journeyMusic.play({loop:false,volume:0});this.fadeJourneyMusic(.34,JOURNEY_MUSIC_FADE_IN_MS);this.scheduleJourneyLoop();
     this.game.events.off(Phaser.Core.Events.BLUR,this.onGameBlur,this);this.game.events.off(Phaser.Core.Events.FOCUS,this.onGameFocus,this);this.game.events.on(Phaser.Core.Events.BLUR,this.onGameBlur,this);this.game.events.on(Phaser.Core.Events.FOCUS,this.onGameFocus,this);

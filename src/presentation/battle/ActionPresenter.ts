@@ -78,12 +78,7 @@ export class ActionPresenter {
     if(!['PB','PC'].includes(actorId))return;
     const p=this.techniquePalette(actorId);
     if(actorId==='PB'){
-      const radius=cardId==='heavy'?78:cardId==='break'?68:58;
-      for(const [i,width] of [12,4].entries()){
-        const g=this.scene.add.graphics().setDepth(108+i);g.lineStyle(width,i?0xffffff:p.main,i?.92:.68);g.beginPath();g.arc(x-direction*8,y,radius+i*7,direction>0?Math.PI*.72:Math.PI*1.28,direction>0?Math.PI*1.72:Math.PI*.28,false);g.strokePath();this.combatLayer.add(g);
-        this.scene.tweens.add({targets:g,scale:1.18,alpha:0,duration:210+i*35,ease:'Cubic.easeOut',onComplete:()=>g.destroy()});
-      }
-      const sweep=this.scene.add.rectangle(x-direction*26,y+20,132,4,p.edge,.8).setRotation(direction>0?-.22:.22).setDepth(107);this.combatLayer.add(sweep);this.scene.tweens.add({targets:sweep,x:sweep.x+direction*46,scaleX:1.35,alpha:0,duration:190,onComplete:()=>sweep.destroy()});
+      const scale=cardId==='heavy'?1.32:cardId==='break'?1.18:1.05;this.lineSlash(x,y,direction<0,scale,p.main);const sweep=this.scene.add.rectangle(x-direction*20,y+28,190*scale,6,p.edge,.76).setRotation(direction>0?-.28:.28).setDepth(107);this.combatLayer.add(sweep);this.scene.tweens.add({targets:sweep,scaleX:1.3,alpha:0,duration:180,onComplete:()=>sweep.destroy()});
     }else{
       const lengths=cardId==='heavy'?[128,112]:[104,92];
       lengths.forEach((length,i)=>{const cut=this.scene.add.rectangle(x,y-6,length,i?3:7,i?p.edge:p.main,i?.96:.82).setRotation((i?-.78:.72)*direction).setDepth(110+i);this.combatLayer.add(cut);this.scene.tweens.add({targets:cut,scaleX:1.28,alpha:0,duration:145+i*35,ease:'Cubic.easeOut',onComplete:()=>cut.destroy()})});
@@ -96,17 +91,10 @@ export class ActionPresenter {
   private move(o: Phaser.GameObjects.Container, x: number, y: number, d = 210, ease = 'Quad.easeInOut') { return new Promise<void>((r) => this.scene.tweens.add({ targets: o, x, y, duration: d, ease, onComplete: () => r() })); }
   private wait(ms: number) { return new Promise<void>((r) => this.scene.time.delayedCall(ms, r)); }
   private realWait(ms:number){return new Promise<void>((resolve)=>globalThis.setTimeout(resolve,ms));}
-  private slash(x: number, y: number, flipX: boolean) { const fx = this.scene.add.sprite(x, y, 'slash-cc0').setDepth(100).setScale(.56).setFlipX(flipX).setAlpha(0); this.combatLayer.add(fx); fx.play('slash-cc0'); this.scene.tweens.add({ targets: fx, alpha: 1, duration: 55, yoyo: true, hold: 115, onComplete: () => fx.destroy() }); }
-  private bladeArc(x:number,y:number,color:number=0xffe8b0,flip=false){const g=this.scene.add.graphics().setDepth(103);g.lineStyle(10,color,.88);g.beginPath();g.arc(x,y,48,flip?Math.PI*.12:Math.PI*.88,flip?Math.PI*.88:Math.PI*1.88,false);g.strokePath();g.lineStyle(3,0xffffff,.98);g.beginPath();g.arc(x,y,48,flip?Math.PI*.2:Math.PI*.96,flip?Math.PI*.8:Math.PI*1.84,false);g.strokePath();this.combatLayer.add(g);const flash=this.scene.add.circle(x,y,10,0xffffff,.95).setDepth(104);this.combatLayer.add(flash);this.scene.tweens.add({targets:[g,flash],alpha:0,scale:1.5,duration:180,ease:'Cubic.easeOut',onComplete:()=>{g.destroy();flash.destroy()}});for(let i=0;i<6;i++){const shard=this.scene.add.rectangle(x,y,16,3,0xffffff,.9).setDepth(104).setRotation((i-3)*.45);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x+(i-3)*18,y:y+(i%2?1:-1)*(18+i*5),alpha:0,duration:180,onComplete:()=>shard.destroy()})}}
-  private cardImpact(x:number,y:number,definitionId?:string){
-    if(definitionId==='break'){for(let i=0;i<5;i++){const shard=this.scene.add.rectangle(x,y,14+i*2,3,0xffd36b,1).setRotation(-.8+i*.35).setDepth(102);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x-42+i*21,y:y-30+(i%2)*34,angle:70-i*25,alpha:0,duration:290,onComplete:()=>shard.destroy()})}}
-    else if(definitionId==='delay'){const ring=this.scene.add.ellipse(x,y,52,84,0x6fb8d5,.08).setStrokeStyle(3,0x9cecff,.9).setDepth(101);this.combatLayer.add(ring);this.scene.tweens.add({targets:ring,scaleX:1.7,scaleY:.65,alpha:0,duration:330,ease:'Cubic.easeOut',onComplete:()=>ring.destroy()})}
-    else if(definitionId==='heavy'){this.bladeArc(x,y,0xffd8a0);const shock=this.scene.add.rectangle(x,y+28,124,5,0xffd8a0,.8).setDepth(101);this.combatLayer.add(shock);this.scene.tweens.add({targets:shock,scaleX:1.8,alpha:0,duration:260,onComplete:()=>shock.destroy()})}
-    else if(definitionId==='quick'){this.bladeArc(x,y,0x9fe8ff);this.bladeArc(x+10,y-8,0x67cfff,true)}
-    else if(definitionId==='guard'){const shield=this.scene.add.ellipse(x,y,72,92,0x7dd9ff,.12).setStrokeStyle(4,0xc6f4ff,.95).setDepth(101);this.combatLayer.add(shield);this.scene.tweens.add({targets:shield,scale:.72,alpha:0,duration:300,onComplete:()=>shield.destroy()})}
-    else if(definitionId==='cover'){const intercept=this.scene.add.triangle(x,y-18,0,44,24,0,48,44,0x8eeeff,.85).setDepth(102);this.combatLayer.add(intercept);this.scene.tweens.add({targets:intercept,y:y-48,alpha:0,duration:240,onComplete:()=>intercept.destroy()})}
-    else if(definitionId==='cycle'){const ring=this.scene.add.circle(x,y,28,0x8fe6c0,.14).setStrokeStyle(3,0xb9ffe3,.9).setDepth(101);this.combatLayer.add(ring);this.scene.tweens.add({targets:ring,scale:1.6,alpha:0,duration:320,onComplete:()=>ring.destroy()})}
-  }
+  // Contact-anchored slash families. ArcSlash is a blade trail, never a projectile; LineSlash is the oversized screen-cut language.
+  private slash(x:number,y:number,flipX:boolean,scale=1,color=0xf7fbff){const dir=flipX?-1:1,g=this.scene.add.graphics().setDepth(104).setPosition(x,y),start=dir>0?-2.45:-.7,end=dir>0?.55:2.45,r=112*scale;g.lineStyle(22*scale,color,.12).beginPath().arc(0,0,r,start,end,dir<0).strokePath();g.lineStyle(7*scale,color,.78).beginPath().arc(0,0,r,start,end,dir<0).strokePath();g.lineStyle(Math.max(2,3.5*scale),0xffffff,.98).beginPath().arc(0,0,r-4*scale,start+.05*dir,end-.05*dir,dir<0).strokePath();this.combatLayer.add(g);g.setScale(.72);this.scene.tweens.add({targets:g,scale:1.12,alpha:0,duration:175,ease:'Cubic.easeOut',onComplete:()=>g.destroy()});const flash=this.scene.add.circle(x,y,16*scale,0xffffff,.88).setDepth(106);this.combatLayer.add(flash);this.scene.tweens.add({targets:flash,scale:2.4,alpha:0,duration:125,onComplete:()=>flash.destroy()})}
+  private lineSlash(x:number,y:number,flipX:boolean,scale=1,color=0xffe0a8){const dir=flipX?-1:1,angles=[-.18,.12,-.52],lengths=[330,260,210];angles.forEach((a,i)=>{const line=this.scene.add.rectangle(x-dir*(i*12),y+(i-1)*13,lengths[i]!*scale,i===0?9:4,i===0?0xffffff:color,i===0?.98:.8).setRotation(a*dir).setDepth(108+i).setScale(.28,1);this.combatLayer.add(line);this.scene.tweens.add({targets:line,scaleX:1.08,alpha:0,duration:155+i*34,ease:'Cubic.easeOut',onComplete:()=>line.destroy()})});const core=this.scene.add.circle(x,y,20*scale,0xffffff,.9).setDepth(112);this.combatLayer.add(core);this.scene.tweens.add({targets:core,scale:2.8,alpha:0,duration:140,onComplete:()=>core.destroy()})}
+  private cardImpact(x:number,y:number,definitionId?:string,flip=false){const burstLines=(color:number,count:number,reach:number)=>{for(let i=0;i<count;i++){const a=-1.15+i*(2.3/Math.max(1,count-1)),ray=this.scene.add.rectangle(x,y,reach,3,color,.86).setOrigin(0,.5).setRotation(a).setDepth(106);this.combatLayer.add(ray);this.scene.tweens.add({targets:ray,scaleX:1.35,alpha:0,duration:180+i*8,ease:'Cubic.easeOut',onComplete:()=>ray.destroy()})}};if(definitionId==='break'){this.lineSlash(x,y,flip,1.18,0xffd36b);burstLines(0xffd36b,9,92);const crack=this.scene.add.rectangle(x,y+22,190,7,0xffc85c,.8).setDepth(105);this.combatLayer.add(crack);this.scene.tweens.add({targets:crack,scaleX:1.45,alpha:0,duration:240,onComplete:()=>crack.destroy()})}else if(definitionId==='delay'){const bars=[-34,0,34].map((dy,i)=>this.scene.add.rectangle(x-(flip?-1:1)*18,y+dy,150-i*18,5,0x9cecff,.82).setDepth(104+i));this.combatLayer.add(bars);bars.forEach((b,i)=>this.scene.tweens.add({targets:b,x:b.x+(flip?-1:1)*42,scaleX:.35,alpha:0,delay:i*24,duration:250,onComplete:()=>b.destroy()}))}else if(definitionId==='heavy'){this.lineSlash(x,y,flip,1.38,0xffd8a0);burstLines(0xffd8a0,11,112);const shock=this.scene.add.rectangle(x,y+38,230,9,0xffd8a0,.72).setDepth(101);this.combatLayer.add(shock);this.scene.tweens.add({targets:shock,scaleX:1.55,scaleY:.25,alpha:0,duration:300,onComplete:()=>shock.destroy()})}else if(definitionId==='quick'){this.slash(x-8,y-8,flip,.92,0x9fe8ff);this.scene.time.delayedCall(42,()=>this.slash(x+12,y+10,!flip,.82,0x67cfff))}else if(definitionId==='guard'){const shield=this.scene.add.ellipse(x,y,118,146,0x7dd9ff,.10).setStrokeStyle(7,0xc6f4ff,.95).setDepth(101);this.combatLayer.add(shield);this.scene.tweens.add({targets:shield,scale:.72,alpha:0,duration:330,onComplete:()=>shield.destroy()})}else if(definitionId==='cover'){const intercept=this.scene.add.triangle(x,y-20,0,76,44,0,88,76,0x8eeeff,.72).setStrokeStyle(4,0xe6fbff,.95).setDepth(102);this.combatLayer.add(intercept);this.scene.tweens.add({targets:intercept,y:y-64,scale:1.22,alpha:0,duration:280,onComplete:()=>intercept.destroy()})}else if(definitionId==='relay'){this.slash(x,y,flip,1.05,0xffd56f);const handoff=this.scene.add.rectangle(x-(flip?-1:1)*80,y+28,180,5,0xffd56f,.82).setDepth(103);this.combatLayer.add(handoff);this.scene.tweens.add({targets:handoff,x:handoff.x+(flip?-1:1)*95,scaleX:1.35,alpha:0,duration:220,onComplete:()=>handoff.destroy()})}else if(definitionId==='cycle'){for(let i=0;i<3;i++){const ring=this.scene.add.ellipse(x,y,72+i*22,42+i*12,0x8fe6c0,.05).setStrokeStyle(3,0xb9ffe3,.86-i*.16).setDepth(101+i);this.combatLayer.add(ring);this.scene.tweens.add({targets:ring,scale:1.55,alpha:0,delay:i*45,duration:360,onComplete:()=>ring.destroy()})}}}
   private resetCamera() { this.scene.cameras.main.pan(640, 360, 250, 'Sine.easeInOut'); this.scene.cameras.main.zoomTo(1, 250, 'Sine.easeInOut'); }
 
   async attack(actorId: string, targetId: string, card: { name: string; clashPower: number; definitionId?: string }, enemy = false, mode: 'normal' | 'flank' = 'normal', returnToSlot = true, onImpact?: () => boolean) {
@@ -137,12 +125,8 @@ export class ActionPresenter {
     // 不再用 enemy 旗標硬綁，避免玩家改站左邊後斬擊方向反了。
     // 依卡型決定打擊重量：heavy/break 有 hit-stop + 白閃 + 大 shake，quick 較輕。
     const impactKind:'quick'|'normal'|'heavy'|'break'=card.definitionId==='heavy'?'heavy':card.definitionId==='break'?'break':card.definitionId==='quick'?'quick':'normal';
-    // 更正：classic-slash-sheet 的 crescent 朝向與先前假設相反——base 為左向揮擊，
-    // flipX=true 才是「揮向左」。因此攻擊者在**右邊**（direction<0）才要 flipX=true。
-    // 玩家在左攻擊右 → direction=+1 → flipX=false；敵人在右攻擊左 → direction=-1 → flipX=true。
     this.techniqueImpact(actorId,target.root.x,target.root.y-5,direction,card.definitionId);
-    this.slash(target.root.x, target.root.y - 5, direction < 0);
-    this.cardImpact(target.root.x,target.root.y-5,card.definitionId);
+    this.cardImpact(target.root.x,target.root.y-5,card.definitionId,direction < 0);
     this.playImpact(impactKind);
     this.impactShake(impactKind);
     this.hitFlash(target.sprite);
@@ -178,16 +162,13 @@ export class ActionPresenter {
       this.move(source.root, source.x, source.y, 180, 'Quad.easeOut'),
       this.move(ally.root, contactX, target.root.y, 180, 'Cubic.easeIn'),
     ]);
-    const handoff=this.scene.add.rectangle((source.root.x+ally.root.x)/2,target.root.y-14,96,3,0xffd56f,.85).setDepth(103).setRotation(-.12*direction);this.combatLayer.add(handoff);this.bladeArc(target.root.x,target.root.y-8,0xffd56f,direction<0);this.scene.tweens.add({targets:handoff,scaleX:1.45,alpha:0,duration:220,onComplete:()=>handoff.destroy()});
+    const handoff=this.scene.add.rectangle((source.root.x+ally.root.x)/2,target.root.y-14,96,3,0xffd56f,.85).setDepth(103).setRotation(-.12*direction);this.combatLayer.add(handoff);this.cardImpact(target.root.x,target.root.y-8,'relay',direction<0);this.scene.tweens.add({targets:handoff,scaleX:1.45,alpha:0,duration:220,onComplete:()=>handoff.destroy()});
     // The target keeps the first hit's recoil pose until this second blade lands.
     await this.wait(55);
     this.scene.sound.play('sword-swish', { volume: .78 });
     playHeroinePose(ally.sprite,'strike');
     // 斬擊方向：flipX 由攻擊者→目標方向決定（direction>0 = 攻擊者在左，揮向右需 flipX=true）；
     // 不再用 enemy 旗標硬綁，避免玩家改站左邊後斬擊方向反了。
-    // 更正：classic-slash-sheet 的 crescent 朝向與先前假設相反——base 為左向揮擊，
-    // flipX=true 才是「揮向左」。因此攻擊者在**右邊**（direction<0）才要 flipX=true。
-    // 玩家在左攻擊右 → direction=+1 → flipX=false；敵人在右攻擊左 → direction=-1 → flipX=true。
     this.slash(target.root.x, target.root.y - 5, direction < 0);
     // 繼刀＝補刀，一律走 heavy 級的打擊反饋。
     this.playImpact('heavy');

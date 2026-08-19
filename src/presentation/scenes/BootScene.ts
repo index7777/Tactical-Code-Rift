@@ -15,7 +15,7 @@ import{isCardSelected}from'../../core/cards/CardSelection';
 import{brokenClashAction}from'../../core/battle/BrokenActionPolicy';
 import{heroineDisplayHeight,playHeroinePose}from'../battle/HeroinePose';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;maxHp:number;shield:number;tempShield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean;archetype?:EnemyArchetype;traitReady:boolean}
-export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private discardMode=false;private discardUsedThisRound=false;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private undoButton!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;private battleMusicLoadPending=false;
+export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private discardMode=false;private discardUsedThisRound=false;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private undoButton!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
 constructor(){super('BootScene')}
 private deathPresenter!:DeathPresenter;private outcomePresenter!:OutcomePresenter;
 private resultFxPresenter!:CombatResultFxPresenter;
@@ -40,7 +40,7 @@ private currentPlanner(){return applyPlannedInitiative(this.timeline,this.comman
 private toolKey?:Phaser.Input.Keyboard.Key;private toolsInitialized=false;
 update(){if(!this.toolKey)this.toolKey=this.input.keyboard?.addKey('T');if(!this.toolsInitialized){this.toolsInitialized=true;this.setDevTools(false)}if(this.toolKey&&Phaser.Input.Keyboard.JustDown(this.toolKey))this.setDevTools(!this.toolsVisible)}
 private setDevTools(visible:boolean){this.toolsVisible=visible;const labels=new Set(['重新開始','P−','P+','E−','E+']);for(const item of this.hudLayer?.list??[]){if(item instanceof Phaser.GameObjects.Text){if(item.text==='戰術編碼：裂痕')item.setText('妖異鐵道｜殺生線試作');if(item.text==='FOCUSED CLASH // SHARED DECK')item.setText('讀取殺意・截斷因果・繼刀崩勢');if(labels.has(item.text))item.setVisible(visible)}}this.phase?.setText(visible?'開發工具｜T 收起':this.phase.text.replace('開發工具｜T 收起',''))}
-preload(){if(shouldStartJourney(new URLSearchParams(window.location.search),this.journeyNodeId))return;['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('bg-world01-rooftop-candidate','assets/battle/world01-rooftop-composite-candidate-v3.png');this.load.spritesheet('slash-cc0','assets/battle/weapon-slash-cc0/classic-slash-sheet.png',{frameWidth:125,frameHeight:150});this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.image('heroine-idle','assets/battle/heroine-sd-idle-v1.png');this.load.image('heroine-ready','assets/battle/heroine-sd-ready-v1.png');this.load.image('heroine-down','assets/battle/heroine-sd-down-v2.png');this.load.image('chikage-idle','assets/battle/chikage-sd-side-master-runtime-trial-v1.png');this.load.image('oboro-idle','assets/battle/oboro-sd-side-master-runtime-trial-v1.png');for(const name of ['chikage','oboro'])for(const pose of ['ready','attack','hit','down'])this.load.image(`${name}-${pose}`,`assets/battle/generated/characters/${name}/${name}-sd-${pose}-runtime-${pose==='ready'?'v1':'v2'}.png`);// 第一區怪物母版：已交付母版的走 PNG runtime；rain-warrior/rain-boss 尚未生圖，
+preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('bg-world01-rooftop-candidate','assets/battle/world01-rooftop-composite-candidate-v3.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('boss-battle-music','assets/music/world-01/zone1-boss-bgm.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.image('heroine-idle','assets/battle/heroine-sd-idle-v1.png');this.load.image('heroine-ready','assets/battle/heroine-sd-ready-v1.png');this.load.image('heroine-down','assets/battle/heroine-sd-down-v2.png');this.load.image('chikage-idle','assets/battle/chikage-sd-side-master-runtime-trial-v1.png');this.load.image('oboro-idle','assets/battle/oboro-sd-side-master-runtime-trial-v1.png');for(const name of ['chikage','oboro'])for(const pose of ['ready','attack','hit','down'])this.load.image(`${name}-${pose}`,`assets/battle/generated/characters/${name}/${name}-sd-${pose}-runtime-${pose==='ready'?'v1':'v2'}.png`);// 第一區怪物母版：已交付母版的走 PNG runtime；rain-warrior/rain-boss 尚未生圖，
 // 暫時 fallback 到 SVG 剪影 placeholder（不 tint、不美觀，等使用者核准後補生）。
 for(const name of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior'])this.load.image(`monster-${name}`,`assets/battle/generated/monsters/rainfall-ridgeline/${name}-master-runtime-v1.png`);
 // rain-boss（BOSS 雨切終式）尚未生圖，先保留 SVG placeholder；核准後補為 PNG runtime。
@@ -53,7 +53,7 @@ create(){
     if(!this.anims.exists('heroine-ready'))this.anims.create({key:'heroine-ready',frames:[{key:'heroine-ready'}]});
     if(!this.anims.exists('heroine-strike'))this.anims.create({key:'heroine-strike',frames:[{key:'heroine-ready'}]});
     if(!this.anims.exists('heroine-down'))this.anims.create({key:'heroine-down',frames:[{key:'heroine-down'}]});
-    if(!this.anims.exists('enemy-idle'))this.anims.create({key:'enemy-idle',frames:this.anims.generateFrameNumbers('enemy',{start:0,end:3}),frameRate:5,repeat:-1}); if(!this.anims.exists('slash-cc0'))this.anims.create({key:'slash-cc0',frames:this.anims.generateFrameNumbers('slash-cc0',{start:0,end:5}),frameRate:24,repeat:0});
+    if(!this.anims.exists('enemy-idle'))this.anims.create({key:'enemy-idle',frames:this.anims.generateFrameNumbers('enemy',{start:0,end:3}),frameRate:5,repeat:-1});
     this.startBattleMusic();
     this.world=this.add.container();
     this.hudLayer=this.add.container().setDepth(30).setScrollFactor(0);
@@ -78,17 +78,10 @@ create(){
     this.input.keyboard?.on('keydown-S',()=>this.scene.restart({pc:this.pc,ec:Math.min(4,this.ec+1)}));
     this.input.keyboard?.on('keydown-ESC',()=>this.undoCommand());
     this.input.keyboard?.on('keydown-BACKSPACE',(event:KeyboardEvent)=>{event.preventDefault();this.undoCommand()});
-    this.rebuild()
+    this.rebuild();this.playBattleIntro()
   }
+private playBattleIntro(){if(!this.journeyNodeId)return;const boss=this.journeyNodeId==='boss-1',elite=this.journeyNodeId==='elite-1';const veil=this.add.rectangle(640,360,1280,720,0x03070b,.92).setDepth(300).setScrollFactor(0),kicker=this.add.text(640,305,boss?'第一區・雨暮山線　終點':elite?'第一區・雨暮山線　精英':'第一區・雨暮山線',{fontFamily:'serif',fontSize:'18px',color:boss?'#ffb2a8':'#a9c8ce'}).setOrigin(.5).setDepth(301).setScrollFactor(0),title=this.add.text(640,350,boss?'雨暮驛・站守':elite?'雨夜武者':'遭遇',{fontFamily:'serif',fontSize:boss?'38px':'30px',fontStyle:'bold',color:'#fff1d6',stroke:'#12090b',strokeThickness:5}).setOrigin(.5).setDepth(301).setScrollFactor(0),line=this.add.rectangle(640,397,boss?420:280,2,boss?0xb6373f:0x87b6bd,.9).setDepth(301).setScrollFactor(0);this.input.enabled=false;this.time.delayedCall(boss?820:520,()=>this.tweens.add({targets:[veil,kicker,title,line],alpha:0,duration:320,onComplete:()=>{veil.destroy();kicker.destroy();title.destroy();line.destroy();this.input.enabled=true}}))}
 private startBattleMusic(){
-  if(!this.cache.audio.exists(this.selectedBattleMusicKey)){
-    if(this.battleMusicLoadPending)return;
-    this.battleMusicLoadPending=true;
-    const url=this.selectedBattleMusicKey==='boss-battle-music'?'assets/music/world-01/zone1-boss-bgm.mp3':'assets/battle/demo_battle01.mp3';
-    this.load.once(`filecomplete-audio-${this.selectedBattleMusicKey}`,()=>{this.battleMusicLoadPending=false;if(this.scene.isActive())this.startBattleMusic()});
-    this.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR,()=>{this.battleMusicLoadPending=false});
-    this.load.audio(this.selectedBattleMusicKey,url);this.load.start();return;
-  }
   this.battleMusic=this.sound.get(this.selectedBattleMusicKey)??this.sound.add(this.selectedBattleMusicKey,{loop:true,volume:0});
   if(!this.battleMusic.isPlaying)this.battleMusic.play({loop:true,volume:0});
   this.fadeBattleMusic(.3,1200);
@@ -239,23 +232,15 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
     this.intentLayer.add([g,label])
   }
   private addKillingIntentFlow(curve:Phaser.Curves.CubicBezier,color:number,alpha:number,focused:boolean,delay=0){
-    const orb=this.add.circle(0,0,focused?3.5:2.5,color,alpha).setDepth(34).setData('intent',true);
-    const halo=this.add.circle(0,0,focused?8:5,color,Math.max(.02,alpha*.16)).setDepth(33).setData('intent',true);
-    this.intentLayer.add([halo,orb]);
-    const duration=focused?760:1120;
-    const tween=this.tweens.addCounter({from:0,to:1,duration,delay,repeat:-1,ease:'Linear',onUpdate:t=>{
-      if(!orb.active||!halo.active){t.stop();return}
-      const point=curve.getPoint(t.getValue()??0);
-      orb.setPosition(point.x,point.y);halo.setPosition(point.x,point.y)
-    }});
-    orb.once(Phaser.GameObjects.Events.DESTROY,()=>tween.stop())
+    const count=focused?12:9;
+    const streaks=Array.from({length:count},()=>{const bar=this.add.rectangle(0,0,focused?18:13,focused?2.2:1.5,color,alpha*(focused?.72:.5)).setDepth(34).setData('intent',true);this.intentLayer.add(bar);return bar});
+    const duration=focused?1500:2100;
+    const tween=this.tweens.addCounter({from:0,to:1,duration,delay,repeat:-1,ease:'Linear',onUpdate:t=>{const phase=t.getValue();streaks.forEach((bar,i)=>{if(!bar.active)return;const u=(phase+i/count)%1,p=curve.getPoint(u),ahead=curve.getPoint(Math.min(.999,u+.008));bar.setPosition(p.x,p.y).setRotation(Phaser.Math.Angle.Between(p.x,p.y,ahead.x,ahead.y));const edge=Math.min(1,u*8,(1-u)*8);bar.setAlpha(alpha*(focused?.72:.5)*Math.max(.12,edge))})}});
+    streaks[0]?.once(Phaser.GameObjects.Events.DESTROY,()=>tween.stop())
   }
   private addKillingIntentTargetPulse(x:number,y:number,focused:boolean,alpha:number){
-    const ring=this.add.circle(x,y,focused?11:8,0xff415f,.035).setStrokeStyle(focused?2:1,0xff526b,Math.min(1,.38+alpha*.62)).setDepth(32).setData('intent',true);
-    const core=this.add.circle(x,y,focused?3:2,0xff6c7e,Math.min(1,.45+alpha*.5)).setDepth(35).setData('intent',true);
-    this.intentLayer.add([ring,core]);
-    this.tweens.add({targets:ring,scale:focused?1.9:1.55,alpha:0,duration:focused?760:1050,repeat:-1,ease:'Cubic.easeOut'});
-    this.tweens.add({targets:core,alpha:{from:Math.min(1,.45+alpha*.5),to:.18},scale:{from:1,to:1.35},duration:focused?430:650,yoyo:true,repeat:-1,ease:'Sine.easeInOut'})
+    const ring=this.add.circle(x,y,focused?8:6,0xff415f,.025).setStrokeStyle(focused?1.5:1,0xff6078,Math.min(.78,.28+alpha*.45)).setDepth(32).setData('intent',true);
+    const core=this.add.circle(x,y,focused?2.4:1.8,0xff7b8c,Math.min(.9,.35+alpha*.38)).setDepth(35).setData('intent',true);this.intentLayer.add([ring,core])
   }
   private renderEnemyIntents(){
     this.intentController.clear();
@@ -323,7 +308,6 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
         strokeCurve(branch,{width:focused?1.7:1,color:threatColor,alpha:focused?.98:.76},branchFrom,branchC1,branchC2,branchTo);
         this.intentLayer.add(branch);
         this.addKillingIntentFlow(branchCurve,threatColor,focused?.95:.42,focused,index*145);
-        if(focused)this.addKillingIntentFlow(branchCurve,0xffb1bd,.62,true,380+index*145);
         if(this.selected?.definitionId==='cover'){
           const hitPoints=branchCurve.getPoints(7);
           for(let i=1;i<hitPoints.length;i++){
@@ -419,19 +403,18 @@ private drawMonsterRuleRead(actor:Actor,card:BattleCard){const read=readMonsterR
 private renderTimeline(){
     this.timelineLayer.removeAll(true);
     const planned=applyPlannedInitiative(this.timeline,this.commands);
-    const start=152,end=1150,y=38,gap=planned.length>1?(end-start)/(planned.length-1):0;
-    // 時序條背後鋪一條半透明黑帶（跨滿寬），確保角色頭部或武器伸到上方時，時序資訊仍清晰可讀。
-    // 這是行動資訊層的專屬 UI 容器，不隨鏡頭移動、不會被 combatLayer 遮蔽。
-    this.timelineLayer.add(this.add.rectangle(640,31,1280,66,0x03070c,.84));
-    this.timelineLayer.add(this.add.rectangle(640,64,1280,1,0x6d8790,.28));
-    this.timelineLayer.add(this.add.rectangle((start+end)/2,y,end-start,2,0x57727b,.52));
-    planned.forEach((n,i)=>{
-      const x=planned.length===1?650:start+i*gap,color=n.team==='player'?0x287f91:0x843748,radius=i===0?18:12;
-      if(i===0)this.timelineLayer.add(this.add.circle(x,y,radius+6,0x10171a,.96).setStrokeStyle(2,0xe6c979,.9));
-      this.timelineLayer.add(this.add.circle(x,y,radius,color,i===0?1:.92).setStrokeStyle(i===0?2:1,n.team==='player'?0x9adce7:0xe5a1ad,i===0?.92:.58));
-      this.timelineLayer.add(this.add.text(x,y,n.actorId,{fontFamily:'monospace',fontSize:i===0?'11px':'8px',fontStyle:'bold',color:i===0?'#fff9df':'#e5ecee'}).setOrigin(.5));
-      this.timelineLayer.add(this.add.text(x,y+21,String(n.initiative??n.speed),{fontFamily:'monospace',fontSize:'9px',fontStyle:i===0?'bold':'normal',color:i===0?'#e6c979':'#7f949b'}).setOrigin(.5))
-    })
+    const players=planned.filter(n=>n.team==='player').sort((a,b)=>(b.initiative??b.speed)-(a.initiative??a.speed));
+    const enemies=planned.filter(n=>n.team==='enemy').sort((a,b)=>(b.initiative??b.speed)-(a.initiative??a.speed));
+    const values=planned.map(n=>n.initiative??n.speed),max=Math.max(...values,1),min=Math.min(...values,0);
+    const xFor=(n:ActionNode)=>{const v=n.initiative??n.speed,t=max===min ? 0.5 : (max-v)/(max-min);return Phaser.Math.Linear(300,1160,t)};
+    const current=this.currentPlanner()??planned[0];
+    this.timelineLayer.add(this.add.rectangle(640,43,1280,86,0x03070c,.88));
+    this.timelineLayer.add(this.add.text(230,20,'我方',{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:'#8fefff'}).setOrigin(1,.5));
+    this.timelineLayer.add(this.add.text(230,61,'敵方',{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:'#ff91a3'}).setOrigin(1,.5));
+    this.timelineLayer.add(this.add.rectangle(720,20,880,2,0x477b86,.52));this.timelineLayer.add(this.add.rectangle(720,61,880,2,0x7d3948,.52));
+    const drawLane=(nodes:ActionNode[],y:number)=>nodes.forEach(n=>{const x=xFor(n),isCurrent=n.id===current?.id,color=n.team==='player'?0x287f91:0x843748;this.timelineLayer.add(this.add.circle(x,y,isCurrent?13:9,color,.96).setStrokeStyle(isCurrent?2:1,isCurrent?0xffe6a0:n.team==='player'?0x9adce7:0xe5a1ad,isCurrent?1:.65));this.timelineLayer.add(this.add.text(x,y,n.actorId,{fontFamily:'monospace',fontSize:isCurrent?'9px':'7px',fontStyle:'bold',color:'#ffffff'}).setOrigin(.5));this.timelineLayer.add(this.add.text(x,y+15,String(n.initiative??n.speed),{fontFamily:'monospace',fontSize:'8px',color:isCurrent?'#ffe6a0':'#82969c'}).setOrigin(.5))});
+    drawLane(players,20);drawLane(enemies,61);
+    if(current){const actor=(current.team==='player'?this.players:this.enemies).get(current.actorId);this.timelineLayer.add(this.add.rectangle(88,42,116,76,0x0b1117,.98).setStrokeStyle(2,current.team==='player'?0x8fefff:0xff8298,.9));if(actor?.sprite){const portrait=this.add.image(58,42,actor.sprite.texture.key,actor.sprite.frame.name).setOrigin(.5).setFlipX(actor.sprite.flipX),src=portrait.texture.getSourceImage()as{width:number;height:number},h=58,w=Math.min(58,Math.max(26,h*src.width/src.height));portrait.setDisplaySize(w,h);this.timelineLayer.add(portrait)}this.timelineLayer.add(this.add.text(111,29,'NOW',{fontFamily:'monospace',fontSize:'9px',fontStyle:'bold',color:'#e8c978'}).setOrigin(.5));this.timelineLayer.add(this.add.text(111,48,current.actorId,{fontFamily:'monospace',fontSize:'14px',fontStyle:'bold',color:'#ffffff'}).setOrigin(.5))}
   }
 private drawCardIcon(x:number,y:number,card:BattleCard,color:number){
     const g=this.add.graphics().setDepth(23);g.lineStyle(2,color,1);
