@@ -2,18 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { shouldStartJourney } from './EntryMode';
 
 describe('shouldStartJourney', () => {
-  it('uses the journey as the public default entry', () => {
+  it('uses the journey as the only public entry', () => {
     expect(shouldStartJourney(new URLSearchParams())).toBe(true);
-    expect(shouldStartJourney(new URLSearchParams('journey=1'))).toBe(true);
+    expect(shouldStartJourney(new URLSearchParams('anything=1'))).toBe(true);
   });
 
-  it('keeps explicit battle and proof links in the battle scene', () => {
-    for (const query of ['battle=1', 'scene=rooftop', 'draw-proof=1', 'result-proof=1', 'monster-proof=swift', 'boss-proof=1', 'death-proof=1', 'outcome-proof=1', 'relay-proof=1']) {
-      expect(shouldStartJourney(new URLSearchParams(query))).toBe(false);
-    }
-  });
-
-  it('does not interrupt a battle entered from a journey node', () => {
+  it('enters battle only when a journey node explicitly starts one', () => {
     expect(shouldStartJourney(new URLSearchParams(), 'battle-1')).toBe(false);
+    expect(shouldStartJourney(new URLSearchParams('anything=1'), 'elite-1')).toBe(false);
   });
 });
