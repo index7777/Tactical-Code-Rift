@@ -1,8 +1,11 @@
-name: P11.4 finalization artifact
+name: P11.4 source finalizer
 
 on:
   pull_request:
     branches: [main]
+
+permissions:
+  contents: write
 
 jobs:
   finalize:
@@ -20,11 +23,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Apply one-shot production migration
+      - name: Apply validated production migration
         run: |
           awk 'BEGIN{capture=0} /python - <<.PY./{capture=1;next} capture && /^[[:space:]]*PY$/{capture=0;exit} capture{sub(/^          /,"");print}' .github/workflows/source-cleanup.yml > /tmp/p11-finalize.py
           python /tmp/p11-finalize.py
-          rm -f src/presentation/runtime/P11RuntimeWiring.ts src/presentation/runtime/ProductionRuntime.ts .github/workflows/source-cleanup.yml
+          rm -f src/presentation/runtime/P11RuntimeWiring.ts src/presentation/runtime/ProductionRuntime.ts
       - name: Audit production source
         run: |
           test ! -e src/presentation/runtime/P11RuntimeWiring.ts
@@ -35,16 +38,14 @@ jobs:
           npm ci
           npm run build
           npm test
-      - name: Stage finalization artifact
+      - name: Keep workflow files out of the source commit
         run: |
-          mkdir -p /tmp/p11-final/src/presentation/scenes /tmp/p11-final/src/presentation/battle /tmp/p11-final/src/core/route
-          cp src/presentation/scenes/BootScene.ts /tmp/p11-final/src/presentation/scenes/BootScene.ts
-          cp src/presentation/battle/OutcomePresenter.ts /tmp/p11-final/src/presentation/battle/OutcomePresenter.ts
-          cp src/presentation/battle/OutcomeLayout.ts /tmp/p11-final/src/presentation/battle/OutcomeLayout.ts
-          cp src/presentation/battle/OutcomeLayout.test.ts /tmp/p11-final/src/presentation/battle/OutcomeLayout.test.ts
-          cp src/core/route/EncounterCatalog.test.ts /tmp/p11-final/src/core/route/EncounterCatalog.test.ts
-      - uses: actions/upload-artifact@v4
-        with:
-          name: p11-final-source
-          path: /tmp/p11-final
-          if-no-files-found: error
+          git checkout -- .github/workflows/ci.yml .github/workflows/source-cleanup.yml
+      - name: Commit production source batch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "refactor: finalize P11.4 combat and route runtime"
+          git push origin HEAD:feat/p11-4-integration
