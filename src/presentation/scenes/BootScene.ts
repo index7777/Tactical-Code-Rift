@@ -40,7 +40,7 @@ private currentPlanner(){return applyPlannedInitiative(this.timeline,this.comman
 private toolKey?:Phaser.Input.Keyboard.Key;private toolsInitialized=false;
 update(){if(!this.toolKey)this.toolKey=this.input.keyboard?.addKey('T');if(!this.toolsInitialized){this.toolsInitialized=true;this.setDevTools(false)}if(this.toolKey&&Phaser.Input.Keyboard.JustDown(this.toolKey))this.setDevTools(!this.toolsVisible)}
 private setDevTools(visible:boolean){this.toolsVisible=visible;const labels=new Set(['重新開始','P−','P+','E−','E+']);for(const item of this.hudLayer?.list??[]){if(item instanceof Phaser.GameObjects.Text){if(item.text==='戰術編碼：裂痕')item.setText('妖異鐵道｜殺生線試作');if(item.text==='FOCUSED CLASH // SHARED DECK')item.setText('讀取殺意・截斷因果・繼刀崩勢');if(labels.has(item.text))item.setVisible(visible)}}this.phase?.setText(visible?'開發工具｜T 收起':this.phase.text.replace('開發工具｜T 收起',''))}
-preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('bg-world01-rooftop-candidate','assets/battle/world01-rooftop-composite-candidate-v3.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('boss-battle-music','assets/music/world-01/zone1-boss-bgm.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.image('heroine-idle','assets/battle/heroine-sd-idle-v1.png');this.load.image('heroine-ready','assets/battle/heroine-sd-ready-v1.png');this.load.image('heroine-down','assets/battle/heroine-sd-down-v2.png');this.load.image('chikage-idle','assets/battle/chikage-sd-side-master-runtime-trial-v1.png');this.load.image('oboro-idle','assets/battle/oboro-sd-side-master-runtime-trial-v1.png');for(const name of ['chikage','oboro'])for(const pose of ['ready','attack','hit','down'])this.load.image(`${name}-${pose}`,`assets/battle/generated/characters/${name}/${name}-sd-${pose}-runtime-${pose==='ready'?'v1':'v2'}.png`);// 第一區怪物母版：已交付母版的走 PNG runtime；rain-warrior/rain-boss 尚未生圖，
+preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('bg-world01-rooftop-candidate','assets/battle/world01-rooftop-composite-candidate-v3.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('boss-battle-music','assets/music/world-01/zone1-boss-bgm.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.image('heroine-idle','assets/battle/heroine-sd-idle-v1.png');this.load.image('heroine-ready','assets/battle/heroine-sd-ready-v1.png');this.load.image('heroine-down','assets/battle/heroine-sd-down-v2.png');this.load.image('chikage-idle','assets/battle/chikage-sd-side-master-runtime-trial-v1.png');this.load.image('oboro-idle','assets/battle/oboro-sd-side-master-runtime-trial-v1.png');this.load.image('portrait-heroine','assets/battle/portraits/heroine.png');this.load.image('portrait-chikage','assets/battle/portraits/chikage.png');this.load.image('portrait-oboro','assets/battle/portraits/oboro.png');for(const name of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior'])this.load.image(`portrait-${name}`,`assets/battle/portraits/${name}.png`);for(const name of ['chikage','oboro'])for(const pose of ['ready','attack','hit','down'])this.load.image(`${name}-${pose}`,`assets/battle/generated/characters/${name}/${name}-sd-${pose}-runtime-${pose==='ready'?'v1':'v2'}.png`);// 第一區怪物母版：已交付母版的走 PNG runtime；rain-warrior/rain-boss 尚未生圖，
 // 暫時 fallback 到 SVG 剪影 placeholder（不 tint、不美觀，等使用者核准後補生）。
 for(const name of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior'])this.load.image(`monster-${name}`,`assets/battle/generated/monsters/rainfall-ridgeline/${name}-master-runtime-v1.png`);
 // rain-boss（BOSS 雨切終式）尚未生圖，先保留 SVG placeholder；核准後補為 PNG runtime。
@@ -232,10 +232,11 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
     this.intentLayer.add([g,label])
   }
   private addKillingIntentFlow(curve:Phaser.Curves.CubicBezier,color:number,alpha:number,focused:boolean,delay=0){
-    const count=focused?12:9;
-    const streaks=Array.from({length:count},()=>{const bar=this.add.rectangle(0,0,focused?18:13,focused?2.2:1.5,color,alpha*(focused?.72:.5)).setDepth(34).setData('intent',true);this.intentLayer.add(bar);return bar});
-    const duration=focused?1500:2100;
-    const tween=this.tweens.addCounter({from:0,to:1,duration,delay,repeat:-1,ease:'Linear',onUpdate:t=>{const phase=t.getValue() ?? 0;streaks.forEach((bar,i)=>{if(!bar.active)return;const u=(phase+i/count)%1,p=curve.getPoint(u),ahead=curve.getPoint(Math.min(.999,u+.008));bar.setPosition(p.x,p.y).setRotation(Phaser.Math.Angle.Between(p.x,p.y,ahead.x,ahead.y));const edge=Math.min(1,u*8,(1-u)*8);bar.setAlpha(alpha*(focused?.72:.5)*Math.max(.12,edge))})}});
+    const count=focused?16:12;
+    // Slow, low-contrast directional texture: the whole line should feel loaded with intent, not like bright pulse dots racing along a cable.
+    const streaks=Array.from({length:count},()=>{const bar=this.add.rectangle(0,0,focused?24:19,focused?1.45:1.05,color,alpha*(focused?.31:.2)).setDepth(34).setData('intent',true);this.intentLayer.add(bar);return bar});
+    const duration=focused?2800:4200;
+    const tween=this.tweens.addCounter({from:0,to:1,duration,delay,repeat:-1,ease:'Linear',onUpdate:t=>{const phase=t.getValue() ?? 0;streaks.forEach((bar,i)=>{if(!bar.active)return;const u=(phase+i/count)%1,p=curve.getPoint(u),ahead=curve.getPoint(Math.min(.999,u+.008));bar.setPosition(p.x,p.y).setRotation(Phaser.Math.Angle.Between(p.x,p.y,ahead.x,ahead.y));const edge=Math.min(1,u*8,(1-u)*8);bar.setAlpha(alpha*(focused?.31:.2)*Math.max(.08,edge))})}});
     streaks[0]?.once(Phaser.GameObjects.Events.DESTROY,()=>tween.stop())
   }
   private addKillingIntentTargetPulse(x:number,y:number,focused:boolean,alpha:number){
@@ -408,13 +409,33 @@ private renderTimeline(){
     const values=planned.map(n=>n.initiative??n.speed),max=Math.max(...values,1),min=Math.min(...values,0);
     const xFor=(n:ActionNode)=>{const v=n.initiative??n.speed,t=max===min ? 0.5 : (max-v)/(max-min);return Phaser.Math.Linear(300,1160,t)};
     const current=this.currentPlanner()??planned[0];
-    this.timelineLayer.add(this.add.rectangle(640,43,1280,86,0x03070c,.88));
+    const portraitKey=(n:ActionNode)=>{
+      const actor=(n.team==='player'?this.players:this.enemies).get(n.actorId);
+      if(n.team==='player')return n.actorId==='PB'?'portrait-chikage':n.actorId==='PC'?'portrait-oboro':'portrait-heroine';
+      const enemyKey=actor?.archetype?`portrait-${actor.archetype}`:'';
+      return enemyKey&&this.textures.exists(enemyKey)?enemyKey:actor?.sprite.texture.key;
+    };
+    this.timelineLayer.add(this.add.rectangle(640,43,1280,86,0x03070c,.9));
     this.timelineLayer.add(this.add.text(230,20,'我方',{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:'#8fefff'}).setOrigin(1,.5));
     this.timelineLayer.add(this.add.text(230,61,'敵方',{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:'#ff91a3'}).setOrigin(1,.5));
     this.timelineLayer.add(this.add.rectangle(720,20,880,2,0x477b86,.52));this.timelineLayer.add(this.add.rectangle(720,61,880,2,0x7d3948,.52));
-    const drawLane=(nodes:ActionNode[],y:number)=>nodes.forEach(n=>{const x=xFor(n),isCurrent=n.id===current?.id,color=n.team==='player'?0x287f91:0x843748;this.timelineLayer.add(this.add.circle(x,y,isCurrent?13:9,color,.96).setStrokeStyle(isCurrent?2:1,isCurrent?0xffe6a0:n.team==='player'?0x9adce7:0xe5a1ad,isCurrent?1:.65));this.timelineLayer.add(this.add.text(x,y,n.actorId,{fontFamily:'monospace',fontSize:isCurrent?'9px':'7px',fontStyle:'bold',color:'#ffffff'}).setOrigin(.5));this.timelineLayer.add(this.add.text(x,y+15,String(n.initiative??n.speed),{fontFamily:'monospace',fontSize:'8px',color:isCurrent?'#ffe6a0':'#82969c'}).setOrigin(.5))});
+    const drawLane=(nodes:ActionNode[],y:number)=>nodes.forEach(n=>{
+      const x=xFor(n),isCurrent=n.id===current?.id,teamColor=n.team==='player'?0x65d9ed:0xe5657a,key=portraitKey(n);
+      this.timelineLayer.add(this.add.circle(x,y,isCurrent?18:15,0x071016,.96).setStrokeStyle(isCurrent?3:1.5,isCurrent?0xffe69a:teamColor,isCurrent?1:.78));
+      if(key&&this.textures.exists(key))this.timelineLayer.add(this.add.image(x,y,key).setDisplaySize(isCurrent?29:24,isCurrent?29:24));
+      else this.timelineLayer.add(this.add.text(x,y,n.actorId,{fontFamily:'monospace',fontSize:'8px',fontStyle:'bold',color:'#fff'}).setOrigin(.5));
+      this.timelineLayer.add(this.add.text(x,y+18,String(n.initiative??n.speed),{fontFamily:'monospace',fontSize:'8px',fontStyle:'bold',color:isCurrent?'#ffe6a0':'#879ba2'}).setOrigin(.5));
+    });
     drawLane(players,20);drawLane(enemies,61);
-    if(current){const actor=(current.team==='player'?this.players:this.enemies).get(current.actorId);this.timelineLayer.add(this.add.rectangle(88,42,116,76,0x0b1117,.98).setStrokeStyle(2,current.team==='player'?0x8fefff:0xff8298,.9));if(actor?.sprite){const portrait=this.add.image(58,42,actor.sprite.texture.key,actor.sprite.frame.name).setOrigin(.5).setFlipX(actor.sprite.flipX),src=portrait.texture.getSourceImage()as{width:number;height:number},h=58,w=Math.min(58,Math.max(26,h*src.width/src.height));portrait.setDisplaySize(w,h);this.timelineLayer.add(portrait)}this.timelineLayer.add(this.add.text(111,29,'NOW',{fontFamily:'monospace',fontSize:'9px',fontStyle:'bold',color:'#e8c978'}).setOrigin(.5));this.timelineLayer.add(this.add.text(111,48,current.actorId,{fontFamily:'monospace',fontSize:'14px',fontStyle:'bold',color:'#ffffff'}).setOrigin(.5))}
+    if(current){
+      const key=portraitKey(current),teamColor=current.team==='player'?0x8fefff:0xff8298;
+      this.timelineLayer.add(this.add.rectangle(82,42,124,76,0x091117,.99).setStrokeStyle(2,teamColor,.96));
+      this.timelineLayer.add(this.add.rectangle(42,42,70,70,0x02070b,1));
+      if(key&&this.textures.exists(key))this.timelineLayer.add(this.add.image(42,42,key).setDisplaySize(68,68));
+      this.timelineLayer.add(this.add.text(103,24,'NOW',{fontFamily:'monospace',fontSize:'9px',fontStyle:'bold',color:'#e8c978'}).setOrigin(.5));
+      this.timelineLayer.add(this.add.text(103,44,current.actorId,{fontFamily:'monospace',fontSize:'14px',fontStyle:'bold',color:'#fff'}).setOrigin(.5));
+      this.timelineLayer.add(this.add.text(103,61,current.team==='player'?'我方行動':'敵方行動',{fontFamily:'sans-serif',fontSize:'8px',fontStyle:'bold',color:current.team==='player'?'#9eefff':'#ff9aac'}).setOrigin(.5));
+    }
   }
 private drawCardIcon(x:number,y:number,card:BattleCard,color:number){
     const g=this.add.graphics().setDepth(23);g.lineStyle(2,color,1);
