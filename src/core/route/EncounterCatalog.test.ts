@@ -11,6 +11,13 @@ describe('story encounter catalog',()=>{
       expect(encounter?.nodeId).toBe(id);
     }
   });
+  it('keeps upper and lower branch encounters distinct',()=>{
+    expect(storyEncounters['battle-2-upper']?.enemies).not.toEqual(storyEncounters['battle-2-lower']?.enemies);
+    expect(storyEncounters['battle-3-upper']?.enemies).not.toEqual(storyEncounters['battle-3-lower']?.enemies);
+    expect(storyEncounters['battle-2-upper']?.enemies).toContain('mountain-hound');
+    expect(storyEncounters['battle-2-lower']?.enemies).toContain('wayfarer-umbrella');
+    expect(storyEncounters['battle-3-lower']?.enemies).toContain('lost-monk')
+  });
   it('keeps first battle as a two-enemy tutorial and later nodes varied',()=>{
     expect(storyEncounters['battle-1']?.enemies).toHaveLength(2);
     expect(new Set(storyEncounters['battle-2-upper']?.enemies).size).toBeGreaterThan(1);
