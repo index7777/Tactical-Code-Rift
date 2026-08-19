@@ -1,0 +1,69 @@
+name: Runtime Evidence Main Hotfix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Patch confirmed production regressions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, label):
+              p=Path(path)
+              s=p.read_text(encoding='utf-8')
+              if old not in s:
+                  raise SystemExit(f'{label} marker missing in {path}')
+              p.write_text(s.replace(old,new,1),encoding='utf-8')
+
+          replace('src/presentation/scenes/BootScene.ts',
+            "pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText(`${actorId} → ${targetId}${pursuitCount>1?`｜追擊 ${pursuitCount}`:''}${flank?'｜側襲':''}`);",
+            "pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText('');",
+            'battle log')
+
+          replace('src/presentation/scenes/BootScene.ts',
+            "    // 受擊 sprite 紅閃 110ms（永久 tint 有的怪物會保留原 tint，heroine 使用 poseLocked 也會被保留）。\n    if(hpLoss>0&&a.sprite){const prev=a.sprite.tintTopLeft??0xffffff;a.sprite.setTint(0xff5060);this.time.delayedCall(110,()=>{if(!a.alive&&!deferDeath)return;if(prev===0xffffff)a.sprite.clearTint();else a.sprite.setTint(prev)})}",
+            "    // Neutral contact flash: preserve authored sprite palette.\n    if(hpLoss>0&&a.sprite){const prevAlpha=a.sprite.alpha;a.sprite.clearTint();a.sprite.setAlpha(Math.min(prevAlpha,.62));this.tweens.add({targets:a.sprite,alpha:prevAlpha,duration:110,ease:'Quad.easeOut'})}",
+            'BootScene hit tint')
+
+          for path in ['src/presentation/battle/ActionPresenter.ts','src/presentation/battle/ClashPresenter.ts']:
+              replace(path,
+                "    if(!sprite)return;const prev=sprite.tintTopLeft??0xffffff;sprite.setTint(0xff5060);\n    this.scene.time.delayedCall(110,()=>{if(prev===0xffffff)sprite.clearTint();else sprite.setTint(prev)});",
+                "    if(!sprite)return;const prevAlpha=sprite.alpha;sprite.clearTint();sprite.setAlpha(Math.min(prevAlpha,.62));\n    this.scene.tweens.add({targets:sprite,alpha:prevAlpha,duration:110,ease:'Quad.easeOut'});",
+                f'{path} hit tint')
+
+          boot=Path('src/presentation/scenes/BootScene.ts').read_text(encoding='utf-8')
+          assert '`${actorId} → ${targetId}' not in boot
+          for path in ['src/presentation/scenes/BootScene.ts','src/presentation/battle/ActionPresenter.ts','src/presentation/battle/ClashPresenter.ts']:
+              assert '0xff5060' not in Path(path).read_text(encoding='utf-8')
+          PY
+      - name: Build and test patched source
+        run: |
+          npm ci
+          npm run build
+          npm test
+      - name: Commit exact source and self-delete
+        run: |
+          rm .github/workflows/runtime-evidence-main-hotfix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/presentation/scenes/BootScene.ts src/presentation/battle/ActionPresenter.ts src/presentation/battle/ClashPresenter.ts
+          git add -u .github/workflows/runtime-evidence-main-hotfix.yml
+          git commit -m "fix: remove production battle ids and red hit tint"
+          git push origin HEAD:main
