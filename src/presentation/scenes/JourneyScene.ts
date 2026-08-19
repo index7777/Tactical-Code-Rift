@@ -1,33 +1,83 @@
 import Phaser from'phaser';
-import{availableStoryNodes,createJourneyState,moveJourney,type JourneyState,type StoryNodeType}from'../../core/route/RouteGenerator';
+import{availableStoryNodes,createJourneyState,moveJourney,type JourneyState,type StoryNodeType,type StoryRouteNode}from'../../core/route/RouteGenerator';
+import{storyEncounter}from'../../core/route/EncounterCatalog';
 import{JOURNEY_MUSIC_FADE_IN_MS,JOURNEY_MUSIC_FADE_OUT_MS,journeyLoopFadeDelayMs}from'../../core/audio/JourneyMusicPolicy';
 
 const labels:Record<StoryNodeType,string>={departure:'出發',battle:'迎擊',event:'事件',exploration:'探索',companion:'伙伴',elite:'精英',boss:'王'};
-const colors:Record<StoryNodeType,number>={departure:0x477889,battle:0x963d50,event:0x74578c,exploration:0x367360,companion:0x3b7896,elite:0xb56a34,boss:0x8e263c};
+const colors:Record<StoryNodeType,number>={departure:0x477889,battle:0x496f7c,event:0x74578c,exploration:0x367360,companion:0x3b7896,elite:0xa87139,boss:0x8e263c};
+const enemyNames:Record<string,string>={
+  'wet-corpse':'濡骸','lantern-child':'提燈童','mountain-hound':'山犬','wayfarer-umbrella':'辻傘','noose-ghost':'縊鬼','lost-monk':'迷途僧','rain-warrior':'雨夜武者','rain-boss':'站守',
+};
 
 export class JourneyScene extends Phaser.Scene{
   private journeyMusic?:Phaser.Sound.BaseSound;private loopTimer?:Phaser.Time.TimerEvent;private leavingMap=false;
+  private previewTitle?:Phaser.GameObjects.Text;private previewBody?:Phaser.GameObjects.Text;private previewAccent?:Phaser.GameObjects.Rectangle;
   constructor(){super('JourneyScene')}
   preload(){this.load.audio('journey-world-01','assets/music/world-01/zone1-train-bgm.mp3');this.load.image('journey-bg-world01','assets/journey/world01/route-bg-rainfall-ridgeline.svg');this.load.image('journey-train-token','assets/journey/world01/train-token-topdown.svg')}
   create(){
     this.startJourneyMusic();
     const state=(this.registry.get('journey-state')as JourneyState|undefined)??createJourneyState();this.registry.set('journey-state',state);
-    this.add.image(640,360,'journey-bg-world01').setDisplaySize(1280,720).setAlpha(.72);this.add.rectangle(640,360,1280,720,0x07101a,.22);this.add.circle(1060,145,78,0xb8c5d6,.12).setStrokeStyle(2,0xdde8ef,.16);
-    for(let i=0;i<5;i++)this.add.ellipse(220+i*245,540+(i%2)*28,420,145,0x13252a,.78);
-    this.add.text(52,42,'妖異鐵道',{fontFamily:'serif',fontSize:'30px',fontStyle:'bold',color:'#f2dfc0'});
-    this.add.text(52,82,'沿因果軌道前往終點',{fontFamily:'sans-serif',fontSize:'14px',color:'#84abb4'});
+    this.add.image(640,360,'journey-bg-world01').setDisplaySize(1280,720).setAlpha(.9);
+    this.add.rectangle(640,360,1280,720,0x03080f,.34);
+    this.add.rectangle(640,55,1280,110,0x03080d,.82).setStrokeStyle(1,0x8aa5ad,.15);
+    this.add.rectangle(640,655,1280,130,0x02070b,.88).setStrokeStyle(1,0x7c969f,.2);
+    this.add.text(48,28,'第一區・雨暮山線',{fontFamily:'serif',fontSize:'28px',fontStyle:'bold',color:'#f3e2c4'});
+    this.add.text(50,66,'黃泉列車｜雨夜山道',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#8fb7bf'});
+    this.add.text(1232,35,'路線進行',{fontFamily:'sans-serif',fontSize:'11px',fontStyle:'bold',color:'#c8d9dc'}).setOrigin(1,0);
+    this.add.text(1232,58,`${Math.max(0,state.visitedIds.length-1)} / ${state.route.nodes.length-1}`,{fontFamily:'monospace',fontSize:'17px',fontStyle:'bold',color:'#e4c982'}).setOrigin(1,0);
+
     const available=new Set(availableStoryNodes(state).map(n=>n.id)),visited=new Set(state.visitedIds);
-    const pos=(column:number,lane:number)=>({x:125+column*205,y:245+lane*118});
-    for(const node of state.route.nodes)for(const nextId of node.nextIds){const next=state.route.nodes.find(n=>n.id===nextId)!;const a=pos(node.column,node.lane),b=pos(next.column,next.lane);this.add.line(0,0,a.x,a.y,b.x,b.y,visited.has(node.id)?0x547d83:0x273e47,visited.has(node.id)?.82:.45).setOrigin(0).setLineWidth(visited.has(node.id)?4:2)}
-    for(const node of state.route.nodes){const p=pos(node.column,node.lane),active=available.has(node.id),done=visited.has(node.id),ring=this.add.circle(p.x,p.y,active?34:28,colors[node.type],done?1:active?.92:.42).setStrokeStyle(active?4:2,active?0xffe4a0:0x78909a,active?1:.45);const label=this.add.text(p.x,p.y,labels[node.type],{fontFamily:'sans-serif',fontSize:active?'15px':'13px',fontStyle:'bold',color:active?'#fff5dc':'#b1bec2'}).setOrigin(.5);if(active){ring.setInteractive({useHandCursor:true}).on('pointerdown',()=>this.selectNode(state,node.id,p.x,p.y));label.setInteractive({useHandCursor:true}).on('pointerdown',()=>this.selectNode(state,node.id,p.x,p.y))}}
-    const current=state.route.nodes.find(n=>n.id===state.currentNodeId)!,cp=pos(current.column,current.lane);this.add.image(cp.x,cp.y+58,'journey-train-token').setDisplaySize(116,35).setData('train',true);
-    this.add.text(640,655,available.size?'選擇下一段因果軌道':'主線終點尚待 Boss 實作',{fontFamily:'sans-serif',fontSize:'16px',color:'#d9c8ae'}).setOrigin(.5)
+    const pos=(column:number,lane:number)=>({x:135+column*205,y:220+lane*122});
+    for(const node of state.route.nodes)for(const nextId of node.nextIds){
+      const next=state.route.nodes.find(n=>n.id===nextId)!;const a=pos(node.column,node.lane),b=pos(next.column,next.lane),travelled=visited.has(node.id)&&visited.has(next.id),open=available.has(next.id);
+      this.add.line(0,0,a.x,a.y,b.x,b.y,travelled?0x83b6bd:open?0x496f7c:0x172a32,travelled?0.34:open?0.22:.46).setOrigin(0).setLineWidth(travelled?9:open?7:5);
+      this.add.line(0,0,a.x,a.y,b.x,b.y,travelled?0xc6edf0:open?0x80c2cc:0x38505a,travelled?.9:open?.72:.34).setOrigin(0).setLineWidth(travelled?2.2:1.5);
+    }
+
+    this.buildPreviewPanel();
+    const current=state.route.nodes.find(n=>n.id===state.currentNodeId)!;
+    this.showNodePreview(current);
+    for(const node of state.route.nodes){
+      const p=pos(node.column,node.lane),active=available.has(node.id),done=visited.has(node.id),color=colors[node.type];
+      const c=this.add.container(p.x,p.y);
+      const halo=this.add.circle(0,0,active?31:25,color,active?.13:.06).setStrokeStyle(active?2:1,color,active?.66:.24);
+      const diamond=this.add.polygon(0,0,[0,-18,18,0,0,18,-18,0],done?0x173037:active?0x10232b:0x091218,1).setStrokeStyle(active?3:1.5,active?0xffdda0:done?0x78b4bc:0x54636a,active?1:.54);
+      const glyph=this.add.text(0,0,node.type==='boss'?'終':node.type==='elite'?'武':node.type==='departure'?'始':'斬',{fontFamily:'serif',fontSize:active?'12px':'10px',fontStyle:'bold',color:active?'#fff0cf':done?'#c6e6e9':'#82949b'}).setOrigin(.5);
+      const caption=this.add.text(0,29,labels[node.type],{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:active?'#fff0d3':done?'#bcd3d6':'#71848b'}).setOrigin(.5);
+      c.add([halo,diamond,glyph,caption]);
+      if(active){
+        this.tweens.add({targets:halo,scale:1.22,alpha:.18,duration:1200,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+        const hit=this.add.circle(0,0,34,0xffffff,.001).setInteractive({useHandCursor:true});c.add(hit);
+        hit.on('pointerover',()=>{c.setScale(1.08);this.showNodePreview(node)}).on('pointerout',()=>c.setScale(1)).on('pointerdown',()=>this.selectNode(state,node.id,p.x,p.y));
+      }else{
+        c.setAlpha(done?1:.72);c.setInteractive(new Phaser.Geom.Circle(0,0,28),Phaser.Geom.Circle.Contains).on('pointerover',()=>this.showNodePreview(node));
+      }
+    }
+    const cp=pos(current.column,current.lane);this.add.image(cp.x,cp.y+54,'journey-train-token').setDisplaySize(112,34).setData('train',true).setDepth(20);
+    this.add.text(48,624,'黃泉列車',{fontFamily:'serif',fontSize:'14px',fontStyle:'bold',color:'#e3d2b5'});
+    this.add.text(48,648,available.size?'選擇下一段軌道；滑過節點可查看敵群。':'本區路線已抵達終點。',{fontFamily:'sans-serif',fontSize:'11px',color:'#92acb3'});
+  }
+  private buildPreviewPanel(){
+    const x=860,y=600,w=370,h=92;this.add.rectangle(x+w/2,y+h/2,w,h,0x071018,.96).setStrokeStyle(1,0x8ea5ad,.3);
+    this.previewAccent=this.add.rectangle(x+4,y+h/2,4,h-12,0x77b9c4,.9);
+    this.previewTitle=this.add.text(x+18,y+12,'',{fontFamily:'serif',fontSize:'14px',fontStyle:'bold',color:'#f3e4c8'});
+    this.previewBody=this.add.text(x+18,y+38,'',{fontFamily:'sans-serif',fontSize:'10px',color:'#b9cdd1',lineSpacing:4,wordWrap:{width:w-36}});
+  }
+  private showNodePreview(node:StoryRouteNode){
+    const encounter=storyEncounter(node.id),accent=node.type==='boss'?0xc64c5a:node.type==='elite'?0xd09b54:0x77b9c4;
+    this.previewAccent?.setFillStyle(accent,.95);
+    this.previewTitle?.setText(encounter?.title??`${labels[node.type]}・${node.id}`);
+    if(encounter){
+      const enemies=encounter.enemies.map(id=>enemyNames[id]??id).join('・');
+      this.previewBody?.setText(`敵群　${enemies}\n場景　${encounter.battlefield==='rooftop'?'列車車頂':encounter.battlefield==='wayside'?'沿線停靠':'離車山道'}`)
+    }else this.previewBody?.setText(node.type==='departure'?'列車自人界駛入雨暮山線。':'此節點目前不包含戰鬥內容。');
   }
   private selectNode(state:JourneyState,nodeId:string,x:number,y:number){
     const next=moveJourney(state,nodeId);this.registry.set('journey-state',next);const node=next.route.nodes.find(n=>n.id===nodeId)!,train=this.children.list.find(o=>o.getData('train'))as Phaser.GameObjects.Image;
-    this.input.enabled=false;this.tweens.add({targets:train,x,y:y+58,duration:720,ease:'Sine.easeInOut',onComplete:()=>{
-      if(node.type==='battle'||node.type==='elite'||node.type==='boss'){const veil=this.add.rectangle(640,360,1280,720,node.type==='boss'?0x26080d:0x061016,0).setDepth(200),label=this.add.text(640,360,node.type==='boss'?'終點・雨暮驛':node.type==='elite'?'精英遭遇':'戰鬥開始',{fontFamily:'serif',fontSize:node.type==='boss'?'34px':'26px',fontStyle:'bold',color:'#fff1d6'}).setOrigin(.5).setDepth(201).setAlpha(0);this.tweens.add({targets:veil,alpha:.92,duration:360});this.tweens.add({targets:label,alpha:1,duration:260});this.time.delayedCall(420,()=>this.leaveJourneyMusic(()=>this.scene.start('BootScene',{journeyNodeId:node.id,battlefield:node.type==='elite'?'wayside':'rooftop'})))}
-      else{this.input.enabled=true;this.add.text(640,610,`${labels[node.type]}節點已記錄｜內容於角色與 Boss 完成後補入`,{fontFamily:'sans-serif',fontSize:'16px',color:'#ccecf0',backgroundColor:'#102a32dd',padding:{x:16,y:8}}).setOrigin(.5);this.time.delayedCall(850,()=>this.scene.restart())}
+    this.input.enabled=false;this.tweens.add({targets:train,x,y:y+54,duration:720,ease:'Sine.easeInOut',onComplete:()=>{
+      const encounter=storyEncounter(node.id);
+      if(encounter){const veil=this.add.rectangle(640,360,1280,720,node.type==='boss'?0x26080d:0x061016,0).setDepth(200),label=this.add.text(640,348,encounter.title,{fontFamily:'serif',fontSize:node.type==='boss'?'34px':'26px',fontStyle:'bold',color:'#fff1d6'}).setOrigin(.5).setDepth(201).setAlpha(0),sub=this.add.text(640,390,encounter.enemies.map(id=>enemyNames[id]??id).join('・'),{fontFamily:'sans-serif',fontSize:'12px',color:'#a9c9cf'}).setOrigin(.5).setDepth(201).setAlpha(0);this.tweens.add({targets:veil,alpha:.92,duration:360});this.tweens.add({targets:[label,sub],alpha:1,duration:260});this.time.delayedCall(420,()=>this.leaveJourneyMusic(()=>this.scene.start('BootScene',{journeyNodeId:node.id,battlefield:encounter.battlefield}))) }
+      else{this.input.enabled=true;this.time.delayedCall(300,()=>this.scene.restart())}
     }})
   }
   private startJourneyMusic(){
