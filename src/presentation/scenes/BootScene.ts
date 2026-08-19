@@ -629,8 +629,8 @@ private damage(a:Actor,n:number,balanceDamage=1,deferDeath=false,deathStyle:Deat
     a.hp=result.hp;a.shield=result.shield;a.tempShield=result.tempShield;a.balance=result.balance;a.alive=deferDeath&&died?true:result.alive;a.broken=result.broken;
     if(died&&!deferDeath){a.hit.disableInteractive();a.exposed=false;a.hud.setAlpha(.35);this.deathPresenter.play(a,[...this.enemies.values()].includes(a),deathStyle);const actorId=[...this.players.entries(),...this.enemies.entries()].find(([,actor])=>actor===a)?.[0],node=this.timeline.find(item=>item.actorId===actorId);if(actorId&&(this.previewTargetId===actorId||this.intentFocus===actorId)){this.previewTargetId=undefined;this.intentFocus=undefined}if(node?.team==='player')this.skipBonusNext.delete(node.actorId)}
     this.refreshActor(a);
-    // 受擊 sprite 紅閃 110ms（永久 tint 有的怪物會保留原 tint，heroine 使用 poseLocked 也會被保留）。
-    if(hpLoss>0&&a.sprite){const prev=a.sprite.tintTopLeft??0xffffff;a.sprite.setTint(0xff5060);this.time.delayedCall(110,()=>{if(!a.alive&&!deferDeath)return;if(prev===0xffffff)a.sprite.clearTint();else a.sprite.setTint(prev)})}
+    // Neutral contact flash: preserve authored sprite palette.
+    if(hpLoss>0&&a.sprite){const prevAlpha=a.sprite.alpha;a.sprite.clearTint();a.sprite.setAlpha(Math.min(prevAlpha,.62));this.tweens.add({targets:a.sprite,alpha:prevAlpha,duration:110,ease:'Quad.easeOut'})}
     // 傷害數字：從 1.6× 彈到 1.0×（Back.easeOut），字體加黑 stroke，heavy／崩勢字更大；上升距離 44px。
     const feedback=died&&!deferDeath?'':justShattered?'破符！':hpLoss>0?`−${hpLoss}`:balanceDamage>0&&n===0?`架勢 −${balanceDamage}`:blocked>0?`護符 −${blocked}`:'',color=justShattered?'#9ff5ff':balanceDamage>0&&n===0?'#ffcf75':'#ff8294';
     if(feedback){
@@ -717,7 +717,7 @@ private async resolve(){
         else if(beat.command.card.shield)this.shield(target,beat.command.card.shield)
       }else{
         const actor=this.players.get(actorId)!,target=this.enemies.get(targetId)!;if(!actor.alive||!target.alive)continue;if(actor.broken){await actions.cancel(actorId);continue}
-        pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText(`${actorId} → ${targetId}${pursuitCount>1?`｜追擊 ${pursuitCount}`:''}${flank?'｜側襲':''}`);
+        pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText('');
         let broke=false;await actions.attack(actorId,targetId,beat.command.card,false,flank?'flank':'normal',!beat.command.card.assist,()=>{const extraBalance=(pursuitCount>1?1:0)+(flank?2:0),style:DeathStyle=beat.command.card.definitionId==='heavy'?'heavy':'normal',result=this.hitMonster(actor,target,beat.command.card,extraBalance,Boolean(beat.command.card.assist),style);broke=result.justBroken;return result.died&&!beat.command.card.assist});
         if(flank){target.exposed=false;this.refreshActor(target)}if(broke&&target.alive)await actions.cancel(targetId,true);if(beat.command.card.assist)await this.relayAssist(actorId,targetId,actions)
       }

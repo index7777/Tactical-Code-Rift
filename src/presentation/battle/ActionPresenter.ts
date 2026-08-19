@@ -43,8 +43,8 @@ export class ActionPresenter {
 
   // 受擊 sprite 紅閃：破符或大於 0 傷害才觸發，避免每次 balance damage 都閃。
   private hitFlash(sprite:Phaser.GameObjects.Sprite|undefined){
-    if(!sprite)return;const prev=sprite.tintTopLeft??0xffffff;sprite.setTint(0xff5060);
-    this.scene.time.delayedCall(110,()=>{if(prev===0xffffff)sprite.clearTint();else sprite.setTint(prev)});
+    if(!sprite)return;const prevAlpha=sprite.alpha;sprite.clearTint();sprite.setAlpha(Math.min(prevAlpha,.62));
+    this.scene.tweens.add({targets:sprite,alpha:prevAlpha,duration:110,ease:'Quad.easeOut'});
   }
 
   private techniquePalette(actorId:string){
