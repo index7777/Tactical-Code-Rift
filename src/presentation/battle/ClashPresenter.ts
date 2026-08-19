@@ -88,8 +88,8 @@ export class ClashPresenter {
   }
 
   private hitFlash(sprite?:Phaser.GameObjects.Sprite){
-    if(!sprite)return;const prev=sprite.tintTopLeft??0xffffff;sprite.setTint(0xff5060);
-    this.scene.time.delayedCall(110,()=>{if(prev===0xffffff)sprite.clearTint();else sprite.setTint(prev)});
+    if(!sprite)return;const prevAlpha=sprite.alpha;sprite.clearTint();sprite.setAlpha(Math.min(prevAlpha,.62));
+    this.scene.tweens.add({targets:sprite,alpha:prevAlpha,duration:110,ease:'Quad.easeOut'});
   }
 
   private spawnFxImage(key:string,x:number,y:number,depth:number,opts?:{scale?:number;rotation?:number;tint?:number;alpha?:number;flipX?:boolean;blendMode?:Phaser.BlendModes|string}){
