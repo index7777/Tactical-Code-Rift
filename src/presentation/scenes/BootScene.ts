@@ -152,10 +152,10 @@ private addActor(f:Fighter){
       sprite=this.add.sprite(0,-8,heroine?playerTexture:enemyTexture).setFlipX(heroine&&!poseLocked).setData('heroine',heroine).setData('poseLocked',poseLocked).setData('poseAssetPrefix',chikage?'chikage':oboro?'oboro':undefined).setData('heroBaseY',-8).setData('darkSilhouette',oboro);
     if(heroine){sprite.setData('heroHeight',heroineDisplayHeight(this.pc));playHeroinePose(sprite,'idle')}
     else if(hasMasterTexture){
-      // 母版原圖 ~2000px，需按顯示高度縮放；比玩家 heroine 略小 4px 以避免遮住上方時序條與行動資訊。
-      // rain-warrior（精英）例外，比一般怪高 10px，用剪影比例表達精英強度。
-      const eliteBoost=f.archetype==='rain-warrior'?10:0;
-      const targetHeight=heroineDisplayHeight(this.ec)-4+eliteBoost;
+      // 母版原圖 ~2000px，需按顯示高度縮放；一律限制在最高 100px 以免頭部逼近上方時序條。
+      // rain-warrior（精英）例外，比一般怪高 14px，用剪影比例表達精英強度但仍不超過 heroineDisplayHeight(pc<=2)。
+      const eliteBoost=f.archetype==='rain-warrior'?14:0;
+      const targetHeight=Math.min(100,heroineDisplayHeight(Math.max(3,this.ec)))+eliteBoost;
       const src=sprite.texture.getSourceImage()as{width:number;height:number};
       if(src.width>0&&src.height>0)sprite.setDisplaySize(Math.round(targetHeight*src.width/src.height),targetHeight);
     }
@@ -384,6 +384,10 @@ private renderTimeline(){
     this.timelineLayer.removeAll(true);
     const planned=applyPlannedInitiative(this.timeline,this.commands);
     const start=152,end=1150,y=38,gap=planned.length>1?(end-start)/(planned.length-1):0;
+    // 時序條背後鋪一條半透明黑帶（跨滿寬），確保角色頭部或武器伸到上方時，時序資訊仍清晰可讀。
+    // 這是行動資訊層的專屬 UI 容器，不隨鏡頭移動、不會被 combatLayer 遮蔽。
+    this.timelineLayer.add(this.add.rectangle(640,32,1280,72,0x040810,.72).setStrokeStyle(1,0x1a2530,.9));
+    this.timelineLayer.add(this.add.rectangle(640,66,1280,2,0x365969,.75));
     this.timelineLayer.add(this.add.rectangle((start+end)/2,y,end-start,3,0x365969,.9));
     planned.forEach((n,i)=>{
       const x=planned.length===1?650:start+i*gap,color=n.team==='player'?0x2b9ab2:0xa53c52,radius=i===0?19:14;
