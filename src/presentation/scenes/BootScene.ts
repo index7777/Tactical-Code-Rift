@@ -15,7 +15,7 @@ import{isCardSelected}from'../../core/cards/CardSelection';
 import{brokenClashAction}from'../../core/battle/BrokenActionPolicy';
 import{heroineDisplayHeight,playHeroinePose}from'../battle/HeroinePose';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;maxHp:number;shield:number;tempShield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean;archetype?:EnemyArchetype;traitReady:boolean}
-export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private discardMode=false;private discardUsedThisRound=false;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private undoButton!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;
+export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private discardMode=false;private discardUsedThisRound=false;private intentFocus?:string;private previewTargetId?:string;private toolsVisible=false;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private undoButton!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;private cardTooltip?:Phaser.GameObjects.Container;
 constructor(){super('BootScene')}
 private deathPresenter!:DeathPresenter;private outcomePresenter!:OutcomePresenter;
 private resultFxPresenter!:CombatResultFxPresenter;
@@ -40,7 +40,7 @@ private currentPlanner(){return applyPlannedInitiative(this.timeline,this.comman
 private toolKey?:Phaser.Input.Keyboard.Key;private toolsInitialized=false;
 update(){if(!this.toolKey)this.toolKey=this.input.keyboard?.addKey('T');if(!this.toolsInitialized){this.toolsInitialized=true;this.setDevTools(false)}if(this.toolKey&&Phaser.Input.Keyboard.JustDown(this.toolKey))this.setDevTools(!this.toolsVisible)}
 private setDevTools(visible:boolean){this.toolsVisible=visible;const labels=new Set(['重新開始','P−','P+','E−','E+']);for(const item of this.hudLayer?.list??[]){if(item instanceof Phaser.GameObjects.Text){if(item.text==='戰術編碼：裂痕')item.setText('妖異鐵道｜殺生線試作');if(item.text==='FOCUSED CLASH // SHARED DECK')item.setText('讀取殺意・截斷因果・繼刀崩勢');if(labels.has(item.text))item.setVisible(visible)}}this.phase?.setText(visible?'開發工具｜T 收起':this.phase.text.replace('開發工具｜T 收起',''))}
-preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('bg-world01-rooftop-candidate','assets/battle/world01-rooftop-composite-candidate-v3.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('boss-battle-music','assets/music/world-01/zone1-boss-bgm.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.image('fx-p9-arc-slash-1','assets/battle/fx/p9-arc-slash-1.svg');this.load.image('fx-p9-arc-slash-2','assets/battle/fx/p9-arc-slash-2.svg');this.load.image('fx-p9-arc-slash-3','assets/battle/fx/p9-arc-slash-3.svg');this.load.image('fx-p9-line-slash-1','assets/battle/fx/p9-line-slash-1.svg');this.load.image('fx-p9-line-slash-2','assets/battle/fx/p9-line-slash-2.svg');this.load.image('fx-p9-line-slash-3','assets/battle/fx/p9-line-slash-3.svg');this.load.image('fx-p9-impact-bloom','assets/battle/fx/p9-impact-bloom.svg');this.load.image('fx-p9-clash-cross','assets/battle/fx/p9-clash-cross.svg');this.load.image('fx-p9a-arc-slash-1','assets/battle/fx/p9a-arc-slash-1.png');this.load.image('fx-p9a-arc-slash-2','assets/battle/fx/p9a-arc-slash-2.png');this.load.image('fx-p9a-line-slash-1','assets/battle/fx/p9a-line-slash-1.png');this.load.image('fx-p9a-line-slash-2','assets/battle/fx/p9a-line-slash-2.png');this.load.image('heroine-idle-a','assets/battle/generated/characters/heroine/heroine-sd-idle-runtime-a.png');this.load.image('heroine-idle-b','assets/battle/generated/characters/heroine/heroine-sd-idle-runtime-b.png');this.load.image('heroine-ready','assets/battle/heroine-sd-ready-v1.png');this.load.image('heroine-attack-a','assets/battle/generated/characters/heroine/heroine-sd-attack-runtime-a.png');this.load.image('heroine-attack-b','assets/battle/generated/characters/heroine/heroine-sd-attack-runtime-b.png');this.load.image('heroine-down','assets/battle/heroine-sd-down-v2.png');this.load.image('chikage-idle-a','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-a.png');this.load.image('chikage-idle-b','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-b.png');this.load.image('oboro-idle-a','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-a.png');this.load.image('oboro-idle-b','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-b.png');for(const name of ['heroine','chikage','oboro','wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior']){this.load.image(`portrait-${name}-current`,`assets/battle/portraits/${name}-current.png`);this.load.image(`portrait-${name}-timeline`,`assets/battle/portraits/${name}-timeline.png`)};for(const name of ['chikage','oboro']){this.load.image(`${name}-ready`,`assets/battle/generated/characters/${name}/${name}-sd-ready-runtime-v1.png`);this.load.image(`${name}-attack-a`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v1.png`);this.load.image(`${name}-attack-b`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v2.png`);this.load.image(`${name}-hit-a`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v1.png`);this.load.image(`${name}-hit-b`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v2.png`);this.load.image(`${name}-down`,`assets/battle/generated/characters/${name}/${name}-sd-down-runtime-v2.png`)};// 第一區怪物母版：已交付母版的走 PNG runtime；rain-warrior/rain-boss 尚未生圖，
+preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('bg-world01-rooftop-candidate','assets/battle/world01-rooftop-composite-candidate-v3.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('boss-battle-music','assets/music/world-01/zone1-boss-bgm.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.image('fx-p9-arc-slash-1','assets/battle/fx/p9-arc-slash-1.svg');this.load.image('fx-p9-arc-slash-2','assets/battle/fx/p9-arc-slash-2.svg');this.load.image('fx-p9-arc-slash-3','assets/battle/fx/p9-arc-slash-3.svg');this.load.image('fx-p9-line-slash-1','assets/battle/fx/p9-line-slash-1.svg');this.load.image('fx-p9-line-slash-2','assets/battle/fx/p9-line-slash-2.svg');this.load.image('fx-p9-line-slash-3','assets/battle/fx/p9-line-slash-3.svg');this.load.image('fx-p9-impact-bloom','assets/battle/fx/p9-impact-bloom.svg');this.load.image('fx-p9-clash-cross','assets/battle/fx/p9-clash-cross.svg');this.load.image('fx-p9a-arc-slash-1','assets/battle/fx/p9a-arc-slash-1.png');this.load.image('fx-p9a-arc-slash-2','assets/battle/fx/p9a-arc-slash-2.png');this.load.image('fx-p9a-line-slash-1','assets/battle/fx/p9a-line-slash-1.png');this.load.image('fx-p9a-line-slash-2','assets/battle/fx/p9a-line-slash-2.png');this.load.image('fx-p10-enemy-arc-slash-1','assets/battle/fx/p10-enemy-arc-slash-1.svg');this.load.image('fx-p10-enemy-arc-slash-2','assets/battle/fx/p10-enemy-arc-slash-2.svg');this.load.image('fx-p10-enemy-line-slash-1','assets/battle/fx/p10-enemy-line-slash-1.svg');this.load.image('fx-p10-enemy-line-slash-2','assets/battle/fx/p10-enemy-line-slash-2.svg');for(const id of ['quick','heavy','break','guard','cover','relay','cycle','delay'])this.load.image(`card-art-${id}`,`assets/battle/cards/art/${id}.svg`);for(const id of ['power','tempo','damage','balance','shield','intercept','relay','restore'])this.load.image(`card-icon-${id}`,`assets/battle/cards/icons/${id}.svg`);this.load.image('heroine-idle-a','assets/battle/generated/characters/heroine/heroine-sd-idle-runtime-a.png');this.load.image('heroine-idle-b','assets/battle/generated/characters/heroine/heroine-sd-idle-runtime-b.png');this.load.image('heroine-ready','assets/battle/heroine-sd-ready-v1.png');this.load.image('heroine-attack-a','assets/battle/generated/characters/heroine/heroine-sd-attack-runtime-a.png');this.load.image('heroine-attack-b','assets/battle/generated/characters/heroine/heroine-sd-attack-runtime-b.png');this.load.image('heroine-down','assets/battle/heroine-sd-down-v2.png');this.load.image('chikage-idle-a','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-a.png');this.load.image('chikage-idle-b','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-b.png');this.load.image('oboro-idle-a','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-a.png');this.load.image('oboro-idle-b','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-b.png');for(const name of ['heroine','chikage','oboro','wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior']){this.load.image(`portrait-${name}-current`,`assets/battle/portraits/${name}-current.png`);this.load.image(`portrait-${name}-timeline`,`assets/battle/portraits/${name}-timeline.png`)};for(const name of ['chikage','oboro']){this.load.image(`${name}-ready`,`assets/battle/generated/characters/${name}/${name}-sd-ready-runtime-v1.png`);this.load.image(`${name}-attack-a`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v1.png`);this.load.image(`${name}-attack-b`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v2.png`);this.load.image(`${name}-hit-a`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v1.png`);this.load.image(`${name}-hit-b`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v2.png`);this.load.image(`${name}-down`,`assets/battle/generated/characters/${name}/${name}-sd-down-runtime-v2.png`)};// 第一區怪物母版：已交付母版的走 PNG runtime；rain-warrior/rain-boss 尚未生圖，
 // 暫時 fallback 到 SVG 剪影 placeholder（不 tint、不美觀，等使用者核准後補生）。
 for(const name of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior'])this.load.image(`monster-${name}`,`assets/battle/generated/monsters/rainfall-ridgeline/${name}-master-runtime-v1.png`);
 // rain-boss（BOSS 雨切終式）尚未生圖，先保留 SVG placeholder；核准後補為 PNG runtime。
@@ -186,6 +186,9 @@ private previewTarget(id:string){
       const validTarget=cover?(this.enemies.has(id)||this.players.has(id)):hostile?this.enemies.has(id):this.players.has(id);
       const validGuard=this.selected.definitionId!=='guard'||id===this.currentPlanner()?.actorId;
       if(!validTarget||!validGuard){
+        if(this.selected.definitionId==='guard'&&id!==this.currentPlanner()?.actorId)this.status.setText('堅守只能以自身為目標。');
+        else if(cover)this.status.setText('掩護請點友方，或直接點帶有殺生線的敵人。');
+        else this.status.setText(hostile?'此卡必須指定敵方。':'此卡必須指定友方。');
         this.intentFocus=undefined;this.previewTargetId=undefined;this.renderEnemyIntents();return
       }
     }
@@ -195,12 +198,10 @@ private previewTarget(id:string){
     const planner=this.currentPlanner();if(!planner)return;
     const initiative=planner.speed+this.selected.tempo;
     if(this.selected.definitionId==='cover'){
-      const reserved=new Set([...this.commands.values()].filter((c):c is PlayerCommand=>Boolean(c?.targetNodeId)).map(c=>c.targetNodeId!));
-      const enemy=this.enemies.has(id)
-        ?this.timeline.find(n=>n.team==='enemy'&&n.actorId===id&&!reserved.has(n.id))
-        :this.timeline.find(n=>n.team==='enemy'&&n.enemySkill?.targetId===id&&!reserved.has(n.id));
-      if(!enemy)return;
-      const targetId=enemy.enemySkill!.targetId,enemyInitiative=enemy.initiative??enemy.speed+(enemy.enemySkill?.tempo??0),canClash=planner.actorId!==targetId&&initiative>enemyInitiative;
+      const result=selectCoverIntent({timeline:this.timeline,commands:this.commands,actorId:planner.actorId,actorSpeed:planner.speed,cardTempo:this.selected.tempo,selectedActorId:id,selectedEnemyId:this.enemies.has(id)?id:undefined});
+      if(!result.ok){this.status.setText(this.coverStatusMessage(result.reason));return}
+      this.status.setText(`掩護 ${result.protectedActorId} ｜ 截斷 ${result.enemy.actorId} 的殺生線`);
+      const enemy=result.enemy,targetId=enemy.enemySkill!.targetId,enemyInitiative=enemy.initiative??enemy.speed+(enemy.enemySkill?.tempo??0),canClash=planner.actorId!==targetId&&initiative>enemyInitiative;
       this.drawCoverPreview(planner.actorId,targetId,canClash,false,initiative,enemyInitiative)
     }else if(this.players.has(id)&&this.selected.intent==='defense'){
       this.drawCoverPreview(planner.actorId,id,true,true,initiative,initiative)
@@ -438,51 +439,77 @@ private renderTimeline(){
       this.timelineLayer.add(this.add.text(103,61,current.team==='player'?'我方行動':'敵方行動',{fontFamily:'sans-serif',fontSize:'8px',fontStyle:'bold',color:current.team==='player'?'#9eefff':'#ff9aac'}).setOrigin(.5));
     }
   }
-private drawCardIcon(x:number,y:number,card:BattleCard,color:number){
-    const g=this.add.graphics().setDepth(23);g.lineStyle(2,color,1);
-    if(card.definitionId==='quick'){g.lineBetween(x-9,y+7,x+8,y-8);g.lineBetween(x-3,y+8,x+11,y-4)}
-    else if(card.definitionId==='heavy'){g.lineStyle(4,color,1).lineBetween(x-10,y+8,x+9,y-9);g.lineStyle(2,color,1).strokeCircle(x+7,y-7,4)}
-    else if(card.definitionId==='break'){g.strokeCircle(x,y,8);g.lineBetween(x-10,y-10,x+10,y+10);g.lineBetween(x+2,y-10,x-3,y+9)}
-    else if(card.definitionId==='guard'){g.strokeTriangle(x,y-11,x-10,y-2,x,y+10);g.lineBetween(x,y-11,x+10,y-2);g.lineBetween(x+10,y-2,x,y+10)}
-    else if(card.definitionId==='cover'){g.lineBetween(x-10,y+8,x+9,y-9);g.strokeCircle(x-5,y+3,7)}
-    else if(card.definitionId==='relay'){g.lineBetween(x-10,y+6,x-1,y-6);g.lineBetween(x,y+6,x+9,y-6);g.lineBetween(x+5,y-2,x+10,y-6);g.lineBetween(x+5,y-10,x+10,y-6)}
-    else if(card.definitionId==='cycle'){g.strokeCircle(x,y,8);g.lineBetween(x+4,y-9,x+9,y-5);g.lineBetween(x+9,y-5,x+5,y-1)}
-    else{g.lineBetween(x-10,y,x+10,y);g.lineBetween(x+4,y-5,x+10,y);g.lineBetween(x+4,y+5,x+10,y)}
-    this.handLayer.add(g)
-}
+private cardPalette(card:BattleCard){
+    if(card.definitionId==='quick')return{frame:0x6fdaf0,base:0x102b36,accent:0x9ceeff,label:'#9ceeff'};
+    if(card.definitionId==='heavy')return{frame:0xd9a14f,base:0x34261b,accent:0xffd27d,label:'#ffd27d'};
+    if(card.definitionId==='break')return{frame:0xb95842,base:0x382020,accent:0xffae70,label:'#ffae70'};
+    if(card.definitionId==='guard'||card.definitionId==='cover')return{frame:0x4faab9,base:0x15333b,accent:0x8defff,label:'#8defff'};
+    if(card.definitionId==='cycle')return{frame:0x579169,base:0x1e3427,accent:0xa8e6bd,label:'#a8e6bd'};
+    if(card.definitionId==='relay')return{frame:0xa88e4d,base:0x352f1e,accent:0xffe38c,label:'#ffe38c'};
+    return{frame:0x735f9f,base:0x2d2640,accent:0xc4a5ff,label:'#c4a5ff'}
+  }
+private cardInvalidReason(card:BattleCard){
+    const planner=this.currentPlanner();if(!planner)return'沒有可規劃的角色';
+    if(card.definitionId==='cover'){
+      const enemies=this.timeline.filter(n=>n.team==='enemy'&&Boolean(n.enemySkill));
+      if(!enemies.length)return'沒有敵方殺生線';
+      const reasons:string[]=[];
+      for(const enemy of enemies){const r=selectCoverIntent({timeline:this.timeline,commands:this.commands,actorId:planner.actorId,actorSpeed:planner.speed,cardTempo:card.tempo,selectedActorId:enemy.enemySkill!.targetId,selectedEnemyId:enemy.actorId});if(r.ok)return undefined;reasons.push(r.reason)}
+      if(reasons.includes('slow'))return'速度不足，無法截刀';if(reasons.includes('reserved'))return'可截斷的殺生線已被預約';if(reasons.every(r=>r==='self'))return'目前敵人只鎖定自己';return'沒有可掩護的殺生線'
+    }
+    if(card.definitionId==='guard'||card.definitionId==='cycle')return undefined;
+    if(card.intent==='attack'||card.intent==='disruption')return[...this.enemies.values()].some(a=>a.alive)?undefined:'沒有可指定的敵人';
+    return undefined
+  }
+private cardRows(card:BattleCard){
+    const rows:{icon:string;text:string}[]=[];
+    if(card.damage)rows.push({icon:'damage',text:`傷害 ${card.damage}`});
+    if(card.balanceDamage)rows.push({icon:'balance',text:`架勢 ${card.balanceDamage}`});
+    if(card.shield)rows.push({icon:'shield',text:`護符 ${card.shield}`});
+    if(card.definitionId==='cover')rows.push({icon:'intercept',text:'截斷殺生線'});
+    if(card.assist)rows.push({icon:'relay',text:'命中後補刀'});
+    if(card.restoreBalance)rows.push({icon:'restore',text:`架勢 +${card.restoreBalance}`});
+    if(card.clearExposed)rows.push({icon:'restore',text:'清除破綻'});
+    if(card.delayTarget)rows.push({icon:'tempo',text:`敵序 −${card.delayTarget}`});
+    return rows.slice(0,3)
+  }
+private clearCardTooltip(){if(this.cardTooltip){this.cardTooltip.destroy(true);this.cardTooltip=undefined}}
+private showCardTooltip(card:BattleCard,x:number,invalid?:string){
+    this.clearCardTooltip();const p=this.cardPalette(card),tip=this.add.container(Phaser.Math.Clamp(x,170,1110),520).setDepth(95);this.handLayer.add(tip);
+    const rows=[...this.cardRows(card),{icon:'tempo',text:`時序 ${card.tempo>0?'+':''}${card.tempo}`}];
+    const h=82+rows.length*18+(invalid?24:0);const bg=this.add.graphics();bg.fillStyle(0x071018,.98).fillRoundedRect(-104,-h,208,h,8);bg.lineStyle(1,p.frame,.88).strokeRoundedRect(-104,-h,208,h,8);tip.add(bg);
+    tip.add(this.add.text(-90,-h+14,card.name,{fontFamily:'sans-serif',fontSize:'16px',fontStyle:'bold',color:'#ffffff'}));tip.add(this.add.text(88,-h+15,card.tags.slice(0,2).join('・'),{fontFamily:'sans-serif',fontSize:'9px',color:p.label}).setOrigin(1,0));
+    rows.forEach((r,i)=>{const yy=-h+42+i*18;if(this.textures.exists(`card-icon-${r.icon}`))tip.add(this.add.image(-86,yy,`card-icon-${r.icon}`).setDisplaySize(13,13).setTint(p.accent));tip.add(this.add.text(-72,yy,r.text,{fontFamily:'sans-serif',fontSize:'11px',color:'#dce8ec'}).setOrigin(0,.5))});
+    if(invalid)tip.add(this.add.text(0,-10,`! ${invalid}`,{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:'#ff9aab',backgroundColor:'#4b1724',padding:{x:7,y:4}}).setOrigin(.5,1));
+  }
+private drawCommandSlots(){
+    const nodes=this.planning;const start=420,gap=72;
+    nodes.forEach((node,i)=>{const cmd=this.commands.get(node.id),x=start+i*gap,y=563;const c=this.add.container(x,y).setDepth(28);this.handLayer.add(c);const bg=this.add.graphics();bg.fillStyle(cmd?0x102630:0x0b141b,.96).fillRoundedRect(-31,-12,62,24,5);bg.lineStyle(1,cmd?0x7adce8:0x455761,cmd?1:.55).strokeRoundedRect(-31,-12,62,24,5);c.add(bg);c.add(this.add.text(-25,0,node.actorId,{fontFamily:'monospace',fontSize:'9px',fontStyle:'bold',color:'#a9dce6'}).setOrigin(0,.5));if(cmd){const art=`card-art-${cmd.card.definitionId}`;if(this.textures.exists(art))c.add(this.add.image(3,0,art).setDisplaySize(18,16));c.add(this.add.text(25,0,cmd.card.name,{fontFamily:'sans-serif',fontSize:'8px',fontStyle:'bold',color:'#ffffff'}).setOrigin(1,.5))}else c.add(this.add.text(27,0,'—',{fontFamily:'monospace',fontSize:'10px',color:'#65757c'}).setOrigin(1,.5))})
+  }
 private renderHand(){
-    this.handLayer.removeAll(true);
+    this.clearCardTooltip();this.handLayer.removeAll(true);
     const assigned=new Set([...this.commands.values()].filter((x):x is PlayerCommand=>Boolean(x)).map(x=>x.card.instanceId));
     const cards=this.deck.hand.filter(c=>!assigned.has(c.instanceId)).slice(0,this.visibleHandCount);
-    // One continuous command dock makes the hand read as a single system rather than floating debug widgets.
-    this.handLayer.add(this.add.rectangle(640,650,1280,140,0x050a10,.94).setStrokeStyle(1,0x617780,.26));
-    this.handLayer.add(this.add.rectangle(640,581,1280,2,0x8ba0a5,.18));
-    const gap=112,start=690-(cards.length-1)*gap/2;
-    cards.forEach((c,i)=>{
-      const selected=isCardSelected(this.selected,c),x=start+i*gap,baseY=selected?637:648,color=c.intent==='attack'?0x4d2834:c.intent==='defense'?0x21444f:c.intent==='support'?0x304a40:0x40334d,accent=c.intent==='attack'?0xe9697c:c.intent==='defense'?0x70cbd8:c.intent==='support'?0x83c79d:0xb294d0;
-      const box=this.add.rectangle(x,baseY,104,118,color,selected?1:.90).setStrokeStyle(selected?2:1,selected?0xe6c979:0x71858c,selected?.96:.38).setInteractive({useHandCursor:true});
-      box.on('pointerdown',()=>{if(this.discardMode){this.discardHandCard(c,x);return}this.selected=c;this.renderHand();this.status.setText('')});
-      const power=c.clashPower>0?String(c.clashPower):'—',effect=c.definitionId==='quick'?'傷10':c.definitionId==='heavy'?'傷16':c.definitionId==='break'?'勢3':c.definitionId==='guard'?'護12':c.definitionId==='cover'?'截刀':c.definitionId==='relay'?'補刀':c.definitionId==='cycle'?'勢+3':'序−2';
-      this.handLayer.add([
-        box,
-        this.add.rectangle(x-47,baseY,4,106,accent,1),
-        this.add.text(x+8,baseY-39,c.name,{fixedWidth:68,align:'center',fontFamily:'sans-serif',fontSize:'15px',fontStyle:'bold',color:'#fff'}).setOrigin(.5),
-        this.add.polygon(x-30,baseY+5,[0,-14,12,-7,12,7,0,14,-12,7,-12,-7],0x101820,.98).setStrokeStyle(2,0xffdc70),
-        this.add.text(x-30,baseY+5,power,{fontFamily:'monospace',fontSize:'18px',fontStyle:'bold',color:'#fff0a8'}).setOrigin(.5),
-        this.add.text(x+24,baseY+2,c.tempo>0?`速+${c.tempo}`:c.tempo<0?`速${c.tempo}`:'速±0',{fontFamily:'monospace',fontSize:'10px',fontStyle:'bold',color:c.tempo>0?'#9af5ff':c.tempo<0?'#ffb3a7':'#cad2d5'}).setOrigin(.5),
-        this.add.text(x+15,baseY+39,effect,{fixedWidth:64,align:'center',fontFamily:'sans-serif',fontSize:'11px',fontStyle:'bold',color:'#e7eef0'}).setOrigin(.5)
-      ]);this.drawCardIcon(x-25,baseY-38,c,accent)
+    const dock=this.add.graphics();dock.fillStyle(0x04090e,.96).fillRect(0,578,1280,142);dock.fillStyle(0x0a131b,.9).fillRect(0,578,1280,3);dock.lineStyle(1,0x617780,.3).lineBetween(0,578,1280,578);this.handLayer.add(dock);
+    this.drawCommandSlots();
+    const gap=126,start=700-(cards.length-1)*gap/2;
+    cards.forEach((card,i)=>{
+      const selected=isCardSelected(this.selected,card),invalid=this.cardInvalidReason(card),x=start+i*gap,baseY=selected?632:644,p=this.cardPalette(card);const group=this.add.container(x,baseY).setDepth(selected?31:25);this.handLayer.add(group);
+      const frame=this.add.graphics();frame.fillStyle(p.base,invalid?.58:.98).fillRoundedRect(-60,-75,120,150,9);frame.lineStyle(selected?3:1.5,selected?0xf0d47c:p.frame,selected?1:.82).strokeRoundedRect(-60,-75,120,150,9);frame.fillStyle(0x05090d,.72).fillRoundedRect(-54,-69,108,24,5);frame.fillStyle(p.accent,.9).fillRect(-55,-70,4,138);frame.lineStyle(1,p.accent,.35).lineBetween(-51,-40,51,-40);group.add(frame);
+      const artKey=`card-art-${card.definitionId}`;if(this.textures.exists(artKey))group.add(this.add.image(0,-10,artKey).setDisplaySize(104,66).setAlpha(invalid?.42:.92));
+      group.add(this.add.text(0,-57,card.name,{fixedWidth:88,align:'center',fontFamily:'sans-serif',fontSize:'15px',fontStyle:'bold',color:'#ffffff'}).setOrigin(.5));
+      const typeLabel=card.intent==='attack'?'攻':card.intent==='defense'?'守':card.intent==='support'?'整':'策';group.add(this.add.text(46,-57,typeLabel,{fontFamily:'serif',fontSize:'9px',fontStyle:'bold',color:p.label,backgroundColor:'#0b1218',padding:{x:3,y:2}}).setOrigin(.5));
+      if(this.textures.exists('card-icon-power'))group.add(this.add.image(-42,27,'card-icon-power').setDisplaySize(22,22).setTint(p.accent));group.add(this.add.text(-42,27,card.clashPower>0?String(card.clashPower):'—',{fontFamily:'monospace',fontSize:'12px',fontStyle:'bold',color:'#ffffff'}).setOrigin(.5));
+      if(this.textures.exists('card-icon-tempo'))group.add(this.add.image(38,27,'card-icon-tempo').setDisplaySize(16,16).setTint(card.tempo>0?0x9af5ff:card.tempo<0?0xffa68f:0xb8c3c7).setFlipY(card.tempo<0));group.add(this.add.text(38,43,card.tempo>0?`+${card.tempo}`:String(card.tempo),{fontFamily:'monospace',fontSize:'9px',fontStyle:'bold',color:card.tempo>0?'#9af5ff':card.tempo<0?'#ffb3a7':'#cbd4d7'}).setOrigin(.5));
+      const rows=this.cardRows(card).slice(0,2);rows.forEach((r,ri)=>{const yy=53+ri*14;if(this.textures.exists(`card-icon-${r.icon}`))group.add(this.add.image(-34,yy,`card-icon-${r.icon}`).setDisplaySize(11,11).setTint(p.accent));group.add(this.add.text(-25,yy,r.text,{fixedWidth:72,fontFamily:'sans-serif',fontSize:'8px',fontStyle:'bold',color:'#e4ecef'}).setOrigin(0,.5))});
+      if(invalid)group.add(this.add.text(0,67,'! 不可用',{fontFamily:'sans-serif',fontSize:'8px',fontStyle:'bold',color:'#ff9caf',backgroundColor:'#4a1623',padding:{x:5,y:2}}).setOrigin(.5));
+      const hit=this.add.rectangle(0,0,120,150,0xffffff,.001).setInteractive({useHandCursor:!invalid});group.add(hit);
+      hit.on('pointerover',()=>{this.showCardTooltip(card,x,invalid);this.tweens.add({targets:group,y:baseY-12,scale:1.06,duration:90,ease:'Quad.easeOut'})});
+      hit.on('pointerout',()=>{this.clearCardTooltip();this.tweens.add({targets:group,y:baseY,scale:1,duration:90,ease:'Quad.easeOut'})});
+      hit.on('pointerdown',()=>{if(this.discardMode){this.discardHandCard(card,x);return}if(invalid){this.status.setText(invalid);this.showCardTooltip(card,x,invalid);return}this.selected=card;this.renderHand();this.status.setText(card.definitionId==='cover'?'選擇友方，或直接點一條敵方殺生線。':'')});
     });
-    const deckX=245,discardX=310,hudY=655;
-    for(let i=0;i<3;i++)this.handLayer.add(this.add.rectangle(deckX-i*3,hudY-i*3,46,62,0x17212c,1).setStrokeStyle(1,0x7093a5,.8));
-    this.handLayer.add(this.add.text(deckX,hudY-3,String(this.deck.drawPile.length),{fontFamily:'monospace',fontSize:'17px',fontStyle:'bold',color:'#e7f6ff'}).setOrigin(.5));
-    this.handLayer.add(this.add.text(deckX,696,'牌庫',{fontFamily:'sans-serif',fontSize:'10px',color:'#8ea7b3'}).setOrigin(.5));
-    this.handLayer.add(this.add.rectangle(discardX,hudY,46,62,0x241b24,.9).setStrokeStyle(1,0x8f667e,.75));
-    this.handLayer.add(this.add.text(discardX,hudY-3,String(this.deck.discardPile.length),{fontFamily:'monospace',fontSize:'17px',fontStyle:'bold',color:'#ead7e4'}).setOrigin(.5));
-    this.handLayer.add(this.add.text(discardX,696,'棄牌',{fontFamily:'sans-serif',fontSize:'10px',color:'#a98d9f'}).setOrigin(.5));
-    const canDiscard=!this.busy&&!this.discardUsedThisRound&&cards.length>0;
-    const discardButton=this.button(340,638,72,this.discardMode?'取消':'棄牌',()=>{if(!canDiscard&&!this.discardMode)return;this.discardMode=!this.discardMode;this.selected=undefined;this.status.setText(this.discardMode?'選擇 1 張手牌棄掉；本輪不立即補牌。':'');this.renderHand()},canDiscard||this.discardMode?0x683044:0x343640).setAlpha(canDiscard||this.discardMode?1:.45);
-    this.handLayer.add(discardButton);
+    const deckX=236,discardX=298,hudY=651;for(let i=0;i<3;i++)this.handLayer.add(this.add.rectangle(deckX-i*3,hudY-i*3,42,58,0x13212b,1).setStrokeStyle(1,0x7397a7,.78));this.handLayer.add(this.add.text(deckX,hudY-2,String(this.deck.drawPile.length),{fontFamily:'monospace',fontSize:'16px',fontStyle:'bold',color:'#e7f6ff'}).setOrigin(.5));this.handLayer.add(this.add.text(deckX,694,'牌庫',{fontFamily:'sans-serif',fontSize:'9px',color:'#8ea7b3'}).setOrigin(.5));this.handLayer.add(this.add.rectangle(discardX,hudY,42,58,0x251a23,.92).setStrokeStyle(1,0x93647b,.72));this.handLayer.add(this.add.text(discardX,hudY-2,String(this.deck.discardPile.length),{fontFamily:'monospace',fontSize:'16px',fontStyle:'bold',color:'#ead7e4'}).setOrigin(.5));this.handLayer.add(this.add.text(discardX,694,'棄牌',{fontFamily:'sans-serif',fontSize:'9px',color:'#a98d9f'}).setOrigin(.5));
+    const canDiscard=!this.busy&&!this.discardUsedThisRound&&cards.length>0;const discardButton=this.button(332,635,68,this.discardMode?'取消':'棄牌',()=>{if(!canDiscard&&!this.discardMode)return;this.discardMode=!this.discardMode;this.selected=undefined;this.status.setText(this.discardMode?'選擇 1 張手牌棄掉；本輪不立即補牌。':'');this.renderHand()},canDiscard||this.discardMode?0x683044:0x343640).setAlpha(canDiscard||this.discardMode?1:.45);this.handLayer.add(discardButton)
   }
 private updateUndoVisibility(){if(this.undoButton)this.undoButton.setVisible(!this.busy&&[...this.commands.values()].some(command=>command!==null))}
 private discardHandCard(card:BattleCard,fromX:number){
@@ -506,6 +533,11 @@ private applyActorOutline(a:Actor,color:number){
     // automatically and does not duplicate/offset the character image.
     sprite.postFX?.addGlow(color,3.0,0,false,.12,7);
   }
+
+private coverStatusMessage(reason:'self'|'none'|'multiple'|'reserved'|'slow'){
+    return {self:'掩護用於保護隊友；自身防禦請用堅守。',none:'此目標目前沒有可截斷的殺生線。',multiple:'此角色身上有多條殺生線；請直接點要截斷的敵人。',reserved:'這條殺生線已由其他角色攔下。',slow:'速度不足，這次掩護趕不上。'}[reason]
+  }
+
 private focus(){
     for(const a of this.players.values()){this.clearActorOutline(a);if(a.alive){a.root.setAlpha(.94);a.hud.setAlpha(.92);if(a.sprite.getData('heroine'))playHeroinePose(a.sprite,'idle');else a.sprite.play('hero-idle')}else{a.root.setAlpha(.5);a.hud.setAlpha(.25)}(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)}
     const n=this.currentPlanner();
@@ -522,7 +554,7 @@ private target(id:string){
   let targetNode:ActionNode|undefined,targetActorId=id;
   if(this.selected.definitionId==='cover'){
     const result=selectCoverIntent({timeline:this.timeline,commands:this.commands,actorId:node.actorId,actorSpeed:node.speed,cardTempo:this.selected.tempo,selectedActorId:id,selectedEnemyId:this.enemies.has(id)?id:undefined});
-    if(!result.ok){const messages={self:'掩護用於保護隊友；自身防禦請用堅守。',none:'沒有可掩護的敵方殺意。',multiple:'此角色有多條殺意；請點選要截斷的敵人。',reserved:'這條殺意已由其他角色攔截。',slow:'速度不足，無法截斷這條殺意。'};this.status.setText(messages[result.reason]);if(result.reason==='multiple'){this.intentFocus=id;this.renderEnemyIntents()}return}
+    if(!result.ok){this.status.setText(this.coverStatusMessage(result.reason));if(result.reason==='multiple'){this.intentFocus=id;this.renderEnemyIntents()}return}
     targetNode=result.enemy;targetActorId=result.protectedActorId;
   }else{
     const hostile=this.selected.intent==='attack'||this.selected.intent==='disruption',enemy=this.enemies.has(id);
