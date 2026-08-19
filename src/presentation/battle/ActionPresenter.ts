@@ -7,8 +7,6 @@ export class ActionPresenter {
   private cancelPresented=new Set<string>();
   constructor(private scene: Phaser.Scene, private players: Map<string, VisualActor>, private enemies: Map<string, VisualActor>, private combatLayer: Phaser.GameObjects.Container) {}
 
-  // 打擊 helper：hit-stop（暫停 timeScale）與全螢幕白閃。
-  // kind: quick 40ms / normal 70ms / heavy 110ms / break 140ms。
   private impactFreeze(kind:'quick'|'normal'|'heavy'|'break'|'clash',flash=true){
     const ms=kind==='quick'?68:kind==='normal'?88:kind==='heavy'?132:kind==='clash'?118:152;
     const flashAlpha=kind==='quick'?.28:kind==='normal'?.4:kind==='heavy'?.55:kind==='clash'?.42:.7;
@@ -20,7 +18,6 @@ export class ActionPresenter {
     return this.realWait(ms).finally(()=>{this.scene.time.timeScale=1})
   }
 
-  // 音效 helper：以 detune / volume / 疊播分級表現不同攻擊的重量感。
   private playImpact(kind:'quick'|'normal'|'heavy'|'break'|'clash'|'death'){
     const cfg={quick:{d:300,v:.72},normal:{d:0,v:.85},heavy:{d:-400,v:1},break:{d:-700,v:1},clash:{d:-200,v:.82},death:{d:-500,v:.92}}[kind];
     this.scene.sound.play('sword-impact',{volume:cfg.v,detune:cfg.d});
@@ -29,22 +26,22 @@ export class ActionPresenter {
     if(kind==='heavy')this.scene.time.delayedCall(60,()=>this.scene.sound.play('sword-impact',{volume:.5,detune:-800,rate:.65}));
   }
 
-  // 攻擊者發動前，把鏡頭拉近目標；被 attack / cancel 呼叫。
   private focusCamera(x:number,y:number,zoom=1.24,dur=180){
     this.scene.cameras.main.pan(x,y,dur,'Sine.easeInOut');
     this.scene.cameras.main.zoomTo(zoom,dur,'Sine.easeInOut');
   }
 
-  // 依卡型分級 shake：break/heavy 最重、quick 最輕。
   private impactShake(kind:'quick'|'normal'|'heavy'|'break'){
     const cfg={quick:{d:92,a:.009},normal:{d:145,a:.014},heavy:{d:225,a:.023},break:{d:270,a:.028}}[kind];
     this.scene.cameras.main.shake(cfg.d,cfg.a);
   }
 
-  // 受擊 sprite 紅閃：破符或大於 0 傷害才觸發，避免每次 balance damage 都閃。
+  // P11.4: neutral contact flash. Never recolour actor textures red.
   private hitFlash(sprite:Phaser.GameObjects.Sprite|undefined){
-    if(!sprite)return;const prev=sprite.tintTopLeft??0xffffff;sprite.setTint(0xff5060);
-    this.scene.time.delayedCall(110,()=>{if(prev===0xffffff)sprite.clearTint();else sprite.setTint(prev)});
+    if(!sprite)return;
+    const prevAlpha=sprite.alpha;
+    sprite.setAlpha(Math.min(prevAlpha,.62));
+    this.scene.tweens.add({targets:sprite,alpha:prevAlpha,duration:110,ease:'Quad.easeOut'});
   }
 
   private techniquePalette(actorId:string){
@@ -87,7 +84,6 @@ export class ActionPresenter {
     }
   }
 
-  // 供 BootScene 從外部觸發（例如 onImpact callback 內），因為 damage() 在 BootScene 裡。
   triggerHitFlash(sprite:Phaser.GameObjects.Sprite|undefined){this.hitFlash(sprite)}
   private move(o: Phaser.GameObjects.Container, x: number, y: number, d = 210, ease = 'Quad.easeInOut') { return new Promise<void>((r) => this.scene.tweens.add({ targets: o, x, y, duration: d, ease, onComplete: () => r() })); }
   private wait(ms: number) { return new Promise<void>((r) => this.scene.time.delayedCall(ms, r)); }
@@ -118,7 +114,6 @@ export class ActionPresenter {
       this.scene.tweens.add({targets:shard,x:x+direction*Phaser.Math.Between(70,170),y:y+dy,angle:shard.angle+direction*(.2+Math.random()*.55),alpha:0,scaleX:.45,scaleY:.72,duration:150+Math.random()*70,ease:'Cubic.easeOut',onComplete:()=>shard.destroy()});
     }
   }
-  // P8: cinematic slash families. They remain contact-anchored and never fly behind the target.
   private slash(x:number,y:number,flipX:boolean,scale=1,color=0xf7fbff){
     const dir=flipX?-1:1;
     const generated=['fx-p9a-arc-slash-1','fx-p9a-arc-slash-2'];
@@ -186,7 +181,6 @@ export class ActionPresenter {
     const attacker = (enemy ? this.enemies : this.players).get(actorId)!;
     const target = (enemy ? this.players : this.enemies).get(targetId)!;
     const direction = attacker.root.x < target.root.x ? 1 : -1;
-    // 卡片資訊往上抬到 -132 避免蓋到怪物母版尺寸的頭部；若 y 太靠近上邊界則吸回 40。
     const badgeY = Math.max(40, attacker.root.y - 132);
     const isChikage=!enemy&&actorId==='PB',isOboro=!enemy&&actorId==='PC';
     const techniqueColor=isChikage?'#5b4520':isOboro?'#33245c':enemy?'#713142':'#155268';
@@ -208,9 +202,6 @@ export class ActionPresenter {
     await this.move(attacker.root, contactX, target.root.y, dashDuration, isOboro?'Expo.easeIn':'Cubic.easeIn');
     playHeroinePose(attacker.sprite,'strike','b');
     if (mode === 'flank') badge.setText(`${card.name}\n側襲`);
-    // 斬擊方向：flipX 由攻擊者→目標方向決定（direction>0 = 攻擊者在左，揮向右需 flipX=true）；
-    // 不再用 enemy 旗標硬綁，避免玩家改站左邊後斬擊方向反了。
-    // 依卡型決定打擊重量：heavy/break 有 hit-stop + 白閃 + 大 shake，quick 較輕。
     const impactKind:'quick'|'normal'|'heavy'|'break'=card.definitionId==='heavy'?'heavy':card.definitionId==='break'?'break':card.definitionId==='quick'?'quick':'normal';
     this.techniqueImpact(actorId,target.root.x,target.root.y-5,direction,card.definitionId);
     this.cardImpact(target.root.x,target.root.y-5,card.definitionId,direction < 0);
@@ -253,18 +244,14 @@ export class ActionPresenter {
       this.move(ally.root, contactX, target.root.y, 180, 'Cubic.easeIn'),
     ]);
     const handoff=this.scene.add.rectangle((source.root.x+ally.root.x)/2,target.root.y-14,96,3,0xffd56f,.85).setDepth(103).setRotation(-.12*direction);this.combatLayer.add(handoff);this.cardImpact(target.root.x,target.root.y-8,'relay',direction<0);this.scene.tweens.add({targets:handoff,scaleX:1.45,alpha:0,duration:220,onComplete:()=>handoff.destroy()});
-    // The target keeps the first hit's recoil pose until this second blade lands.
     await this.wait(55);
     this.scene.sound.play('sword-swish', { volume: .78 });
     playHeroinePose(ally.sprite,'ready');
     await this.wait(38);
     playHeroinePose(ally.sprite,'strike','a');
     await this.wait(42);
-    // 斬擊方向：flipX 由攻擊者→目標方向決定（direction>0 = 攻擊者在左，揮向右需 flipX=true）；
-    // 不再用 enemy 旗標硬綁，避免玩家改站左邊後斬擊方向反了。
     playHeroinePose(ally.sprite,'strike','b');
     this.slash(target.root.x, target.root.y - 5, direction < 0,1.12);
-    // 繼刀＝補刀，一律走 heavy 級的打擊反饋。
     this.playImpact('heavy');
     this.impactShake('heavy');
     this.impactCameraPunch('heavy',target.root.x,target.root.y-8);
@@ -321,20 +308,24 @@ export class ActionPresenter {
   async cancel(actorId: string, enemy = false) {
     const key=`${enemy?'E':'P'}:${actorId}`;
     if(this.cancelPresented.has(key))return;
+    const actor = (enemy ? this.enemies : this.players).get(actorId);
+    if(!actor)return;
+    // Scene-level dedupe: one collapse prompt per actor even if two resolution paths race.
+    const existing=this.scene.children.list.find(child=>child instanceof Phaser.GameObjects.Text&&child.getData('collapsePromptActor')===key);
+    if(existing)return;
     this.cancelPresented.add(key);
-    const actor = (enemy ? this.enemies : this.players).get(actorId)!;
-    // 崩勢是最戲劇的鏡頭：拉近＋壓 timeScale＋vignette，破除舊 code 只 shake 幾下就過去的平淡感。
     this.focusCamera(actor.root.x,actor.root.y,1.38,220);
     const w=this.scene.cameras.main.width,h=this.scene.cameras.main.height;
     const vignette=this.scene.add.rectangle(w/2,h/2,w,h,0x120409,.55).setDepth(180).setScrollFactor(0);
     this.combatLayer.add(vignette);
     this.scene.tweens.add({targets:vignette,alpha:0,duration:640,ease:'Cubic.easeOut',onComplete:()=>vignette.destroy()});
-    const label = this.scene.add.text(actor.root.x, Math.max(48, actor.root.y - 130), '崩勢\n殺意斷絕', { fontFamily: 'serif', fontSize: '21px', fontStyle: 'bold', align: 'center', color: '#fff', stroke:'#3a0713', strokeThickness:5, backgroundColor: '#8b2034', padding: { x: 14, y: 8 } }).setOrigin(.5).setDepth(190).setScale(1.55);
+    const label = this.scene.add.text(actor.root.x, Math.max(48, actor.root.y - 130), '崩勢\n殺意斷絕', { fontFamily: 'serif', fontSize: '21px', fontStyle: 'bold', align: 'center', color: '#fff', stroke:'#3a0713', strokeThickness:5, backgroundColor: '#8b2034', padding: { x: 14, y: 8 } }).setOrigin(.5).setDepth(190).setScale(1.55).setData('collapsePromptActor',key);
+    this.combatLayer.add(label);
     this.scene.tweens.add({targets:label,scale:1,duration:220,ease:'Back.easeOut'});
     const ring = this.scene.add.circle(actor.root.x, actor.root.y, 38, 0xff274d, .2).setStrokeStyle(5, 0xff637b).setDepth(80);
+    this.combatLayer.add(ring);
     this.scene.tweens.add({ targets: actor.root, x: actor.root.x + 9, duration: 40, yoyo: true, repeat: 6 });
     this.scene.tweens.add({ targets: ring, scale: 2.2, alpha: 0, duration: 420 });
-    // 崩勢音效：低頻疊播模擬「架勢斷開」的空音。
     this.playImpact('break');
     this.scene.time.timeScale=.22;
     await this.realWait(180);
