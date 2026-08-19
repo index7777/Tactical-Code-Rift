@@ -7,15 +7,17 @@ export function fighterHudStatus(state:Pick<FighterHudState,'alive'|'broken'|'ex
 export class FighterHudPresenter{
   constructor(private scene:Phaser.Scene){}
   create():FighterHudView{
-    const root=this.scene.add.container(0,55);
-    const plate=this.scene.add.rectangle(0,2,72,35,0x05090e,.72).setStrokeStyle(1,0x78909a,.28);
-    const hpBack=this.scene.add.rectangle(-29,-9,58,5,0x1b1116,.98).setOrigin(0,.5);
-    const hpEcho=this.scene.add.rectangle(-29,-9,58,5,0xe8d5d8,.72).setOrigin(0,.5);
-    const hpFill=this.scene.add.rectangle(-29,-9,58,5,0xd94c61).setOrigin(0,.5);
-    const shieldBack=this.scene.add.rectangle(-29,0,58,4,0x102a32,.92).setOrigin(0,.5);
-    const shieldFill=this.scene.add.rectangle(-29,0,0,4,0x8de8ee,.96).setOrigin(0,.5);
-    const balanceMarks=Array.from({length:5},(_,index)=>this.scene.add.circle(-17+index*11,11,3.2,0xd8ae4b,1).setStrokeStyle(1,0x5d451b,.75));
-    const state=this.scene.add.text(0,-112,'',{fontFamily:'serif',fontSize:'12px',fontStyle:'bold',color:'#fff6df',backgroundColor:'#7e2033',padding:{x:8,y:2}}).setOrigin(.5).setVisible(false);
+    const root=this.scene.add.container(0,54);
+    // P11.1: HUD should read as combat telemetry, not a second floating window.
+    const plate=this.scene.add.rectangle(0,1,66,29,0x03080c,.66).setStrokeStyle(1,0x7d929a,.18);
+    const hpBack=this.scene.add.rectangle(-27,-8,54,5,0x1a1015,.96).setOrigin(0,.5);
+    const hpEcho=this.scene.add.rectangle(-27,-8,54,5,0xf0dfe1,.68).setOrigin(0,.5);
+    const hpFill=this.scene.add.rectangle(-27,-8,54,5,0xd94c61).setOrigin(0,.5);
+    // Shield is an attached secondary layer, deliberately thinner than HP.
+    const shieldBack=this.scene.add.rectangle(-27,-1,54,2.5,0x102a32,.8).setOrigin(0,.5);
+    const shieldFill=this.scene.add.rectangle(-27,-1,0,2.5,0x8de8ee,.94).setOrigin(0,.5);
+    const balanceMarks=Array.from({length:5},(_,index)=>this.scene.add.rectangle(-20+index*10,8,6,4,0xd8ae4b,1).setStrokeStyle(1,0x5d451b,.58));
+    const state=this.scene.add.text(0,-108,'',{fontFamily:'serif',fontSize:'11px',fontStyle:'bold',color:'#fff6df',backgroundColor:'#7e2033',padding:{x:7,y:2}}).setOrigin(.5).setVisible(false);
     root.add([plate,hpBack,hpEcho,hpFill,shieldBack,shieldFill,...balanceMarks,state]);
     return{root,hpFill,hpEcho,shieldFill,balanceMarks,state}
   }

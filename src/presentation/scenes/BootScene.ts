@@ -58,7 +58,7 @@ create(){
     this.world=this.add.container();
     this.hudLayer=this.add.container().setDepth(30).setScrollFactor(0);
     this.handLayer=this.add.container().setDepth(20).setScrollFactor(0);
-    this.timelineLayer=this.add.container().setDepth(30).setScrollFactor(0);
+    this.timelineLayer=this.add.container().setDepth(80).setScrollFactor(0);
     this.battlefieldMode=this.requestedBattlefield??normalizeBattlefieldMode(new URLSearchParams(window.location.search).get('scene'));
     this.battlefieldPresenter=new BattlefieldPresenter(this,this.world);this.battlefieldPresenter.build(this.battlefieldMode);
     this.intentLayer=this.add.container();
@@ -110,10 +110,9 @@ private hud(){
     this.hudLayer.add(this.button(850,8,36,'P+',()=>this.scene.restart({pc:Math.min(4,this.pc+1),ec:this.ec})));
     this.hudLayer.add(this.button(905,8,36,'E−',()=>this.scene.restart({pc:this.pc,ec:Math.max(1,this.ec-1)}),0x713141));
     this.hudLayer.add(this.button(950,8,36,'E+',()=>this.scene.restart({pc:this.pc,ec:Math.min(4,this.ec+1)}),0x713141));
-    // Status is retained as an internal state sink for input validation and
-    // debug inspection, but the action-log field is intentionally not part of
-    // the player-facing battle HUD.
-    this.status=this.add.text(640,548,'',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#ffcfb8',backgroundColor:'#481522dd',padding:{x:8,y:4}}).setOrigin(.5).setVisible(false);
+    // P11.1: compact context ribbon. Validation feedback must be visible at
+    // decision time, but it should not become a permanent combat log.
+    this.status=this.add.text(640,551,'',{fontFamily:'sans-serif',fontSize:'11px',fontStyle:'bold',color:'#e7f6f8',backgroundColor:'#07131bdd',padding:{x:10,y:5}}).setOrigin(.5).setDepth(82).setVisible(true);
     this.hudLayer.add(this.button(1015,612,130,'結束規劃',()=>this.nextRound(),0x285c67));
     this.hudLayer.add(this.button(1015,654,130,'跳過',()=>this.skip(),0x4d5364));
     this.undoButton=this.button(1155,654,105,'上一步',()=>this.undoCommand(),0x343b49).setVisible(false);this.hudLayer.add(this.undoButton)
@@ -171,7 +170,7 @@ private addActor(f:Fighter){
     const hit=this.add.rectangle(0,0,120,166,0xffffff,.001).setInteractive({useHandCursor:true});
     hit.on('pointerdown',()=>this.target(f.id));
     hit.on('pointerover',()=>this.previewTarget(f.id));
-    hit.on('pointerout',()=>{this.intentFocus=undefined;this.previewTargetId=undefined;this.renderEnemyIntents()});
+    hit.on('pointerout',()=>{this.intentFocus=undefined;this.previewTargetId=undefined;if(this.selected?.definitionId==='cover')this.status.setText('選擇友方，或直接點一條敵方殺生線。');this.renderEnemyIntents()});
     const root=this.add.container(p.x,p.y,[glow,sprite,hud,hit]).setData('actor',true);
     this.world.add(root);
     const maxHp=f.team==='player'?44:40,a={root,x:p.x,y:p.y,sprite,hud,hudView,hit,hp:maxHp,maxHp,shield:0,tempShield:0,balance:8,alive:true,exposed:false,broken:false,archetype:f.archetype,traitReady:true};
@@ -227,9 +226,9 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
     ).getPoints(24);
     const curve=(width:number,color:number,alpha:number)=>{g.lineStyle(width,color,alpha).beginPath().moveTo(points[0]!.x,points[0]!.y);points.slice(1).forEach(p=>g.lineTo(p.x,p.y));g.strokePath()};
     curve(9,valid?0x52ddeb:0x75696d,.14);curve(2,valid?0xc5fbff:0xb28b91,.98);
-    if(valid)g.lineStyle(5,0xffe5a0,1).lineBetween(x-12,y+12,x+12,y-12);
+    if(valid){g.lineStyle(2,0x8df3ff,.92).strokeCircle(x,y,10);g.lineStyle(4,0xffe5a0,1).lineBetween(x,y-11,x,y+11);g.fillStyle(0xffe5a0,1).fillCircle(x,y,3.5)}
     else g.lineStyle(4,0xff526b,1).lineBetween(x-8,y-8,x+8,y+8).lineBetween(x+8,y-8,x-8,y+8);
-    const label=this.add.text(x,y-22,valid?'截刀':'速度不足',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#fff',backgroundColor:valid?'#16343bdd':'#5a1b29dd',padding:{x:7,y:3}}).setOrigin(.5);
+    const label=this.add.text(x,y-24,valid?`${actorInitiative} > ${enemyInitiative}`:'速度不足',{fontFamily:'monospace',fontSize:'11px',fontStyle:'bold',color:'#fff',backgroundColor:valid?'#16343bdd':'#5a1b29dd',padding:{x:7,y:3}}).setOrigin(.5);
     this.intentLayer.add([g,label])
   }
   private addKillingIntentFlow(curve:Phaser.Curves.CubicBezier,color:number,alpha:number,focused:boolean,delay=0){
@@ -318,10 +317,12 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
             zone.on('pointerdown',()=>this.target(n.actorId));zone.on('pointerover',()=>{this.intentFocus=n.actorId});this.intentLayer.add(zone)
           }
         }
-        const tag=this.add.container(a.x-58,a.y-55).setAlpha(focused?1:.52).setData('intent',true);
-        tag.add(this.add.rectangle(0,0,116,28,0x3d101b,.92).setStrokeStyle(1,0xa8374d,.8));
-        tag.add(this.add.text(-49,0,s.name,{fixedWidth:72,fontFamily:'sans-serif',fontSize:'11px',fontStyle:'bold',color:'#ffe9ec'}).setOrigin(0,.5));
-        tag.add(this.add.text(47,0,String(s.clashPower),{fontFamily:'monospace',fontSize:'14px',fontStyle:'bold',color:'#ffbf72'}).setOrigin(.5));
+        const tag=this.add.container(a.x-62,a.y-55).setAlpha(focused?1:.48).setData('intent',true),targetPortrait=`portrait-${this.playerPortraitBase(s.targetId)}-timeline`;
+        tag.add(this.add.rectangle(0,0,124,26,0x321019,.9).setStrokeStyle(1,0xa8374d,.62));
+        tag.add(this.add.text(-51,0,s.name,{fixedWidth:62,fontFamily:'serif',fontSize:'10px',fontStyle:'bold',color:'#ffe9ec'}).setOrigin(0,.5));
+        tag.add(this.add.text(22,0,String(s.clashPower),{fontFamily:'monospace',fontSize:'13px',fontStyle:'bold',color:'#ffbf72'}).setOrigin(.5));
+        tag.add(this.add.text(35,0,'›',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#c9788d'}).setOrigin(.5));
+        tag.add(this.add.circle(50,0,9,0x09070a,.95).setStrokeStyle(1,0xbd526b,.6));if(this.textures.exists(targetPortrait))tag.add(this.add.image(50,0,targetPortrait).setDisplaySize(16,16));
         this.intentLayer.add(tag);
         const paired=visualBeats.find(beat=>beat.kind==='clash'&&beat.clash.enemy.id===n.id);
         const planned=[...this.commands.values()].find(c=>c&&c.targetNodeId===n.id)??(paired?.kind==='clash'?paired.clash.player:undefined);
@@ -403,6 +404,18 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
     }
   }
 private drawMonsterRuleRead(actor:Actor,card:BattleCard){const read=readMonsterRule(actor.archetype,card,actor);if(read.state==='neutral'||!read.label)return;const safe=read.state==='counter',color=safe?0x83e9c0:0xff7185,g=this.add.circle(actor.x,actor.y-72,17,color,.16).setStrokeStyle(2,color,.95),label=this.add.text(actor.x,actor.y-72,read.label,{fontFamily:'serif',fontSize:'12px',fontStyle:'bold',color:safe?'#bfffe6':'#ffd3d9',backgroundColor:'#0b111bdd',padding:{x:6,y:3}}).setOrigin(.5);this.intentLayer.add([g,label])}
+private actorDisplayName(team:'player'|'enemy',actorId:string,archetype?:EnemyArchetype){
+    if(team==='player')return actorId==='PB'?'千景':actorId==='PC'?'朧':actorId==='PA'?'女主':'隊員';
+    const names:Partial<Record<EnemyArchetype,string>>={swift:'迅影',crusher:'重鎧',hexer:'咒徒','wet-corpse':'濡骸','lantern-child':'提燈童','mountain-hound':'山犬','wayfarer-umbrella':'辻傘','noose-ghost':'縊鬼','lost-monk':'迷途僧','rain-warrior':'雨夜武者','rain-boss':'站守'};
+    return(archetype&&names[archetype])||actorId
+  }
+private portraitBaseForNode(n:ActionNode){
+    const actor=(n.team==='player'?this.players:this.enemies).get(n.actorId);
+    if(n.team==='player')return n.actorId==='PB'?'chikage':n.actorId==='PC'?'oboro':'heroine';
+    return actor?.archetype??''
+  }
+private playerPortraitBase(actorId:string){return actorId==='PB'?'chikage':actorId==='PC'?'oboro':'heroine'}
+
 private renderTimeline(){
     this.timelineLayer.removeAll(true);
     const planned=applyPlannedInitiative(this.timeline,this.commands);
@@ -411,18 +424,14 @@ private renderTimeline(){
     const values=planned.map(n=>n.initiative??n.speed),max=Math.max(...values,1),min=Math.min(...values,0);
     const xFor=(n:ActionNode)=>{const v=n.initiative??n.speed,t=max===min ? 0.5 : (max-v)/(max-min);return Phaser.Math.Linear(300,1160,t)};
     const current=this.currentPlanner()??planned[0];
-    const portraitBase=(n:ActionNode)=>{
-      const actor=(n.team==='player'?this.players:this.enemies).get(n.actorId);
-      if(n.team==='player')return n.actorId==='PB'?'chikage':n.actorId==='PC'?'oboro':'heroine';
-      const enemyKey=actor?.archetype??'';
-      return enemyKey;
-    };
-    this.timelineLayer.add(this.add.rectangle(640,43,1280,86,0x03070c,.9));
+    this.timelineLayer.setVisible(true).setAlpha(this.busy ? .22 : 1);
+    this.timelineLayer.add(this.add.rectangle(640,43,1280,86,0x03070c,.92));
+    this.timelineLayer.add(this.add.rectangle(640,84,1280,2,0x9ab3bb,.16));
     this.timelineLayer.add(this.add.text(230,20,'我方',{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:'#8fefff'}).setOrigin(1,.5));
     this.timelineLayer.add(this.add.text(230,61,'敵方',{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:'#ff91a3'}).setOrigin(1,.5));
     this.timelineLayer.add(this.add.rectangle(720,20,880,2,0x477b86,.52));this.timelineLayer.add(this.add.rectangle(720,61,880,2,0x7d3948,.52));
     const drawLane=(nodes:ActionNode[],y:number)=>nodes.forEach(n=>{
-      const x=xFor(n),isCurrent=n.id===current?.id,teamColor=n.team==='player'?0x65d9ed:0xe5657a,base=portraitBase(n),key=base?`portrait-${base}-timeline`:'';
+      const x=xFor(n),isCurrent=n.id===current?.id,teamColor=n.team==='player'?0x65d9ed:0xe5657a,base=this.portraitBaseForNode(n),key=base?`portrait-${base}-timeline`:'';
       this.timelineLayer.add(this.add.circle(x,y,isCurrent?18:15,0x071016,.96).setStrokeStyle(isCurrent?3:1.5,isCurrent?0xffe69a:teamColor,isCurrent?1:.78));
       if(key&&this.textures.exists(key))this.timelineLayer.add(this.add.image(x,y,key).setDisplaySize(isCurrent?29:24,isCurrent?29:24));
       else this.timelineLayer.add(this.add.text(x,y,n.actorId,{fontFamily:'monospace',fontSize:'8px',fontStyle:'bold',color:'#fff'}).setOrigin(.5));
@@ -430,13 +439,13 @@ private renderTimeline(){
     });
     drawLane(players,20);drawLane(enemies,61);
     if(current){
-      const base=portraitBase(current),key=base?`portrait-${base}-current`:'',teamColor=current.team==='player'?0x8fefff:0xff8298;
+      const base=this.portraitBaseForNode(current),key=base?`portrait-${base}-current`:'',teamColor=current.team==='player'?0x8fefff:0xff8298,actor=(current.team==='player'?this.players:this.enemies).get(current.actorId),displayName=this.actorDisplayName(current.team,current.actorId,actor?.archetype);
       this.timelineLayer.add(this.add.rectangle(82,42,124,76,0x091117,.99).setStrokeStyle(2,teamColor,.96));
       this.timelineLayer.add(this.add.rectangle(42,42,70,70,0x02070b,1));
       if(key&&this.textures.exists(key))this.timelineLayer.add(this.add.image(42,42,key).setDisplaySize(68,68));
-      this.timelineLayer.add(this.add.text(103,24,'NOW',{fontFamily:'monospace',fontSize:'9px',fontStyle:'bold',color:'#e8c978'}).setOrigin(.5));
-      this.timelineLayer.add(this.add.text(103,44,current.actorId,{fontFamily:'monospace',fontSize:'14px',fontStyle:'bold',color:'#fff'}).setOrigin(.5));
-      this.timelineLayer.add(this.add.text(103,61,current.team==='player'?'我方行動':'敵方行動',{fontFamily:'sans-serif',fontSize:'8px',fontStyle:'bold',color:current.team==='player'?'#9eefff':'#ff9aac'}).setOrigin(.5));
+      this.timelineLayer.add(this.add.text(103,21,'行動',{fontFamily:'sans-serif',fontSize:'9px',fontStyle:'bold',color:'#e8c978'}).setOrigin(.5));
+      this.timelineLayer.add(this.add.text(103,42,displayName,{fontFamily:'serif',fontSize:'15px',fontStyle:'bold',color:'#fff'}).setOrigin(.5));
+      this.timelineLayer.add(this.add.text(103,62,`時序 ${current.initiative??current.speed}`,{fontFamily:'monospace',fontSize:'9px',fontStyle:'bold',color:current.team==='player'?'#9eefff':'#ff9aac'}).setOrigin(.5));
     }
   }
 private cardPalette(card:BattleCard){
@@ -473,24 +482,27 @@ private cardRows(card:BattleCard){
     if(card.delayTarget)rows.push({icon:'tempo',text:`敵序 −${card.delayTarget}`});
     return rows.slice(0,3)
   }
-private clearCardTooltip(){if(this.cardTooltip){this.cardTooltip.destroy(true);this.cardTooltip=undefined}}
-private showCardTooltip(card:BattleCard,x:number,invalid?:string){
-    this.clearCardTooltip();const p=this.cardPalette(card),tip=this.add.container(Phaser.Math.Clamp(x,170,1110),520).setDepth(95);this.handLayer.add(tip);
-    const rows=[...this.cardRows(card),{icon:'tempo',text:`時序 ${card.tempo>0?'+':''}${card.tempo}`}];
-    const h=82+rows.length*18+(invalid?24:0);const bg=this.add.graphics();bg.fillStyle(0x071018,.98).fillRoundedRect(-104,-h,208,h,8);bg.lineStyle(1,p.frame,.88).strokeRoundedRect(-104,-h,208,h,8);tip.add(bg);
-    tip.add(this.add.text(-90,-h+14,card.name,{fontFamily:'sans-serif',fontSize:'16px',fontStyle:'bold',color:'#ffffff'}));tip.add(this.add.text(88,-h+15,card.tags.slice(0,2).join('・'),{fontFamily:'sans-serif',fontSize:'9px',color:p.label}).setOrigin(1,0));
-    rows.forEach((r,i)=>{const yy=-h+42+i*18;if(this.textures.exists(`card-icon-${r.icon}`))tip.add(this.add.image(-86,yy,`card-icon-${r.icon}`).setDisplaySize(13,13).setTint(p.accent));tip.add(this.add.text(-72,yy,r.text,{fontFamily:'sans-serif',fontSize:'11px',color:'#dce8ec'}).setOrigin(0,.5))});
-    if(invalid)tip.add(this.add.text(0,-10,`! ${invalid}`,{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:'#ff9aab',backgroundColor:'#4b1724',padding:{x:7,y:4}}).setOrigin(.5,1));
+private clearCardTooltip(){
+    for(const item of [...this.handLayer.list])if(item instanceof Phaser.GameObjects.Container&&item.getData('cardTooltip'))item.destroy(true);
+    if(this.cardTooltip){this.cardTooltip.destroy(true);this.cardTooltip=undefined}
+  }
+private showCardTooltip(card:BattleCard,_x:number,invalid?:string){
+    this.clearCardTooltip();const p=this.cardPalette(card),tip=this.add.container(1092,548).setDepth(96).setData('cardTooltip',true);this.handLayer.add(tip);this.cardTooltip=tip;
+    const rows=[...this.cardRows(card),{icon:'tempo',text:`時序 ${card.tempo>0?'+':''}${card.tempo}`}].slice(0,4);
+    const h=64+rows.length*15+(invalid?22:0),w=190,bg=this.add.graphics();bg.fillStyle(0x061018,.96).fillRoundedRect(-w/2,-h,w,h,7);bg.lineStyle(1,p.frame,.78).strokeRoundedRect(-w/2,-h,w,h,7);tip.add(bg);
+    tip.add(this.add.text(-82,-h+12,card.name,{fontFamily:'serif',fontSize:'14px',fontStyle:'bold',color:'#ffffff'}));tip.add(this.add.text(82,-h+13,card.tags.slice(0,2).join('・'),{fontFamily:'sans-serif',fontSize:'8px',color:p.label}).setOrigin(1,0));
+    rows.forEach((r,i)=>{const yy=-h+36+i*15;if(this.textures.exists(`card-icon-${r.icon}`))tip.add(this.add.image(-79,yy,`card-icon-${r.icon}`).setDisplaySize(11,11).setTint(p.accent));tip.add(this.add.text(-65,yy,r.text,{fontFamily:'sans-serif',fontSize:'9px',color:'#dce8ec'}).setOrigin(0,.5))});
+    if(invalid)tip.add(this.add.text(0,-7,`! ${invalid}`,{fontFamily:'sans-serif',fontSize:'9px',fontStyle:'bold',color:'#ffb0be',backgroundColor:'#4b1724',padding:{x:6,y:3}}).setOrigin(.5,1));
   }
 private drawCommandSlots(){
-    const nodes=this.planning;const start=420,gap=72;
-    nodes.forEach((node,i)=>{const cmd=this.commands.get(node.id),x=start+i*gap,y=563;const c=this.add.container(x,y).setDepth(28);this.handLayer.add(c);const bg=this.add.graphics();bg.fillStyle(cmd?0x102630:0x0b141b,.96).fillRoundedRect(-31,-12,62,24,5);bg.lineStyle(1,cmd?0x7adce8:0x455761,cmd?1:.55).strokeRoundedRect(-31,-12,62,24,5);c.add(bg);c.add(this.add.text(-25,0,node.actorId,{fontFamily:'monospace',fontSize:'9px',fontStyle:'bold',color:'#a9dce6'}).setOrigin(0,.5));if(cmd){const art=`card-art-${cmd.card.definitionId}`;if(this.textures.exists(art))c.add(this.add.image(3,0,art).setDisplaySize(18,16));c.add(this.add.text(25,0,cmd.card.name,{fontFamily:'sans-serif',fontSize:'8px',fontStyle:'bold',color:'#ffffff'}).setOrigin(1,.5))}else c.add(this.add.text(27,0,'—',{fontFamily:'monospace',fontSize:'10px',color:'#65757c'}).setOrigin(1,.5))})
+    const nodes=this.planning;const start=430,gap=86;
+    nodes.forEach((node,i)=>{const cmd=this.commands.get(node.id),x=start+i*gap,y=565,name=this.actorDisplayName('player',node.actorId),portrait=`portrait-${this.playerPortraitBase(node.actorId)}-timeline`;const c=this.add.container(x,y).setDepth(28);this.handLayer.add(c);const bg=this.add.graphics();bg.fillStyle(cmd?0x10242d:0x071017,cmd ? .98 : .72).fillRoundedRect(-38,-14,76,28,7);bg.lineStyle(1,cmd?0x6ed9e7:0x43535b,cmd ? .92 : .34).strokeRoundedRect(-38,-14,76,28,7);c.add(bg);c.add(this.add.circle(-25,0,10,0x02070b,.96).setStrokeStyle(1,cmd?0xffdf87:0x60737c,cmd ? .9 : .45));if(this.textures.exists(portrait))c.add(this.add.image(-25,0,portrait).setDisplaySize(17,17));c.add(this.add.text(-11,-5,name,{fixedWidth:45,fontFamily:'serif',fontSize:'9px',fontStyle:'bold',color:cmd?'#ffffff':'#83969e'}).setOrigin(0,.5));if(cmd)c.add(this.add.text(-11,6,cmd.card.name,{fixedWidth:44,fontFamily:'sans-serif',fontSize:'7px',fontStyle:'bold',color:'#9feefa'}).setOrigin(0,.5));else c.add(this.add.text(-11,6,'待命',{fontFamily:'sans-serif',fontSize:'7px',color:'#53656d'}).setOrigin(0,.5))})
   }
 private renderHand(){
     this.clearCardTooltip();this.handLayer.removeAll(true);
     const assigned=new Set([...this.commands.values()].filter((x):x is PlayerCommand=>Boolean(x)).map(x=>x.card.instanceId));
     const cards=this.deck.hand.filter(c=>!assigned.has(c.instanceId)).slice(0,this.visibleHandCount);
-    const dock=this.add.graphics();dock.fillStyle(0x04090e,.96).fillRect(0,578,1280,142);dock.fillStyle(0x0a131b,.9).fillRect(0,578,1280,3);dock.lineStyle(1,0x617780,.3).lineBetween(0,578,1280,578);this.handLayer.add(dock);
+    const dock=this.add.graphics();dock.fillStyle(0x03080d,.95).fillRect(0,580,1280,140);dock.fillStyle(0x0a171e,.86).fillRect(0,580,1280,2);dock.lineStyle(1,0x8ba0a8,.22).lineBetween(0,580,1280,580);dock.lineStyle(1,0x7f5932,.18).lineBetween(184,592,184,704);this.handLayer.add(dock);
     this.drawCommandSlots();
     const gap=126,start=700-(cards.length-1)*gap/2;
     cards.forEach((card,i)=>{
@@ -505,11 +517,12 @@ private renderHand(){
       if(invalid)group.add(this.add.text(0,67,'! 不可用',{fontFamily:'sans-serif',fontSize:'8px',fontStyle:'bold',color:'#ff9caf',backgroundColor:'#4a1623',padding:{x:5,y:2}}).setOrigin(.5));
       const hit=this.add.rectangle(0,0,120,150,0xffffff,.001).setInteractive({useHandCursor:!invalid});group.add(hit);
       hit.on('pointerover',()=>{this.showCardTooltip(card,x,invalid);this.tweens.add({targets:group,y:baseY-12,scale:1.06,duration:90,ease:'Quad.easeOut'})});
-      hit.on('pointerout',()=>{this.clearCardTooltip();this.tweens.add({targets:group,y:baseY,scale:1,duration:90,ease:'Quad.easeOut'})});
+      hit.on('pointerout',()=>{this.clearCardTooltip();if(this.selected)this.showCardTooltip(this.selected,0,this.cardInvalidReason(this.selected));this.tweens.add({targets:group,y:baseY,scale:1,duration:90,ease:'Quad.easeOut'})});
       hit.on('pointerdown',()=>{if(this.discardMode){this.discardHandCard(card,x);return}if(invalid){this.status.setText(invalid);this.showCardTooltip(card,x,invalid);return}this.selected=card;this.renderHand();this.status.setText(card.definitionId==='cover'?'選擇友方，或直接點一條敵方殺生線。':'')});
     });
-    const deckX=236,discardX=298,hudY=651;for(let i=0;i<3;i++)this.handLayer.add(this.add.rectangle(deckX-i*3,hudY-i*3,42,58,0x13212b,1).setStrokeStyle(1,0x7397a7,.78));this.handLayer.add(this.add.text(deckX,hudY-2,String(this.deck.drawPile.length),{fontFamily:'monospace',fontSize:'16px',fontStyle:'bold',color:'#e7f6ff'}).setOrigin(.5));this.handLayer.add(this.add.text(deckX,694,'牌庫',{fontFamily:'sans-serif',fontSize:'9px',color:'#8ea7b3'}).setOrigin(.5));this.handLayer.add(this.add.rectangle(discardX,hudY,42,58,0x251a23,.92).setStrokeStyle(1,0x93647b,.72));this.handLayer.add(this.add.text(discardX,hudY-2,String(this.deck.discardPile.length),{fontFamily:'monospace',fontSize:'16px',fontStyle:'bold',color:'#ead7e4'}).setOrigin(.5));this.handLayer.add(this.add.text(discardX,694,'棄牌',{fontFamily:'sans-serif',fontSize:'9px',color:'#a98d9f'}).setOrigin(.5));
-    const canDiscard=!this.busy&&!this.discardUsedThisRound&&cards.length>0;const discardButton=this.button(332,635,68,this.discardMode?'取消':'棄牌',()=>{if(!canDiscard&&!this.discardMode)return;this.discardMode=!this.discardMode;this.selected=undefined;this.status.setText(this.discardMode?'選擇 1 張手牌棄掉；本輪不立即補牌。':'');this.renderHand()},canDiscard||this.discardMode?0x683044:0x343640).setAlpha(canDiscard||this.discardMode?1:.45);this.handLayer.add(discardButton)
+    if(this.selected)this.showCardTooltip(this.selected,0,this.cardInvalidReason(this.selected));
+    const deckX=112,discardX=154,hudY=650;this.handLayer.add(this.add.circle(deckX,hudY,24,0x0d1c25,.96).setStrokeStyle(1,0x7e9ca8,.65));this.handLayer.add(this.add.text(deckX,hudY-2,String(this.deck.drawPile.length),{fontFamily:'monospace',fontSize:'15px',fontStyle:'bold',color:'#e7f6ff'}).setOrigin(.5));this.handLayer.add(this.add.text(deckX,684,'牌庫',{fontFamily:'sans-serif',fontSize:'8px',color:'#8ea7b3'}).setOrigin(.5));this.handLayer.add(this.add.circle(discardX,hudY,24,0x24161f,.96).setStrokeStyle(1,0x956077,.58));this.handLayer.add(this.add.text(discardX,hudY-2,String(this.deck.discardPile.length),{fontFamily:'monospace',fontSize:'15px',fontStyle:'bold',color:'#ead7e4'}).setOrigin(.5));this.handLayer.add(this.add.text(discardX,684,'棄牌',{fontFamily:'sans-serif',fontSize:'8px',color:'#a98d9f'}).setOrigin(.5));
+    const canDiscard=!this.busy&&!this.discardUsedThisRound&&cards.length>0;const discardButton=this.button(228,636,74,this.discardMode?'取消':'棄牌',()=>{if(!canDiscard&&!this.discardMode)return;this.discardMode=!this.discardMode;this.selected=undefined;this.status.setText(this.discardMode?'選擇 1 張手牌棄掉；本輪不立即補牌。':'');this.renderHand()},canDiscard||this.discardMode?0x683044:0x343640).setAlpha(canDiscard||this.discardMode?1:.45);this.handLayer.add(discardButton)
   }
 private updateUndoVisibility(){if(this.undoButton)this.undoButton.setVisible(!this.busy&&[...this.commands.values()].some(command=>command!==null))}
 private discardHandCard(card:BattleCard,fromX:number){
@@ -531,7 +544,7 @@ private applyActorOutline(a:Actor,color:number){
     const sprite=a.sprite as Phaser.GameObjects.Sprite&{postFX?:{addGlow:(color:number,outerStrength?:number,innerStrength?:number,knockout?:boolean,quality?:number,distance?:number)=>unknown}};
     // P9.1: genuine alpha-silhouette outline. It follows the active texture/pose
     // automatically and does not duplicate/offset the character image.
-    sprite.postFX?.addGlow(color,3.0,0,false,.12,7);
+    sprite.postFX?.addGlow(color,1.8,0,false,.1,4);
   }
 
 private coverStatusMessage(reason:'self'|'none'|'multiple'|'reserved'|'slow'){
@@ -645,7 +658,7 @@ private relayAlly(team:'player'|'enemy',sourceId:string){
     return [...actors.keys()].find(id=>id!==sourceId&&actors.get(id)!.alive&&!actors.get(id)!.broken)
   }
 private async resolve(){
-  this.busy=true;this.updateUndoVisibility();this.intentController.beginExecution();this.handLayer.setVisible(false);this.status.setText('');this.players.forEach(a=>{this.clearActorOutline(a);a.root.setAlpha(a.alive?1:.5);a.hud.setAlpha(a.alive?1:.25);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)});this.phase.setText('');
+  this.busy=true;this.updateUndoVisibility();this.intentController.beginExecution();this.handLayer.setVisible(false);this.timelineLayer.setAlpha(.18);this.status.setText('');this.players.forEach(a=>{this.clearActorOutline(a);a.root.setAlpha(a.alive?1:.5);a.hud.setAlpha(a.alive?1:.25);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)});this.phase.setText('');
   const {beats}=this.resolutionController.createPlan(this.timeline,this.commands),presenter=new ClashPresenter(this,this.players,this.enemies,this.combatLayer),actions=new ActionPresenter(this,this.players,this.enemies,this.combatLayer),queuedRelays=planPlayerRelayContinuations(beats),consumedRelayNodes=new Set([...queuedRelays.values()].map(command=>command.nodeId));
   let pursuitTarget='';let pursuitCount=0;
   for(const beat of beats){
@@ -713,6 +726,6 @@ private async resolve(){
   const played=this.resolutionController.committedCards(this.commands);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();
   const outcome=this.resolutionController.outcome(this.players.values(),this.enemies.values());
   if(outcome){this.handLayer.setVisible(false);this.fadeBattleMusic(.05,900);await this.outcomePresenter.show(outcome,{onRetry:()=>this.scene.restart({battlefield:this.battlefieldMode,journeyNodeId:this.journeyNodeId}),onContinue:outcome==='victory'?(this.journeyNodeId?()=>this.returnToJourney():()=>this.scene.restart({battlefield:this.nextBattlefield()})):undefined});return}
-  this.handLayer.setVisible(true);const beginNextRound=()=>{this.status.setText('');this.busy=false;this.nextRound(true)};this.time.delayedCall(140,beginNextRound);
+  this.handLayer.setVisible(true);this.timelineLayer.setAlpha(1).setVisible(true);const beginNextRound=()=>{this.status.setText('');this.busy=false;this.nextRound(true)};this.time.delayedCall(140,beginNextRound);
 }
 }
