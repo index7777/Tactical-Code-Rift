@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
 export interface FighterHudState {alive:boolean;hp:number;maxHp?:number;shield:number;tempShield?:number;balance:number;exposed:boolean;broken:boolean}
-export interface FighterHudView {root:Phaser.GameObjects.Container;hpFill:Phaser.GameObjects.Rectangle;hpEcho:Phaser.GameObjects.Rectangle;shieldFill:Phaser.GameObjects.Rectangle;balanceMarks:Phaser.GameObjects.Arc[];state:Phaser.GameObjects.Text}
+export interface FighterHudView {root:Phaser.GameObjects.Container;hpFill:Phaser.GameObjects.Rectangle;hpEcho:Phaser.GameObjects.Rectangle;shieldFill:Phaser.GameObjects.Rectangle;balanceMarks:Phaser.GameObjects.Rectangle[];state:Phaser.GameObjects.Text}
 export function fighterHudStatus(state:Pick<FighterHudState,'alive'|'broken'|'exposed'>):string{if(!state.alive)return '';return state.broken?'崩勢':state.exposed?'破綻':''}
 
 export class FighterHudPresenter{
@@ -23,10 +23,10 @@ export class FighterHudPresenter{
   }
   refresh(view:FighterHudView,state:FighterHudState,animate=true){
     view.root.setVisible(state.alive);if(!state.alive){view.state.setVisible(false);view.balanceMarks.forEach(m=>m.setVisible(false));view.hpFill.width=0;view.hpEcho.width=0;view.shieldFill.width=0;return}
-    const targetWidth=58*Phaser.Math.Clamp(state.hp,0,state.maxHp??100)/(state.maxHp??100);this.scene.tweens.killTweensOf(view.hpEcho);view.hpFill.width=targetWidth;
+    const targetWidth=54*Phaser.Math.Clamp(state.hp,0,state.maxHp??100)/(state.maxHp??100);this.scene.tweens.killTweensOf(view.hpEcho);view.hpFill.width=targetWidth;
     if(animate&&view.hpEcho.width>targetWidth)this.scene.tweens.add({targets:view.hpEcho,width:targetWidth,delay:90,duration:260,ease:'Quad.easeIn'});else view.hpEcho.width=targetWidth;
     const totalShield=state.shield+(state.tempShield??0),shieldRatio=Phaser.Math.Clamp(totalShield/24,0,1);
-    view.shieldFill.width=58*shieldRatio;
+    view.shieldFill.width=54*shieldRatio;
     view.shieldFill.setFillStyle((state.tempShield??0)>0?0xbff7ff:0x76dce7,(state.tempShield??0)>0?.96:.86);
     const stanceCount=Math.min(5,Math.ceil(state.balance/2));view.balanceMarks.forEach((mark,index)=>{const active=index<stanceCount;mark.setFillStyle(active?(state.balance<=3?0xff6478:0xd8ae4b):0x2d281d,active?1:.22);mark.setScale(state.balance<=3&&active?1.16:1)});
     const status=fighterHudStatus(state);view.state.setText(status).setBackgroundColor(state.broken?'#8f1f32':'#64304f').setVisible(Boolean(status))
