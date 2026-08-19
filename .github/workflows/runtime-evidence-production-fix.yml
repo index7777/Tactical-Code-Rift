@@ -1,0 +1,78 @@
+name: Runtime Evidence Production Fix
+
+on:
+  push:
+    branches: [fix/runtime-evidence-production]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/runtime-evidence-production
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Patch production runtime sources
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, label):
+              p=Path(path)
+              s=p.read_text(encoding='utf-8')
+              if old not in s:
+                  raise SystemExit(f'{label} marker missing in {path}')
+              p.write_text(s.replace(old,new,1),encoding='utf-8')
+
+          replace(
+              'src/presentation/scenes/BootScene.ts',
+              "pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText(`${actorId} → ${targetId}${pursuitCount>1?`｜追擊 ${pursuitCount}`:''}${flank?'｜側襲':''}`);",
+              "pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText('');",
+              'battle log'
+          )
+
+          replace(
+              'src/presentation/scenes/BootScene.ts',
+              "    // 受擊 sprite 紅閃 110ms（永久 tint 有的怪物會保留原 tint，heroine 使用 poseLocked 也會被保留）。\n    if(hpLoss>0&&a.sprite){const prev=a.sprite.tintTopLeft??0xffffff;a.sprite.setTint(0xff5060);this.time.delayedCall(110,()=>{if(!a.alive&&!deferDeath)return;if(prev===0xffffff)a.sprite.clearTint();else a.sprite.setTint(prev)})}",
+              "    // Neutral contact flash: preserve authored sprite palette.\n    if(hpLoss>0&&a.sprite){const prevAlpha=a.sprite.alpha;a.sprite.clearTint();a.sprite.setAlpha(Math.min(prevAlpha,.62));this.tweens.add({targets:a.sprite,alpha:prevAlpha,duration:110,ease:'Quad.easeOut'})}",
+              'BootScene hit tint'
+          )
+
+          for path in ['src/presentation/battle/ActionPresenter.ts','src/presentation/battle/ClashPresenter.ts']:
+              replace(
+                  path,
+                  "    if(!sprite)return;const prev=sprite.tintTopLeft??0xffffff;sprite.setTint(0xff5060);\n    this.scene.time.delayedCall(110,()=>{if(prev===0xffffff)sprite.clearTint();else sprite.setTint(prev)});",
+                  "    if(!sprite)return;const prevAlpha=sprite.alpha;sprite.clearTint();sprite.setAlpha(Math.min(prevAlpha,.62));\n    this.scene.tweens.add({targets:sprite,alpha:prevAlpha,duration:110,ease:'Quad.easeOut'});",
+                  f'{path} hit tint'
+              )
+
+          # Strong invariant: no player-facing route IDs, no damage red tint literal.
+          for path in [Path('src/presentation/scenes/BootScene.ts'),Path('src/presentation/battle/ActionPresenter.ts'),Path('src/presentation/battle/ClashPresenter.ts')]:
+              s=path.read_text(encoding='utf-8')
+              if '0xff5060' in s:
+                  raise SystemExit(f'red hit tint still present in {path}')
+          boot=Path('src/presentation/scenes/BootScene.ts').read_text(encoding='utf-8')
+          if '`${actorId} → ${targetId}' in boot:
+              raise SystemExit('internal battle route log still present')
+          PY
+      - name: Build and test patched runtime
+        run: |
+          npm ci
+          npm run build
+          npm test
+      - name: Commit patch and remove one-shot workflow
+        run: |
+          rm .github/workflows/runtime-evidence-production-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/presentation/scenes/BootScene.ts src/presentation/battle/ActionPresenter.ts src/presentation/battle/ClashPresenter.ts
+          git add -u .github/workflows/runtime-evidence-production-fix.yml
+          git commit -m "fix: remove production battle ids and red hit tint"
+          git push origin HEAD:fix/runtime-evidence-production
