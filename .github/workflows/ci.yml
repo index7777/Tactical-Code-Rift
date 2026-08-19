@@ -1,11 +1,8 @@
-name: P11.4 finalizer
+name: P11.4 finalization artifact
 
 on:
   pull_request:
     branches: [main]
-
-permissions:
-  contents: write
 
 jobs:
   finalize:
@@ -38,35 +35,16 @@ jobs:
           npm ci
           npm run build
           npm test
-      - name: Restore permanent CI definition
+      - name: Stage finalization artifact
         run: |
-          cat > .github/workflows/ci.yml <<'YAML'
-          name: CI
-
-          on:
-            pull_request:
-              branches: [main]
-            push:
-              branches: [main, feat/p11-4-integration]
-
-          jobs:
-            verify:
-              runs-on: ubuntu-latest
-              steps:
-                - uses: actions/checkout@v4
-                - uses: actions/setup-node@v4
-                  with:
-                    node-version: 20
-                    cache: npm
-                - run: npm ci
-                - run: npm run build
-                - run: npm test
-          YAML
-      - name: Commit final batch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "refactor: finalize P11.4 combat and route runtime"
-          git push origin HEAD:feat/p11-4-integration
+          mkdir -p /tmp/p11-final/src/presentation/scenes /tmp/p11-final/src/presentation/battle /tmp/p11-final/src/core/route
+          cp src/presentation/scenes/BootScene.ts /tmp/p11-final/src/presentation/scenes/BootScene.ts
+          cp src/presentation/battle/OutcomePresenter.ts /tmp/p11-final/src/presentation/battle/OutcomePresenter.ts
+          cp src/presentation/battle/OutcomeLayout.ts /tmp/p11-final/src/presentation/battle/OutcomeLayout.ts
+          cp src/presentation/battle/OutcomeLayout.test.ts /tmp/p11-final/src/presentation/battle/OutcomeLayout.test.ts
+          cp src/core/route/EncounterCatalog.test.ts /tmp/p11-final/src/core/route/EncounterCatalog.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p11-final-source
+          path: /tmp/p11-final
+          if-no-files-found: error
