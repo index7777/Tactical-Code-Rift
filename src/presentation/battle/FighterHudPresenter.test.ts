@@ -1,14 +1,4 @@
-import {beforeAll,describe,expect,it} from 'vitest';
-
-let fighterHudStatus:(state:{alive:boolean;broken:boolean;exposed:boolean})=>string;
-let fighterPostureSegments:(balance:number)=>number;
-
-beforeAll(async()=>{
-  if(!('navigator'in globalThis))Object.defineProperty(globalThis,'navigator',{value:{userAgent:'node'},configurable:true});
-  const module=await import('./FighterHudPresenter');
-  fighterHudStatus=module.fighterHudStatus;
-  fighterPostureSegments=module.fighterPostureSegments;
-});
+import{describe,expect,it}from'vitest';import{fighterHudStatus,fighterPostureSegments}from'./FighterHudPresenter';
 
 describe('FighterHudPresenter semantics',()=>{
   it('maps posture directly to the eight visible segments',()=>{
