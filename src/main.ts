@@ -3,6 +3,7 @@ import './styles.css';
 import './input-lock.css';
 import { BootScene } from './presentation/scenes/BootScene';
 import{JourneyScene}from'./presentation/scenes/JourneyScene';
+import './presentation/runtime/P11RuntimeWiring';
 
 // P11.4 compatibility guard: old battle code still contains a deprecated
 // full-sprite damage tint (0xff5060). Presentation now owns hit feedback via
