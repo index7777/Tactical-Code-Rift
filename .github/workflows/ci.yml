@@ -1,80 +1,20 @@
-name: P11.4 visible HUD QA fix
+name: CI
 
 on:
+  pull_request:
+    branches: [main]
   push:
-    branches: [feat/p11-4-integration]
-
-permissions:
-  contents: write
+    branches: [main, feat/p11-4-integration]
 
 jobs:
-  patch:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: feat/p11-4-integration
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Apply HUD ownership cleanup
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('src/presentation/scenes/BootScene.ts')
-          s=p.read_text(encoding='utf-8')
-          s=s.replace('this.status.setText(', 'this.setStatus(')
-          old="""private hud(){
-              this.phase=this.add.text(22,9,'',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#cbe9ee'}).setVisible(false);
-              this.hudLayer.add(this.phase);
-              // P11.1: compact context ribbon. Validation feedback must be visible at
-              // decision time, but it should not become a permanent combat log.
-              this.status=this.add.text(640,551,'',{fontFamily:'sans-serif',fontSize:'11px',fontStyle:'bold',color:'#e7f6f8',backgroundColor:'#07131bdd',padding:{x:10,y:5}}).setOrigin(.5).setDepth(82).setVisible(true);
-              this.hudLayer.add(this.button(1015,612,130,'結束規劃',()=>this.nextRound(),0x285c67));
-              this.hudLayer.add(this.button(1015,654,130,'跳過',()=>this.skip(),0x4d5364));
-              this.undoButton=this.button(1155,654,105,'上一步',()=>this.undoCommand(),0x343b49).setVisible(false);this.hudLayer.add(this.undoButton)
-            }
-          """
-          new="""private hud(){
-              this.phase=this.add.text(22,9,'',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#cbe9ee'}).setVisible(false);
-              this.hudLayer.add(this.phase);
-              // Single context ribbon: validation/prompts only. Keep it below the timeline and
-              // outside the hand/card dock so it never becomes a second battle log.
-              this.status=this.add.text(640,102,'',{fixedWidth:420,align:'center',fontFamily:'sans-serif',fontSize:'11px',fontStyle:'bold',color:'#e7f6f8',backgroundColor:'#07131bcc',padding:{x:10,y:5}}).setOrigin(.5).setDepth(82).setVisible(false);
-              this.hudLayer.add(this.button(1015,612,130,'結束規劃',()=>this.nextRound(),0x285c67));
-              this.hudLayer.add(this.button(1015,654,130,'跳過',()=>this.skip(),0x4d5364));
-              this.undoButton=this.button(1155,654,105,'上一步',()=>this.undoCommand(),0x343b49).setVisible(false);this.hudLayer.add(this.undoButton)
-            }
-          private setStatus(message:string){this.status.setText(message).setVisible(Boolean(message))}
-          """
-          if old in s:
-              s=s.replace(old,new,1)
-          elif 'private setStatus(message:string)' not in s:
-              raise SystemExit('hud marker missing')
-          s=s.replace('private setStatus(message:string){this.setStatus(message).setVisible(Boolean(message))}','private setStatus(message:string){this.status.setText(message).setVisible(Boolean(message))}')
-          s=s.replace("    this.phase.setText(`${this.commands.size+1}/${this.planning.length}  ${n.actorId}`);","    this.phase.setText('');")
-          p.write_text(s,encoding='utf-8')
-          PY
-      - name: Audit visible HUD ownership
-        run: |
-          ! grep -n -E 'drawCommandSlots|setTint\(0xff5060\)|PA →|EA →|actorId} →|commands.size\+1.*n.actorId' src/presentation/scenes/BootScene.ts
-          grep -q "this.status=this.add.text(640,102" src/presentation/scenes/BootScene.ts
-          grep -q "private setStatus(message:string)" src/presentation/scenes/BootScene.ts
-      - name: Build and test
-        run: |
-          npm ci
-          npm run build
-          npm test
-      - name: Commit source batch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/presentation/scenes/BootScene.ts
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "fix: clean battle HUD information ownership"
-          git push origin HEAD:feat/p11-4-integration
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
