@@ -8,6 +8,15 @@ const colors:Record<StoryNodeType,number>={departure:0x477889,battle:0x496f7c,ev
 const enemyNames:Record<string,string>={
   'wet-corpse':'濡骸','lantern-child':'提燈童','mountain-hound':'山犬','wayfarer-umbrella':'辻傘','noose-ghost':'縊鬼','lost-monk':'迷途僧','rain-warrior':'雨夜武者','rain-boss':'站守',
 };
+const routeCopy:Record<StoryNodeType,string>={
+  departure:'列車自人界駛入雨暮山線。',
+  battle:'前方殺生線正在收束。',
+  event:'沿線傳來異常動靜，旅途可能因此改變。',
+  exploration:'離車探索雨暮山道，尋找線索與補給。',
+  companion:'有人正在前方等待黃泉列車。',
+  elite:'前方有強烈殺意盤踞。',
+  boss:'終點站的氣息正從雨幕深處逼近。',
+};
 
 export class JourneyScene extends Phaser.Scene{
   private journeyMusic?:Phaser.Sound.BaseSound;private loopTimer?:Phaser.Time.TimerEvent;private leavingMap=false;
@@ -66,11 +75,11 @@ export class JourneyScene extends Phaser.Scene{
   private showNodePreview(node:StoryRouteNode){
     const encounter=storyEncounter(node.id),accent=node.type==='boss'?0xc64c5a:node.type==='elite'?0xd09b54:0x77b9c4;
     this.previewAccent?.setFillStyle(accent,.95);
-    this.previewTitle?.setText(encounter?.title??`${labels[node.type]}・${node.id}`);
+    this.previewTitle?.setText(encounter?.title??labels[node.type]);
     if(encounter){
       const enemies=encounter.enemies.map(id=>enemyNames[id]??id).join('・');
       this.previewBody?.setText(`敵群　${enemies}\n場景　${encounter.battlefield==='rooftop'?'列車車頂':encounter.battlefield==='wayside'?'沿線停靠':'離車山道'}`)
-    }else this.previewBody?.setText(node.type==='departure'?'列車自人界駛入雨暮山線。':'此節點目前不包含戰鬥內容。');
+    }else this.previewBody?.setText(routeCopy[node.type]);
   }
   private selectNode(state:JourneyState,nodeId:string,x:number,y:number){
     const next=moveJourney(state,nodeId);this.registry.set('journey-state',next);const node=next.route.nodes.find(n=>n.id===nodeId)!,train=this.children.list.find(o=>o.getData('train'))as Phaser.GameObjects.Image;
