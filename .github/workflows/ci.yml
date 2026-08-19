@@ -4,103 +4,17 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [feat/p11-4-integration]
-
-permissions:
-  contents: write
+    branches: [main, feat/p11-4-integration]
 
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: feat/p11-4-integration
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - name: Apply runtime evidence fix
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('src/presentation/scenes/BootScene.ts')
-          s=p.read_text(encoding='utf-8')
-
-          old="private setStatus(message:string){this.status.setText(message).setVisible(Boolean(message))}"
-          new="private setStatus(message:string){const safe=/\\b[PE][A-D]\\b/.test(message)?'':message;this.status.setText(safe).setVisible(Boolean(safe))}"
-          if old not in s and new not in s:
-              raise SystemExit('setStatus marker missing')
-          s=s.replace(old,new,1)
-
-          tint="    // 沒有母版時保留原本 tint 差異化剪影；有母版則不 tint 以保留原色。\n    if(f.team==='enemy'&&!hasMasterTexture)sprite.setTint(f.archetype==='swift'?0xd9e7ee:f.archetype==='crusher'?0xc6a69c:f.archetype==='wet-corpse'?0xb9bec0:f.archetype==='lantern-child'?0xd8a348:f.archetype==='mountain-hound'?0x46545a:f.archetype==='wayfarer-umbrella'?0x82606d:f.archetype==='noose-ghost'?0x9eb5b8:f.archetype==='lost-monk'?0x89928d:f.archetype==='rain-warrior'?0x596b73:0x745b7f);\n"
-          replacement="    // Enemy sprites always preserve authored texture colors; fallback silhouettes are never full-sprite tinted.\n"
-          if tint in s:
-              s=s.replace(tint,replacement,1)
-          elif replacement not in s:
-              raise SystemExit('enemy fallback tint marker missing')
-
-          old_refresh="private refreshActor(a:Actor){\n    this.fighterHud.refresh(a.hudView,a)\n  }"
-          new_refresh="private refreshActor(a:Actor){\n    if([...this.enemies.values()].includes(a)){a.sprite.clearTint();const fx=a.sprite as Phaser.GameObjects.Sprite&{postFX?:{clear:()=>void}};fx.postFX?.clear()}\n    this.fighterHud.refresh(a.hudView,a)\n  }"
-          if old_refresh in s:
-              s=s.replace(old_refresh,new_refresh,1)
-          elif new_refresh not in s:
-              raise SystemExit('refreshActor marker missing')
-
-          p.write_text(s,encoding='utf-8')
-          PY
-      - name: Audit runtime evidence invariants
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-          boot=Path('src/presentation/scenes/BootScene.ts').read_text(encoding='utf-8')
-          assert "sprite.setTint(f.archetype" not in boot
-          assert "a.sprite.clearTint()" in boot
-          assert "const safe=/\\b[PE][A-D]\\b/" in boot
-          offenders=[]
-          for path in Path('src').rglob('*.ts'):
-              text=path.read_text(encoding='utf-8')
-              for no,line in enumerate(text.splitlines(),1):
-                  if '→' in line and ('actorId' in line or 'targetId' in line or re.search(r'\\b[PE][A-D]\\b',line)):
-                      offenders.append(f'{path}:{no}:{line.strip()}')
-          if offenders:
-              raise SystemExit('player-facing actor-id route text remains:\n'+'\n'.join(offenders))
-          PY
-      - name: Build and test exact patched source
-        run: |
-          npm ci
-          npm run build
-          npm test
-      - name: Restore verification-only CI and remove one-shot tool
-        run: |
-          cat > .github/workflows/ci.yml <<'EOF'
-          name: CI
-
-          on:
-            pull_request:
-              branches: [main]
-            push:
-              branches: [main, feat/p11-4-integration]
-
-          jobs:
-            verify:
-              runs-on: ubuntu-latest
-              steps:
-                - uses: actions/checkout@v4
-                - uses: actions/setup-node@v4
-                  with:
-                    node-version: 20
-                    cache: npm
-                - run: npm ci
-                - run: npm run build
-                - run: npm test
-          EOF
-          rm -f .github/workflows/runtime-evidence-fix.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/presentation/scenes/BootScene.ts .github/workflows/ci.yml
-          git add -u .github/workflows/runtime-evidence-fix.yml || true
-          git commit -m "fix: enforce public battle UI invariants"
-          git push origin HEAD:feat/p11-4-integration
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
