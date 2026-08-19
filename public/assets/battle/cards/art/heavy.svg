@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="224" height="190" viewBox="0 0 224 190">
-<defs><radialGradient id="r" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#ffd27d" stop-opacity=".22"/><stop offset="1" stop-color="#4b2b20" stop-opacity="0"/></radialGradient></defs>
-<rect width="224" height="190" fill="#4b2b20"/><circle cx="112" cy="92" r="82" fill="url(#r)"/>
-<g fill="none" stroke="#ffd27d" stroke-linecap="round" stroke-linejoin="round"><path d="M30 166 L196 32" stroke-width="16" opacity=".22"/><path d="M30 166 L196 32" stroke-width="6" opacity=".95"/><path d="M62 170 L210 64" stroke-width="3" opacity=".75"/></g>
-<g fill="#ffffff" opacity=".9"><circle cx="112" cy="94" r="5"/><circle cx="184" cy="38" r="2"/><circle cx="46" cy="46" r="2"/></g>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2a1a12"/><stop offset="1" stop-color="#100b08"/></linearGradient><radialGradient id="g" cx="52%" cy="50%" r="62%"><stop stop-color="#ffc96f" stop-opacity=".34"/><stop offset="1" stop-color="#ffc96f" stop-opacity="0"/></radialGradient><filter id="blur"><feGaussianBlur stdDeviation="6"/></filter></defs>
+<rect width="224" height="190" rx="10" fill="url(#bg)"/><circle cx="116" cy="96" r="86" fill="url(#g)"/><g opacity=".18" stroke="#d6a65f" fill="none"><path d="M20 34 H204 M20 154 H204"/><path d="M38 26 L38 166 M186 26 L186 166"/></g>
+<path d="M22 170 L194 24" stroke="#ffc96f" stroke-width="34" opacity=".16" stroke-linecap="round" filter="url(#blur)"/><path d="M22 170 L194 24" stroke="#ffe8b5" stroke-width="12" stroke-linecap="round"/><path d="M54 174 L206 72" stroke="#d38b3a" stroke-width="4" stroke-linecap="round" opacity=".9"/>
+<g fill="#ffe8b5" opacity=".9"><path d="M160 32 l34 -10 -16 28 z"/><path d="M70 128 l15 -5 -8 13 z"/><circle cx="112" cy="96" r="6"/></g>
 </svg>
