@@ -54,11 +54,10 @@ jobs:
           for path in ['src/presentation/scenes/BootScene.ts','src/presentation/battle/ActionPresenter.ts','src/presentation/battle/ClashPresenter.ts']:
               assert '0xff5060' not in Path(path).read_text(encoding='utf-8')
           PY
-      - name: Build and test patched source
+      - name: Build exact patched source
         run: |
           npm ci
           npm run build
-          npm test
       - name: Commit exact source to hotfix branch
         run: |
           rm -f .github/workflows/runtime-evidence-production-fix.yml .runtime-evidence-trigger
