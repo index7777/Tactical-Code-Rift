@@ -495,16 +495,11 @@ private showCardTooltip(card:BattleCard,_x:number,invalid?:string){
     rows.forEach((r,i)=>{const yy=-h+36+i*15;if(this.textures.exists(`card-icon-${r.icon}`))tip.add(this.add.image(-79,yy,`card-icon-${r.icon}`).setDisplaySize(11,11).setTint(p.accent));tip.add(this.add.text(-65,yy,r.text,{fontFamily:'sans-serif',fontSize:'9px',color:'#dce8ec'}).setOrigin(0,.5))});
     if(invalid)tip.add(this.add.text(0,-7,`! ${invalid}`,{fontFamily:'sans-serif',fontSize:'9px',fontStyle:'bold',color:'#ffb0be',backgroundColor:'#4b1724',padding:{x:6,y:3}}).setOrigin(.5,1));
   }
-private drawCommandSlots(){
-    const nodes=this.planning;const start=430,gap=86;
-    nodes.forEach((node,i)=>{const cmd=this.commands.get(node.id),x=start+i*gap,y=565,name=this.actorDisplayName('player',node.actorId),portrait=`portrait-${this.playerPortraitBase(node.actorId)}-timeline`;const c=this.add.container(x,y).setDepth(28);this.handLayer.add(c);const bg=this.add.graphics();bg.fillStyle(cmd?0x10242d:0x071017,cmd ? .98 : .72).fillRoundedRect(-38,-14,76,28,7);bg.lineStyle(1,cmd?0x6ed9e7:0x43535b,cmd ? .92 : .34).strokeRoundedRect(-38,-14,76,28,7);c.add(bg);c.add(this.add.circle(-25,0,10,0x02070b,.96).setStrokeStyle(1,cmd?0xffdf87:0x60737c,cmd ? .9 : .45));if(this.textures.exists(portrait))c.add(this.add.image(-25,0,portrait).setDisplaySize(17,17));c.add(this.add.text(-11,-5,name,{fixedWidth:45,fontFamily:'serif',fontSize:'9px',fontStyle:'bold',color:cmd?'#ffffff':'#83969e'}).setOrigin(0,.5));if(cmd)c.add(this.add.text(-11,6,cmd.card.name,{fixedWidth:44,fontFamily:'sans-serif',fontSize:'7px',fontStyle:'bold',color:'#9feefa'}).setOrigin(0,.5));else c.add(this.add.text(-11,6,'待命',{fontFamily:'sans-serif',fontSize:'7px',color:'#53656d'}).setOrigin(0,.5))})
-  }
 private renderHand(){
     this.clearCardTooltip();this.handLayer.removeAll(true);
     const assigned=new Set([...this.commands.values()].filter((x):x is PlayerCommand=>Boolean(x)).map(x=>x.card.instanceId));
     const cards=this.deck.hand.filter(c=>!assigned.has(c.instanceId)).slice(0,this.visibleHandCount);
     const dock=this.add.graphics();dock.fillStyle(0x03080d,.95).fillRect(0,580,1280,140);dock.fillStyle(0x0a171e,.86).fillRect(0,580,1280,2);dock.lineStyle(1,0x8ba0a8,.22).lineBetween(0,580,1280,580);dock.lineStyle(1,0x7f5932,.18).lineBetween(184,592,184,704);this.handLayer.add(dock);
-    this.drawCommandSlots();
     const gap=126,start=700-(cards.length-1)*gap/2;
     cards.forEach((card,i)=>{
       const selected=isCardSelected(this.selected,card),invalid=this.cardInvalidReason(card),x=start+i*gap,baseY=selected?632:644,p=this.cardPalette(card);const group=this.add.container(x,baseY).setDepth(selected?31:25);this.handLayer.add(group);
