@@ -1,8 +1,3 @@
-export type NodeType='battle'|'event'|'treasure'|'shop'|'elite'|'boss';
-export interface RouteNode{index:number;type:NodeType}
-const weightedPool:NodeType[]=[...Array<NodeType>(40).fill('battle'),...Array<NodeType>(25).fill('event'),...Array<NodeType>(15).fill('treasure'),...Array<NodeType>(12).fill('shop'),...Array<NodeType>(8).fill('elite')];
-export function generatePrototypeRoute(length:number,random=Math.random):RouteNode[]{if(!Number.isInteger(length)||length<5||length>7)throw new RangeError('Prototype route length must be an integer from 5 to 7.');const types:NodeType[]=[];for(let index=0;index<length-2;index+=1){let candidate=weightedPool[Math.floor(random()*weightedPool.length)]??'battle';if(candidate==='shop'&&types.at(-1)==='shop')candidate='battle';types.push(candidate)}types.push('elite','boss');return types.map((type,index)=>({index,type}))}
-
 export type StoryNodeType='departure'|'battle'|'event'|'exploration'|'companion'|'elite'|'boss';
 export interface StoryRouteNode{id:string;column:number;lane:number;type:StoryNodeType;nextIds:string[];implemented:boolean}
 export interface StoryRoute{nodes:StoryRouteNode[];startId:string;bossId:string}
