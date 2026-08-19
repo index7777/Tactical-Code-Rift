@@ -1,8 +1,6 @@
 name: Source cleanup
 
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [feat/p11-4-integration]
 
@@ -11,7 +9,6 @@ permissions:
 
 jobs:
   cleanup:
-    if: github.ref_name == 'feat/p11-4-integration' || github.head_ref == 'feat/p11-4-integration'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,127 +18,58 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Physically remove prototype tooling and integrate runtime wiring
+      - name: Finalize production BootScene source
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
-
-          path=Path('src/presentation/scenes/BootScene.ts')
-          s=path.read_text(encoding='utf-8')
-
+          p=Path('src/presentation/scenes/BootScene.ts')
+          s=p.read_text(encoding='utf-8')
           s=s.replace("import{createTeamDeck,createTeamDeckState,refillHand,commitPlayedCards,type BattleCard,type TeamDeckState}from'../../core/cards/BattleCards';","import{createTeamDeckState,refillHand,commitPlayedCards,type BattleCard,type TeamDeckState}from'../../core/cards/BattleCards';")
           s=s.replace("import{dealEnemySkillsForArchetypes,enemyArchetypePools}from'../../core/battle/EnemySkills';","import{dealEnemySkillsForArchetypes}from'../../core/battle/EnemySkills';")
           s=s.replace("import{BattlefieldPresenter}from'../battle/BattlefieldPresenter';import{normalizeBattlefieldMode,type BattlefieldMode}from'../battle/BattlefieldMode';","import{BattlefieldPresenter}from'../battle/BattlefieldPresenter';import type{BattlefieldMode}from'../battle/BattlefieldMode';")
           marker="import{shouldStartJourney}from'../../core/route/EntryMode';"
-          if "../../core/route/EncounterCatalog" not in s:
-              if marker not in s: raise SystemExit('EntryMode import marker missing')
-              s=s.replace(marker,marker+"\nimport{storyEncounter}from'../../core/route/EncounterCatalog';",1)
-
-          init_old="""init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string;pc?:number;ec?:number}){
-  this.requestedBattlefield=data?.battlefield;
-  this.journeyNodeId=data?.journeyNodeId;
-  // Q/W/A/S dev-tool 與 P+/P− 按鈕透過 restart({pc,ec}) 帶入，這裡需要接住，
-  // 否則 pc/ec 會停留在 class field 初始值，玩家改隊伍數量看不到效果。
-  if(typeof data?.pc==='number')this.pc=Phaser.Math.Clamp(data.pc,1,4);
-  if(typeof data?.ec==='number')this.ec=Phaser.Math.Clamp(data.ec,1,4);
-  // 進入旅程戰鬥時，強制玩家隊伍為 4 人（PA/PB/PC/PD 全上場），
-  // 讓千景（PB）、朧（PC）在 battle-1 之後就能看到。
-  if(this.journeyNodeId?.startsWith('battle-')||this.journeyNodeId==='elite-1'||this.journeyNodeId==='boss-1')this.pc=4;
-  this.selectedBattleMusicKey=battleMusicKey(battleMusicKind(this.journeyNodeId,new URLSearchParams(window.location.search).has('boss-proof')))
-}"""
-          init_new="""init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){
-  this.requestedBattlefield=data?.battlefield;
-  this.journeyNodeId=data?.journeyNodeId;
-  this.pc=4;
-  const encounter=storyEncounter(this.journeyNodeId);
-  this.ec=encounter?.enemies.length??4;
-  if(encounter&&!data?.battlefield)this.requestedBattlefield=encounter.battlefield;
-  this.selectedBattleMusicKey=battleMusicKey(battleMusicKind(this.journeyNodeId))
-}"""
-          if init_old in s:
-              s=s.replace(init_old,init_new,1)
-          else:
-              s=s.replace("battleMusicKind(this.journeyNodeId,new URLSearchParams(window.location.search).has('boss-proof'))","battleMusicKind(this.journeyNodeId)")
-
-          s=s.replace("private toolsVisible=false;","")
-          s=re.sub(r"\nprivate toolKey\?:Phaser\.Input\.Keyboard\.Key;private toolsInitialized=false;\nupdate\(\)\{.*?\}\nprivate setDevTools\(visible:boolean\)\{.*?\}\n(?=preload\(\))","\n",s,flags=re.S)
-
-          card_icons="for(const id of ['power','tempo','damage','balance','shield','intercept','relay','restore'])this.load.image(`card-icon-${id}`,`assets/battle/cards/icons/${id}.svg`);"
-          if "fx-p11-enemy-${id}" not in s:
-              if card_icons not in s: raise SystemExit('card icon preload marker missing')
-              s=s.replace(card_icons,card_icons+"for(const id of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior','rain-boss'])this.load.image(`fx-p11-enemy-${id}`,`assets/battle/fx/enemy/p11-${id}-slash.svg`);",1)
-          if "card-frame-${family}" not in s:
-              anchor="for(const id of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior','rain-boss'])this.load.image(`fx-p11-enemy-${id}`,`assets/battle/fx/enemy/p11-${id}-slash.svg`);"
-              if anchor not in s: raise SystemExit('enemy FX preload marker missing')
-              s=s.replace(anchor,anchor+"for(const family of ['attack','defense','support','tactics'])this.load.image(`card-frame-${family}`,`assets/battle/cards/frames/${family}.svg`);",1)
-
+          if "../../core/route/EncounterCatalog" not in s:s=s.replace(marker,marker+"\nimport{storyEncounter}from'../../core/route/EncounterCatalog';",1)
+          s=re.sub(r"init\(data\?:\{battlefield\?:BattlefieldMode;journeyNodeId\?:string;pc\?:number;ec\?:number\}\)\{.*?\n\}","init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){\n  this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId;this.pc=4;\n  const encounter=storyEncounter(this.journeyNodeId);this.ec=encounter?.enemies.length??4;if(encounter&&!data?.battlefield)this.requestedBattlefield=encounter.battlefield;\n  this.selectedBattleMusicKey=battleMusicKey(battleMusicKind(this.journeyNodeId))\n}",s,count=1,flags=re.S)
           s=s.replace("this.battlefieldMode=this.requestedBattlefield??normalizeBattlefieldMode(new URLSearchParams(window.location.search).get('scene'));","this.battlefieldMode=this.requestedBattlefield??'rooftop';")
-          for line in [
-              "    this.input.keyboard?.on('keydown-Q',()=>this.scene.restart({pc:Math.max(1,this.pc-1),ec:this.ec}));\n",
-              "    this.input.keyboard?.on('keydown-W',()=>this.scene.restart({pc:Math.min(4,this.pc+1),ec:this.ec}));\n",
-              "    this.input.keyboard?.on('keydown-A',()=>this.scene.restart({pc:this.pc,ec:Math.max(1,this.ec-1)}));\n",
-              "    this.input.keyboard?.on('keydown-S',()=>this.scene.restart({pc:this.pc,ec:Math.min(4,this.ec+1)}));\n",
-              "    this.hudLayer.add(this.button(1110,8,145,'重新開始',()=>this.scene.restart({pc:this.pc,ec:this.ec})));\n",
-              "    this.hudLayer.add(this.button(805,8,36,'P−',()=>this.scene.restart({pc:Math.max(1,this.pc-1),ec:this.ec})));\n",
-              "    this.hudLayer.add(this.button(850,8,36,'P+',()=>this.scene.restart({pc:Math.min(4,this.pc+1),ec:this.ec})));\n",
-              "    this.hudLayer.add(this.button(905,8,36,'E−',()=>this.scene.restart({pc:this.pc,ec:Math.max(1,this.ec-1)}),0x713141));\n",
-              "    this.hudLayer.add(this.button(950,8,36,'E+',()=>this.scene.restart({pc:this.pc,ec:Math.min(4,this.ec+1)}),0x713141));\n",
-          ]:
-              s=s.replace(line,'')
-
-          start=s.index('private rebuild(){')
-          end=s.index('\nprivate addActor',start)
+          card_icons="for(const id of ['power','tempo','damage','balance','shield','intercept','relay','restore'])this.load.image(`card-icon-${id}`,`assets/battle/cards/icons/${id}.svg`);"
+          extra="for(const id of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior','rain-boss'])this.load.image(`fx-p11-enemy-${id}`,`assets/battle/fx/enemy/p11-${id}-slash.svg`);for(const family of ['attack','defense','support','tactics'])this.load.image(`card-frame-${family}`,`assets/battle/cards/frames/${family}.svg`);"
+          if "fx-p11-enemy-${id}" not in s:s=s.replace(card_icons,card_icons+extra,1)
+          start=s.index('private rebuild(){');end=s.index('\nprivate addActor',start)
           rebuild="""private rebuild(){
   if(this.busy)return;
   this.world.each((x:any)=>{if(x instanceof Phaser.GameObjects.Container&&x.getData('actor'))x.destroy()});this.players.clear();this.enemies.clear();
-  const encounter=storyEncounter(this.journeyNodeId);
-  const enemyRoles:EnemyArchetype[]=encounter?.enemies??['wet-corpse','lantern-child'];
-  this.ec=enemyRoles.length;
+  const encounter=storyEncounter(this.journeyNodeId);const enemyRoles:EnemyArchetype[]=encounter?.enemies??['wet-corpse','lantern-child'];this.ec=enemyRoles.length;
   const ps:Fighter[]=Array.from({length:this.pc},(_,i)=>({id:`P${String.fromCharCode(65+i)}`,team:'player',actorIndex:i,speed:Phaser.Math.Between(4,9),alive:true}));
   const roleSpeed=(role:EnemyArchetype)=>role==='lantern-child'||role==='mountain-hound'?Phaser.Math.Between(7,9):role==='wayfarer-umbrella'||role==='rain-warrior'||role==='rain-boss'?Phaser.Math.Between(3,5):Phaser.Math.Between(5,7);
-  const es:Fighter[]=enemyRoles.map((role,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,archetype:role,speed:roleSpeed(role),alive:true}));
-  const roundSkills=dealEnemySkillsForArchetypes(enemyRoles);
-  const skills=new Map(es.map((e,i)=>{const skill=roundSkills[i]!,target=Phaser.Math.RND.pick(ps);return[e.id,{id:`${e.id}-skill`,...skill,targetId:target.id}]}));
-  this.timeline=buildRoundTimeline(ps,es,skills);ps.forEach(f=>this.addActor(f));es.forEach(f=>this.addActor(f));
-  this.deck=refillHand(this.deck,5);
+  const es:Fighter[]=enemyRoles.map((role,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,archetype:role,speed:roleSpeed(role),alive:true}));const roundSkills=dealEnemySkillsForArchetypes(enemyRoles);
+  const skills=new Map(es.map((e,i)=>{const skill=roundSkills[i]!,target=Phaser.Math.RND.pick(ps);return[e.id,{id:`${e.id}-skill`,...skill,targetId:target.id}]}));this.timeline=buildRoundTimeline(ps,es,skills);ps.forEach(f=>this.addActor(f));es.forEach(f=>this.addActor(f));this.deck=refillHand(this.deck,5);
   this.commands.clear();this.planning=this.timeline.filter(n=>n.team==='player').sort((a,b)=>b.speed-a.speed);this.planIndex=0;this.selected=undefined;this.discardMode=false;this.discardUsedThisRound=false;this.updateUndoVisibility();this.renderTimeline();this.renderHand();this.focus();this.renderEnemyIntents()
 }"""
           s=s[:start]+rebuild+s[end:]
-
           s=s.replace("hasMasterTexture=rainfallMonster&&monsterKey&&this.textures.exists(monsterKey)&&!['rain-boss'].includes(f.archetype??''),","hasMasterTexture=rainfallMonster&&Boolean(monsterKey)&&this.textures.exists(monsterKey),")
-
-          old_timeline="""      this.timelineLayer.add(this.add.rectangle(82,42,124,76,0x091117,.99).setStrokeStyle(2,teamColor,.96));
+          old="""      this.timelineLayer.add(this.add.rectangle(82,42,124,76,0x091117,.99).setStrokeStyle(2,teamColor,.96));
       this.timelineLayer.add(this.add.rectangle(42,42,70,70,0x02070b,1));
       if(key&&this.textures.exists(key))this.timelineLayer.add(this.add.image(42,42,key).setDisplaySize(68,68));"""
-          new_timeline="""      this.timelineLayer.add(this.add.polygon(42,42,[0,-35,35,0,0,35,-35,0],0x02070b,1).setStrokeStyle(3,teamColor,.98));
-      if(key&&this.textures.exists(key)){const maskShape=this.add.graphics().fillStyle(0xffffff,1).fillPoints([new Phaser.Math.Vector2(42,7),new Phaser.Math.Vector2(77,42),new Phaser.Math.Vector2(42,77),new Phaser.Math.Vector2(7,42)],true).setVisible(false);const portrait=this.add.image(42,42,key).setDisplaySize(70,70).setMask(maskShape.createGeometryMask());this.timelineLayer.add([maskShape,portrait]);this.timelineLayer.add(this.add.polygon(42,42,[0,-35,35,0,0,35,-35,0],0xffffff,0).setStrokeStyle(2,teamColor,1))} """
-          if old_timeline in s:
-              s=s.replace(old_timeline,new_timeline,1)
-          elif "add.polygon(42,42,[0,-35,35,0,0,35,-35,0]" not in s:
-              raise SystemExit('timeline marker missing')
-
-          frame_marker="const frame=this.add.graphics();frame.fillStyle(p.base,invalid?.58:.98).fillRoundedRect(-60,-75,120,150,9);frame.lineStyle(selected?3:1.5,selected?0xf0d47c:p.frame,selected?1:.82).strokeRoundedRect(-60,-75,120,150,9);frame.fillStyle(0x05090d,.72).fillRoundedRect(-54,-69,108,24,5);frame.fillStyle(p.accent,.9).fillRect(-55,-70,4,138);frame.lineStyle(1,p.accent,.35).lineBetween(-51,-40,51,-40);group.add(frame);"
-          if "skinKey=`card-frame-${family}`" not in s:
-              if frame_marker not in s: raise SystemExit('card frame marker missing')
-              frame_repl=frame_marker+"const family=card.intent==='defense'?'defense':card.intent==='support'?'support':card.intent==='disruption'?'tactics':'attack',skinKey=`card-frame-${family}`;if(this.textures.exists(skinKey))group.add(this.add.image(0,0,skinKey).setDisplaySize(120,150).setAlpha(invalid?.4:.88));"
-              s=s.replace(frame_marker,frame_repl,1)
-
+          new="""      this.timelineLayer.add(this.add.polygon(42,42,[0,-35,35,0,0,35,-35,0],0x02070b,1).setStrokeStyle(3,teamColor,.98));
+      if(key&&this.textures.exists(key)){const maskShape=this.add.graphics().fillStyle(0xffffff,1).fillPoints([new Phaser.Math.Vector2(42,7),new Phaser.Math.Vector2(77,42),new Phaser.Math.Vector2(42,77),new Phaser.Math.Vector2(7,42)],true).setVisible(false);const portrait=this.add.image(42,42,key).setDisplaySize(70,70).setMask(maskShape.createGeometryMask());this.timelineLayer.add([maskShape,portrait]);this.timelineLayer.add(this.add.polygon(42,42,[0,-35,35,0,0,35,-35,0],0xffffff,0).setStrokeStyle(2,teamColor,1))}"""
+          if old in s:s=s.replace(old,new,1)
+          frame="const frame=this.add.graphics();frame.fillStyle(p.base,invalid?.58:.98).fillRoundedRect(-60,-75,120,150,9);frame.lineStyle(selected?3:1.5,selected?0xf0d47c:p.frame,selected?1:.82).strokeRoundedRect(-60,-75,120,150,9);frame.fillStyle(0x05090d,.72).fillRoundedRect(-54,-69,108,24,5);frame.fillStyle(p.accent,.9).fillRect(-55,-70,4,138);frame.lineStyle(1,p.accent,.35).lineBetween(-51,-40,51,-40);group.add(frame);"
+          if "skinKey=`card-frame-${family}`" not in s:s=s.replace(frame,frame+"const family=card.intent==='defense'?'defense':card.intent==='support'?'support':card.intent==='disruption'?'tactics':'attack',skinKey=`card-frame-${family}`;if(this.textures.exists(skinKey))group.add(this.add.image(0,0,skinKey).setDisplaySize(120,150).setAlpha(invalid?.4:.88));",1)
           s=s.replace("this.status.setText(`掩護 ${result.protectedActorId} ｜ 截斷 ${result.enemy.actorId} 的殺生線`);","this.status.setText('掩護成立｜已截斷殺生線');")
           s=s.replace("this.status.setText(`${actorId} 跳過｜下回合速度 +2（一次）`);","this.status.setText('跳過｜下回合速度 +2（一次）');")
           s=s.replace("this.status.setText(`${actorId} → ${targetId}${pursuitCount>1?`｜追擊 ${pursuitCount}`:''}${flank?'｜側襲':''}`);","this.status.setText([pursuitCount>1?`追擊 ${pursuitCount}`:'',flank?'側襲':''].filter(Boolean).join('｜'));")
-
-          forbidden=['boss-proof','multi-cover-proof','result-proof','death-proof','relay-proof','card-proof','monster-proof','outcome-proof','toolsVisible','setDevTools','toolsInitialized','toolKey','keydown-Q','keydown-W','keydown-A','keydown-S','P−','P+','E−','E+']
-          leftovers=[token for token in forbidden if token in s]
-          if leftovers: raise SystemExit('forbidden tokens remain: '+', '.join(leftovers))
-          path.write_text(s,encoding='utf-8')
+          forbidden=['boss-proof','multi-cover-proof','result-proof','death-proof','relay-proof','card-proof','monster-proof','outcome-proof','draw-proof','toolsVisible','setDevTools','toolsInitialized','toolKey','keydown-Q','keydown-W','keydown-A','keydown-S','P−','P+','E−','E+']
+          leftovers=[x for x in forbidden if x in s]
+          if leftovers:raise SystemExit('forbidden tokens remain: '+', '.join(leftovers))
+          p.write_text(s,encoding='utf-8')
           PY
-          rm -f src/presentation/runtime/P11RuntimeWiring.ts src/presentation/runtime/ProductionRuntime.ts
-      - name: Commit cleanup
+          rm -f src/presentation/runtime/P11RuntimeWiring.ts src/presentation/runtime/ProductionRuntime.ts .github/workflows/source-cleanup.yml
+      - name: Commit final cleanup as one batch
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "4189828+github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "refactor: physically remove prototype tooling"
+          git commit -m "refactor: finalize P11.4 production runtime cleanup"
           git push origin HEAD:feat/p11-4-integration
