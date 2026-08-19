@@ -235,7 +235,7 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
     const count=focused?12:9;
     const streaks=Array.from({length:count},()=>{const bar=this.add.rectangle(0,0,focused?18:13,focused?2.2:1.5,color,alpha*(focused?.72:.5)).setDepth(34).setData('intent',true);this.intentLayer.add(bar);return bar});
     const duration=focused?1500:2100;
-    const tween=this.tweens.addCounter({from:0,to:1,duration,delay,repeat:-1,ease:'Linear',onUpdate:t=>{const phase=t.getValue();streaks.forEach((bar,i)=>{if(!bar.active)return;const u=(phase+i/count)%1,p=curve.getPoint(u),ahead=curve.getPoint(Math.min(.999,u+.008));bar.setPosition(p.x,p.y).setRotation(Phaser.Math.Angle.Between(p.x,p.y,ahead.x,ahead.y));const edge=Math.min(1,u*8,(1-u)*8);bar.setAlpha(alpha*(focused?.72:.5)*Math.max(.12,edge))})}});
+    const tween=this.tweens.addCounter({from:0,to:1,duration,delay,repeat:-1,ease:'Linear',onUpdate:t=>{const phase=t.getValue() ?? 0;streaks.forEach((bar,i)=>{if(!bar.active)return;const u=(phase+i/count)%1,p=curve.getPoint(u),ahead=curve.getPoint(Math.min(.999,u+.008));bar.setPosition(p.x,p.y).setRotation(Phaser.Math.Angle.Between(p.x,p.y,ahead.x,ahead.y));const edge=Math.min(1,u*8,(1-u)*8);bar.setAlpha(alpha*(focused?.72:.5)*Math.max(.12,edge))})}});
     streaks[0]?.once(Phaser.GameObjects.Events.DESTROY,()=>tween.stop())
   }
   private addKillingIntentTargetPulse(x:number,y:number,focused:boolean,alpha:number){
