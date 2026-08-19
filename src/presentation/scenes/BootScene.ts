@@ -40,7 +40,7 @@ private currentPlanner(){return applyPlannedInitiative(this.timeline,this.comman
 private toolKey?:Phaser.Input.Keyboard.Key;private toolsInitialized=false;
 update(){if(!this.toolKey)this.toolKey=this.input.keyboard?.addKey('T');if(!this.toolsInitialized){this.toolsInitialized=true;this.setDevTools(false)}if(this.toolKey&&Phaser.Input.Keyboard.JustDown(this.toolKey))this.setDevTools(!this.toolsVisible)}
 private setDevTools(visible:boolean){this.toolsVisible=visible;const labels=new Set(['重新開始','P−','P+','E−','E+']);for(const item of this.hudLayer?.list??[]){if(item instanceof Phaser.GameObjects.Text){if(item.text==='戰術編碼：裂痕')item.setText('妖異鐵道｜殺生線試作');if(item.text==='FOCUSED CLASH // SHARED DECK')item.setText('讀取殺意・截斷因果・繼刀崩勢');if(labels.has(item.text))item.setVisible(visible)}}this.phase?.setText(visible?'開發工具｜T 收起':this.phase.text.replace('開發工具｜T 收起',''))}
-preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('bg-world01-rooftop-candidate','assets/battle/world01-rooftop-composite-candidate-v3.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('boss-battle-music','assets/music/world-01/zone1-boss-bgm.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.image('heroine-idle-a','assets/battle/generated/characters/heroine/heroine-sd-idle-runtime-a.png');this.load.image('heroine-idle-b','assets/battle/generated/characters/heroine/heroine-sd-idle-runtime-b.png');this.load.image('heroine-ready','assets/battle/heroine-sd-ready-v1.png');this.load.image('heroine-attack-a','assets/battle/generated/characters/heroine/heroine-sd-attack-runtime-a.png');this.load.image('heroine-attack-b','assets/battle/generated/characters/heroine/heroine-sd-attack-runtime-b.png');this.load.image('heroine-down','assets/battle/heroine-sd-down-v2.png');this.load.image('chikage-idle-a','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-a.png');this.load.image('chikage-idle-b','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-b.png');this.load.image('oboro-idle-a','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-a.png');this.load.image('oboro-idle-b','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-b.png');this.load.image('portrait-heroine','assets/battle/portraits/heroine.png');this.load.image('portrait-chikage','assets/battle/portraits/chikage.png');this.load.image('portrait-oboro','assets/battle/portraits/oboro.png');for(const name of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior'])this.load.image(`portrait-${name}`,`assets/battle/portraits/${name}.png`);for(const name of ['chikage','oboro']){this.load.image(`${name}-ready`,`assets/battle/generated/characters/${name}/${name}-sd-ready-runtime-v1.png`);this.load.image(`${name}-attack-a`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v1.png`);this.load.image(`${name}-attack-b`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v2.png`);this.load.image(`${name}-hit-a`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v1.png`);this.load.image(`${name}-hit-b`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v2.png`);this.load.image(`${name}-down`,`assets/battle/generated/characters/${name}/${name}-sd-down-runtime-v2.png`)};// 第一區怪物母版：已交付母版的走 PNG runtime；rain-warrior/rain-boss 尚未生圖，
+preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('bg-world01-rooftop-candidate','assets/battle/world01-rooftop-composite-candidate-v3.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('boss-battle-music','assets/music/world-01/zone1-boss-bgm.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.image('heroine-idle-a','assets/battle/generated/characters/heroine/heroine-sd-idle-runtime-a.png');this.load.image('heroine-idle-b','assets/battle/generated/characters/heroine/heroine-sd-idle-runtime-b.png');this.load.image('heroine-ready','assets/battle/heroine-sd-ready-v1.png');this.load.image('heroine-attack-a','assets/battle/generated/characters/heroine/heroine-sd-attack-runtime-a.png');this.load.image('heroine-attack-b','assets/battle/generated/characters/heroine/heroine-sd-attack-runtime-b.png');this.load.image('heroine-down','assets/battle/heroine-sd-down-v2.png');this.load.image('chikage-idle-a','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-a.png');this.load.image('chikage-idle-b','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-b.png');this.load.image('oboro-idle-a','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-a.png');this.load.image('oboro-idle-b','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-b.png');for(const name of ['heroine','chikage','oboro','wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior']){this.load.image(`portrait-${name}-current`,`assets/battle/portraits/${name}-current.png`);this.load.image(`portrait-${name}-timeline`,`assets/battle/portraits/${name}-timeline.png`)};for(const name of ['chikage','oboro']){this.load.image(`${name}-ready`,`assets/battle/generated/characters/${name}/${name}-sd-ready-runtime-v1.png`);this.load.image(`${name}-attack-a`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v1.png`);this.load.image(`${name}-attack-b`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v2.png`);this.load.image(`${name}-hit-a`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v1.png`);this.load.image(`${name}-hit-b`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v2.png`);this.load.image(`${name}-down`,`assets/battle/generated/characters/${name}/${name}-sd-down-runtime-v2.png`)};// 第一區怪物母版：已交付母版的走 PNG runtime；rain-warrior/rain-boss 尚未生圖，
 // 暫時 fallback 到 SVG 剪影 placeholder（不 tint、不美觀，等使用者核准後補生）。
 for(const name of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior'])this.load.image(`monster-${name}`,`assets/battle/generated/monsters/rainfall-ridgeline/${name}-master-runtime-v1.png`);
 // rain-boss（BOSS 雨切終式）尚未生圖，先保留 SVG placeholder；核准後補為 PNG runtime。
@@ -232,11 +232,12 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
     this.intentLayer.add([g,label])
   }
   private addKillingIntentFlow(curve:Phaser.Curves.CubicBezier,color:number,alpha:number,focused:boolean,delay=0){
-    const count=focused?16:12;
-    // Slow, low-contrast directional texture: the whole line should feel loaded with intent, not like bright pulse dots racing along a cable.
-    const streaks=Array.from({length:count},()=>{const bar=this.add.rectangle(0,0,focused?24:19,focused?1.45:1.05,color,alpha*(focused?.31:.2)).setDepth(34).setData('intent',true);this.intentLayer.add(bar);return bar});
-    const duration=focused?2800:4200;
-    const tween=this.tweens.addCounter({from:0,to:1,duration,delay,repeat:-1,ease:'Linear',onUpdate:t=>{const phase=t.getValue() ?? 0;streaks.forEach((bar,i)=>{if(!bar.active)return;const u=(phase+i/count)%1,p=curve.getPoint(u),ahead=curve.getPoint(Math.min(.999,u+.008));bar.setPosition(p.x,p.y).setRotation(Phaser.Math.Angle.Between(p.x,p.y,ahead.x,ahead.y));const edge=Math.min(1,u*8,(1-u)*8);bar.setAlpha(alpha*(focused?.31:.2)*Math.max(.08,edge))})}});
+    const count=focused?18:14;
+    // Planning should feel like a drawn bow: nearly static, with a restrained current moving inside the line.
+    const segmentAlpha=focused?.19:.11;
+    const streaks=Array.from({length:count},()=>{const bar=this.add.rectangle(0,0,focused?17:13,focused?1.25:.9,color,alpha*segmentAlpha).setDepth(34).setData('intent',true);this.intentLayer.add(bar);return bar});
+    const duration=focused?5000:7600;
+    const tween=this.tweens.addCounter({from:0,to:1,duration,delay,repeat:-1,ease:'Linear',onUpdate:t=>{const phase=t.getValue() ?? 0;streaks.forEach((bar,i)=>{if(!bar.active)return;const u=(phase+i/count)%1,p=curve.getPoint(u),ahead=curve.getPoint(Math.min(.999,u+.006));bar.setPosition(p.x,p.y).setRotation(Phaser.Math.Angle.Between(p.x,p.y,ahead.x,ahead.y));const edge=Math.min(1,u*10,(1-u)*10);bar.setAlpha(alpha*segmentAlpha*Math.max(.05,edge))})}});
     streaks[0]?.once(Phaser.GameObjects.Events.DESTROY,()=>tween.stop())
   }
   private addKillingIntentTargetPulse(x:number,y:number,focused:boolean,alpha:number){
@@ -409,18 +410,18 @@ private renderTimeline(){
     const values=planned.map(n=>n.initiative??n.speed),max=Math.max(...values,1),min=Math.min(...values,0);
     const xFor=(n:ActionNode)=>{const v=n.initiative??n.speed,t=max===min ? 0.5 : (max-v)/(max-min);return Phaser.Math.Linear(300,1160,t)};
     const current=this.currentPlanner()??planned[0];
-    const portraitKey=(n:ActionNode)=>{
+    const portraitBase=(n:ActionNode)=>{
       const actor=(n.team==='player'?this.players:this.enemies).get(n.actorId);
-      if(n.team==='player')return n.actorId==='PB'?'portrait-chikage':n.actorId==='PC'?'portrait-oboro':'portrait-heroine';
-      const enemyKey=actor?.archetype?`portrait-${actor.archetype}`:'';
-      return enemyKey&&this.textures.exists(enemyKey)?enemyKey:actor?.sprite.texture.key;
+      if(n.team==='player')return n.actorId==='PB'?'chikage':n.actorId==='PC'?'oboro':'heroine';
+      const enemyKey=actor?.archetype??'';
+      return enemyKey;
     };
     this.timelineLayer.add(this.add.rectangle(640,43,1280,86,0x03070c,.9));
     this.timelineLayer.add(this.add.text(230,20,'我方',{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:'#8fefff'}).setOrigin(1,.5));
     this.timelineLayer.add(this.add.text(230,61,'敵方',{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:'#ff91a3'}).setOrigin(1,.5));
     this.timelineLayer.add(this.add.rectangle(720,20,880,2,0x477b86,.52));this.timelineLayer.add(this.add.rectangle(720,61,880,2,0x7d3948,.52));
     const drawLane=(nodes:ActionNode[],y:number)=>nodes.forEach(n=>{
-      const x=xFor(n),isCurrent=n.id===current?.id,teamColor=n.team==='player'?0x65d9ed:0xe5657a,key=portraitKey(n);
+      const x=xFor(n),isCurrent=n.id===current?.id,teamColor=n.team==='player'?0x65d9ed:0xe5657a,base=portraitBase(n),key=base?`portrait-${base}-timeline`:'';
       this.timelineLayer.add(this.add.circle(x,y,isCurrent?18:15,0x071016,.96).setStrokeStyle(isCurrent?3:1.5,isCurrent?0xffe69a:teamColor,isCurrent?1:.78));
       if(key&&this.textures.exists(key))this.timelineLayer.add(this.add.image(x,y,key).setDisplaySize(isCurrent?29:24,isCurrent?29:24));
       else this.timelineLayer.add(this.add.text(x,y,n.actorId,{fontFamily:'monospace',fontSize:'8px',fontStyle:'bold',color:'#fff'}).setOrigin(.5));
@@ -428,7 +429,7 @@ private renderTimeline(){
     });
     drawLane(players,20);drawLane(enemies,61);
     if(current){
-      const key=portraitKey(current),teamColor=current.team==='player'?0x8fefff:0xff8298;
+      const base=portraitBase(current),key=base?`portrait-${base}-current`:'',teamColor=current.team==='player'?0x8fefff:0xff8298;
       this.timelineLayer.add(this.add.rectangle(82,42,124,76,0x091117,.99).setStrokeStyle(2,teamColor,.96));
       this.timelineLayer.add(this.add.rectangle(42,42,70,70,0x02070b,1));
       if(key&&this.textures.exists(key))this.timelineLayer.add(this.add.image(42,42,key).setDisplaySize(68,68));
@@ -493,12 +494,30 @@ private animateCardTravel(fromX:number,toX:number,color:number,onArrive?:()=>voi
     const ghost=this.add.rectangle(fromX,650,42,58,color,.95).setStrokeStyle(2,0xffe7a0).setDepth(120);this.hudLayer.add(ghost);
     this.tweens.add({targets:ghost,x:toX,y:625,angle:fromX<toX?8:-8,scale:1.35,duration:260,ease:'Cubic.easeOut',onComplete:()=>{onArrive?.();this.tweens.add({targets:ghost,alpha:0,y:650,duration:130,onComplete:()=>ghost.destroy()})}})
   }
+private clearActorOutline(a:Actor){
+    const outlines=a.root.getData('focusOutline') as Phaser.GameObjects.Image[]|undefined;
+    if(outlines){for(const outline of outlines)outline.destroy()}
+    a.root.setData('focusOutline',[]);
+  }
+private applyActorOutline(a:Actor,color:number){
+    this.clearActorOutline(a);
+    const sprite=a.sprite,key=sprite.texture.key,frame=sprite.frame.name;
+    const offsets=[[-2,0],[2,0],[0,-2],[0,2],[-1.4,-1.4],[1.4,-1.4],[-1.4,1.4],[1.4,1.4]] as const;
+    const spriteIndex=a.root.getIndex(sprite);
+    const outlines=offsets.map(([dx,dy])=>{
+      const image=this.add.image(sprite.x+dx,sprite.y+dy,key,frame).setOrigin(sprite.originX,sprite.originY).setFlipX(sprite.flipX).setFlipY(sprite.flipY).setTint(color).setAlpha(.82);
+      image.setDisplaySize(sprite.displayWidth,sprite.displayHeight);image.setAngle(sprite.angle);
+      a.root.addAt(image,Math.max(0,spriteIndex));return image
+    });
+    a.root.setData('focusOutline',outlines);
+  }
 private focus(){
-    for(const a of this.players.values()){if(a.alive){a.root.setAlpha(1);a.hud.setAlpha(1);if(a.sprite.getData('heroine'))playHeroinePose(a.sprite,'idle');else a.sprite.play('hero-idle')}else{a.root.setAlpha(.5);a.hud.setAlpha(.25)}(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)}
+    for(const a of this.players.values()){this.clearActorOutline(a);if(a.alive){a.root.setAlpha(.94);a.hud.setAlpha(.92);if(a.sprite.getData('heroine'))playHeroinePose(a.sprite,'idle');else a.sprite.play('hero-idle')}else{a.root.setAlpha(.5);a.hud.setAlpha(.25)}(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)}
     const n=this.currentPlanner();
     if(!n){void this.resolve();return}
     const a=this.players.get(n.actorId)!;
-    a.root.setAlpha(1);a.hud.setAlpha(1);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(true);if(a.sprite.getData('heroine'))playHeroinePose(a.sprite,'ready');else a.sprite.play('hero-ready');
+    a.root.setAlpha(1);a.hud.setAlpha(1);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false);if(a.sprite.getData('heroine'))playHeroinePose(a.sprite,'ready');else a.sprite.play('hero-ready');
+    this.applyActorOutline(a,0xbff8ff);
     this.phase.setText(`${this.commands.size+1}/${this.planning.length}  ${n.actorId}`);
     this.status.setText('')
   }
@@ -573,15 +592,14 @@ private damage(a:Actor,n:number,balanceDamage=1,deferDeath=false,deathStyle:Deat
     // 受擊 sprite 紅閃 110ms（永久 tint 有的怪物會保留原 tint，heroine 使用 poseLocked 也會被保留）。
     if(hpLoss>0&&a.sprite){const prev=a.sprite.tintTopLeft??0xffffff;a.sprite.setTint(0xff5060);this.time.delayedCall(110,()=>{if(!a.alive&&!deferDeath)return;if(prev===0xffffff)a.sprite.clearTint();else a.sprite.setTint(prev)})}
     // 傷害數字：從 1.6× 彈到 1.0×（Back.easeOut），字體加黑 stroke，heavy／崩勢字更大；上升距離 44px。
-    const feedback=died&&!deferDeath?'':justBroken?'崩勢！':justShattered?'破符！':hpLoss>0?`−${hpLoss}`:balanceDamage>0&&n===0?`架勢 −${balanceDamage}`:`護符 −${blocked}`,color=justBroken?'#ffcf75':justShattered?'#9ff5ff':balanceDamage>0&&n===0?'#ffcf75':'#ff8294';
+    const feedback=died&&!deferDeath?'':justShattered?'破符！':hpLoss>0?`−${hpLoss}`:balanceDamage>0&&n===0?`架勢 −${balanceDamage}`:blocked>0?`護符 −${blocked}`:'',color=justShattered?'#9ff5ff':balanceDamage>0&&n===0?'#ffcf75':'#ff8294';
     if(feedback){
-      const heavyText=justBroken||justShattered||hpLoss>=8;
+      const heavyText=justShattered||hpLoss>=8;
       const text=this.add.text(a.root.x,a.root.y-70,feedback,{fontFamily:'sans-serif',fontSize:heavyText?'26px':'18px',fontStyle:'bold',color,stroke:'#000',strokeThickness:4,backgroundColor:'#080b12dd',padding:{x:9,y:4}}).setOrigin(.5).setDepth(95).setScale(1.6);
       this.combatLayer.add(text);
       this.tweens.add({targets:text,scale:1,duration:190,ease:'Back.easeOut'});
       this.tweens.add({targets:text,y:text.y-44,alpha:0,duration:720,ease:'Cubic.easeOut',onComplete:()=>text.destroy()});
     }
-    if(justBroken)this.resultFxPresenter.playCollapse(a);
     return{justBroken,died}
   }
 // 護符 (guard) / 截刀 (cover) 的護甲值改灌入臨時護甲 tempShield：
@@ -600,7 +618,7 @@ private relayAlly(team:'player'|'enemy',sourceId:string){
     return [...actors.keys()].find(id=>id!==sourceId&&actors.get(id)!.alive&&!actors.get(id)!.broken)
   }
 private async resolve(){
-  this.busy=true;this.updateUndoVisibility();this.intentController.beginExecution();this.handLayer.setVisible(false);this.status.setText('');this.players.forEach(a=>{a.root.setAlpha(a.alive?1:.5);a.hud.setAlpha(a.alive?1:.25);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)});this.phase.setText('');
+  this.busy=true;this.updateUndoVisibility();this.intentController.beginExecution();this.handLayer.setVisible(false);this.status.setText('');this.players.forEach(a=>{this.clearActorOutline(a);a.root.setAlpha(a.alive?1:.5);a.hud.setAlpha(a.alive?1:.25);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)});this.phase.setText('');
   const {beats}=this.resolutionController.createPlan(this.timeline,this.commands),presenter=new ClashPresenter(this,this.players,this.enemies,this.combatLayer),actions=new ActionPresenter(this,this.players,this.enemies,this.combatLayer),queuedRelays=planPlayerRelayContinuations(beats),consumedRelayNodes=new Set([...queuedRelays.values()].map(command=>command.nodeId));
   let pursuitTarget='';let pursuitCount=0;
   for(const beat of beats){

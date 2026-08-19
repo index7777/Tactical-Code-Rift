@@ -4,6 +4,7 @@ import type { VisualActor } from './ClashPresenter';
 import{playHeroinePose}from'./HeroinePose';
 
 export class ActionPresenter {
+  private cancelPresented=new Set<string>();
   constructor(private scene: Phaser.Scene, private players: Map<string, VisualActor>, private enemies: Map<string, VisualActor>, private combatLayer: Phaser.GameObjects.Container) {}
 
   // 打擊 helper：hit-stop（暫停 timeScale）與全螢幕白閃。
@@ -255,6 +256,9 @@ export class ActionPresenter {
   }
 
   async cancel(actorId: string, enemy = false) {
+    const key=`${enemy?'E':'P'}:${actorId}`;
+    if(this.cancelPresented.has(key))return;
+    this.cancelPresented.add(key);
     const actor = (enemy ? this.enemies : this.players).get(actorId)!;
     // 崩勢是最戲劇的鏡頭：拉近＋壓 timeScale＋vignette，破除舊 code 只 shake 幾下就過去的平淡感。
     this.focusCamera(actor.root.x,actor.root.y,1.38,220);
