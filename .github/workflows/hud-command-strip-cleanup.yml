@@ -1,0 +1,51 @@
+name: HUD Command Strip Cleanup
+
+on:
+  push:
+    branches: [fix/hud-command-strip-cleanup]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/hud-command-strip-cleanup
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Remove redundant party command strip
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/presentation/scenes/BootScene.ts')
+          s=p.read_text(encoding='utf-8')
+          start=s.find('private drawCommandSlots(){')
+          end=s.find('private renderHand(){', start)
+          if start < 0 or end < 0:
+              raise SystemExit('drawCommandSlots markers missing')
+          s=s[:start]+s[end:]
+          s=s.replace('    this.drawCommandSlots();\n','',1)
+          if 'drawCommandSlots' in s:
+              raise SystemExit('drawCommandSlots still present')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Build exact source
+        run: |
+          npm ci
+          npm run build
+      - name: Commit source and self-delete
+        run: |
+          rm .github/workflows/hud-command-strip-cleanup.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/presentation/scenes/BootScene.ts
+          git add -u .github/workflows/hud-command-strip-cleanup.yml
+          git commit -m "fix: remove redundant party command strip"
+          git push origin HEAD:fix/hud-command-strip-cleanup
