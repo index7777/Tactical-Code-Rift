@@ -112,11 +112,12 @@ private hud(){
     this.hudLayer.add(this.button(950,8,36,'E+',()=>this.scene.restart({pc:this.pc,ec:Math.min(4,this.ec+1)}),0x713141));
     // P11.1: compact context ribbon. Validation feedback must be visible at
     // decision time, but it should not become a permanent combat log.
-    this.status=this.add.text(640,551,'',{fontFamily:'sans-serif',fontSize:'11px',fontStyle:'bold',color:'#e7f6f8',backgroundColor:'#07131bdd',padding:{x:10,y:5}}).setOrigin(.5).setDepth(82).setVisible(true);
+    this.status=this.add.text(640,108,'',{fontFamily:'sans-serif',fontSize:'11px',fontStyle:'bold',color:'#e7f6f8',backgroundColor:'#07131bdd',padding:{x:10,y:5},wordWrap:{width:420,useAdvancedWrap:true}}).setOrigin(.5).setDepth(82).setVisible(false);
     this.hudLayer.add(this.button(1015,612,130,'結束規劃',()=>this.nextRound(),0x285c67));
     this.hudLayer.add(this.button(1015,654,130,'跳過',()=>this.skip(),0x4d5364));
     this.undoButton=this.button(1155,654,105,'上一步',()=>this.undoCommand(),0x343b49).setVisible(false);this.hudLayer.add(this.undoButton)
   }
+private setStatus(message:string){const text=message.trim();this.status.setText(text);this.status.setVisible(text.length>0)}
 private button(x:number,y:number,w:number,label:string,fn:()=>void,color=0x263c48){const b=this.add.text(x,y,label,{fixedWidth:w,align:'center',fontFamily:'sans-serif',fontSize:'13px',fontStyle:'bold',color:'#eaf2f3',backgroundColor:`#${color.toString(16).padStart(6,'0')}`,padding:{y:8}}).setInteractive({useHandCursor:true}).setAlpha(.94);b.on('pointerover',()=>b.setAlpha(1));b.on('pointerout',()=>b.setAlpha(.94));b.on('pointerdown',fn);return b}
 private rebuild(){
   if(this.busy)return;
@@ -170,7 +171,7 @@ private addActor(f:Fighter){
     const hit=this.add.rectangle(0,0,120,166,0xffffff,.001).setInteractive({useHandCursor:true});
     hit.on('pointerdown',()=>this.target(f.id));
     hit.on('pointerover',()=>this.previewTarget(f.id));
-    hit.on('pointerout',()=>{this.intentFocus=undefined;this.previewTargetId=undefined;if(this.selected?.definitionId==='cover')this.status.setText('選擇友方，或直接點一條敵方殺生線。');this.renderEnemyIntents()});
+    hit.on('pointerout',()=>{this.intentFocus=undefined;this.previewTargetId=undefined;if(this.selected?.definitionId==='cover')this.setStatus('選擇友方，或直接點一條敵方殺生線。');this.renderEnemyIntents()});
     const root=this.add.container(p.x,p.y,[glow,sprite,hud,hit]).setData('actor',true);
     this.world.add(root);
     const maxHp=f.team==='player'?44:40,a={root,x:p.x,y:p.y,sprite,hud,hudView,hit,hp:maxHp,maxHp,shield:0,tempShield:0,balance:8,alive:true,exposed:false,broken:false,archetype:f.archetype,traitReady:true};
@@ -185,9 +186,9 @@ private previewTarget(id:string){
       const validTarget=cover?(this.enemies.has(id)||this.players.has(id)):hostile?this.enemies.has(id):this.players.has(id);
       const validGuard=this.selected.definitionId!=='guard'||id===this.currentPlanner()?.actorId;
       if(!validTarget||!validGuard){
-        if(this.selected.definitionId==='guard'&&id!==this.currentPlanner()?.actorId)this.status.setText('堅守只能以自身為目標。');
-        else if(cover)this.status.setText('掩護請點友方，或直接點帶有殺生線的敵人。');
-        else this.status.setText(hostile?'此卡必須指定敵方。':'此卡必須指定友方。');
+        if(this.selected.definitionId==='guard'&&id!==this.currentPlanner()?.actorId)this.setStatus('堅守只能以自身為目標。');
+        else if(cover)this.setStatus('掩護請點友方，或直接點帶有殺生線的敵人。');
+        else this.setStatus(hostile?'此卡必須指定敵方。':'此卡必須指定友方。');
         this.intentFocus=undefined;this.previewTargetId=undefined;this.renderEnemyIntents();return
       }
     }
@@ -198,8 +199,8 @@ private previewTarget(id:string){
     const initiative=planner.speed+this.selected.tempo;
     if(this.selected.definitionId==='cover'){
       const result=selectCoverIntent({timeline:this.timeline,commands:this.commands,actorId:planner.actorId,actorSpeed:planner.speed,cardTempo:this.selected.tempo,selectedActorId:id,selectedEnemyId:this.enemies.has(id)?id:undefined});
-      if(!result.ok){this.status.setText(this.coverStatusMessage(result.reason));return}
-      this.status.setText(`掩護 ${result.protectedActorId} ｜ 截斷 ${result.enemy.actorId} 的殺生線`);
+      if(!result.ok){this.setStatus(this.coverStatusMessage(result.reason));return}
+      this.setStatus(`掩護 ${result.protectedActorId} ｜ 截斷 ${result.enemy.actorId} 的殺生線`);
       const enemy=result.enemy,targetId=enemy.enemySkill!.targetId,enemyInitiative=enemy.initiative??enemy.speed+(enemy.enemySkill?.tempo??0),canClash=planner.actorId!==targetId&&initiative>enemyInitiative;
       this.drawCoverPreview(planner.actorId,targetId,canClash,false,initiative,enemyInitiative)
     }else if(this.players.has(id)&&this.selected.intent==='defense'){
@@ -518,17 +519,17 @@ private renderHand(){
       const hit=this.add.rectangle(0,0,120,150,0xffffff,.001).setInteractive({useHandCursor:!invalid});group.add(hit);
       hit.on('pointerover',()=>{this.showCardTooltip(card,x,invalid);this.tweens.add({targets:group,y:baseY-12,scale:1.06,duration:90,ease:'Quad.easeOut'})});
       hit.on('pointerout',()=>{this.clearCardTooltip();if(this.selected)this.showCardTooltip(this.selected,0,this.cardInvalidReason(this.selected));this.tweens.add({targets:group,y:baseY,scale:1,duration:90,ease:'Quad.easeOut'})});
-      hit.on('pointerdown',()=>{if(this.discardMode){this.discardHandCard(card,x);return}if(invalid){this.status.setText(invalid);this.showCardTooltip(card,x,invalid);return}this.selected=card;this.renderHand();this.status.setText(card.definitionId==='cover'?'選擇友方，或直接點一條敵方殺生線。':'')});
+      hit.on('pointerdown',()=>{if(this.discardMode){this.discardHandCard(card,x);return}if(invalid){this.setStatus(invalid);this.showCardTooltip(card,x,invalid);return}this.selected=card;this.renderHand();this.setStatus(card.definitionId==='cover'?'選擇友方，或直接點一條敵方殺生線。':'')});
     });
     if(this.selected)this.showCardTooltip(this.selected,0,this.cardInvalidReason(this.selected));
     const deckX=112,discardX=154,hudY=650;this.handLayer.add(this.add.circle(deckX,hudY,24,0x0d1c25,.96).setStrokeStyle(1,0x7e9ca8,.65));this.handLayer.add(this.add.text(deckX,hudY-2,String(this.deck.drawPile.length),{fontFamily:'monospace',fontSize:'15px',fontStyle:'bold',color:'#e7f6ff'}).setOrigin(.5));this.handLayer.add(this.add.text(deckX,684,'牌庫',{fontFamily:'sans-serif',fontSize:'8px',color:'#8ea7b3'}).setOrigin(.5));this.handLayer.add(this.add.circle(discardX,hudY,24,0x24161f,.96).setStrokeStyle(1,0x956077,.58));this.handLayer.add(this.add.text(discardX,hudY-2,String(this.deck.discardPile.length),{fontFamily:'monospace',fontSize:'15px',fontStyle:'bold',color:'#ead7e4'}).setOrigin(.5));this.handLayer.add(this.add.text(discardX,684,'棄牌',{fontFamily:'sans-serif',fontSize:'8px',color:'#a98d9f'}).setOrigin(.5));
-    const canDiscard=!this.busy&&!this.discardUsedThisRound&&cards.length>0;const discardButton=this.button(228,636,74,this.discardMode?'取消':'棄牌',()=>{if(!canDiscard&&!this.discardMode)return;this.discardMode=!this.discardMode;this.selected=undefined;this.status.setText(this.discardMode?'選擇 1 張手牌棄掉；本輪不立即補牌。':'');this.renderHand()},canDiscard||this.discardMode?0x683044:0x343640).setAlpha(canDiscard||this.discardMode?1:.45);this.handLayer.add(discardButton)
+    const canDiscard=!this.busy&&!this.discardUsedThisRound&&cards.length>0;const discardButton=this.button(228,636,74,this.discardMode?'取消':'棄牌',()=>{if(!canDiscard&&!this.discardMode)return;this.discardMode=!this.discardMode;this.selected=undefined;this.setStatus(this.discardMode?'選擇 1 張手牌棄掉；本輪不立即補牌。':'');this.renderHand()},canDiscard||this.discardMode?0x683044:0x343640).setAlpha(canDiscard||this.discardMode?1:.45);this.handLayer.add(discardButton)
   }
 private updateUndoVisibility(){if(this.undoButton)this.undoButton.setVisible(!this.busy&&[...this.commands.values()].some(command=>command!==null))}
 private discardHandCard(card:BattleCard,fromX:number){
   if(this.busy||this.discardUsedThisRound||!this.deck.hand.some(item=>item.instanceId===card.instanceId))return;
   this.deck={...this.deck,hand:this.deck.hand.filter(item=>item.instanceId!==card.instanceId),discardPile:[...this.deck.discardPile,card]};
-  this.discardMode=false;this.discardUsedThisRound=true;this.selected=undefined;this.visibleHandCount=Math.min(this.visibleHandCount,this.deck.hand.length);this.renderHand();this.animateCardTravel(fromX,310,0x823447);this.status.setText('已棄 1 張；下一回合補牌。')
+  this.discardMode=false;this.discardUsedThisRound=true;this.selected=undefined;this.visibleHandCount=Math.min(this.visibleHandCount,this.deck.hand.length);this.renderHand();this.animateCardTravel(fromX,310,0x823447);this.setStatus('已棄 1 張；下一回合補牌。')
 }
 private animateCardTravel(fromX:number,toX:number,color:number,onArrive?:()=>void){
     const ghost=this.add.rectangle(fromX,650,42,58,color,.95).setStrokeStyle(2,0xffe7a0).setDepth(120);this.hudLayer.add(ghost);
@@ -559,26 +560,26 @@ private focus(){
     a.root.setAlpha(1);a.hud.setAlpha(1);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false);if(a.sprite.getData('heroine'))playHeroinePose(a.sprite,'ready');else a.sprite.play('hero-ready');
     this.applyActorOutline(a,0xbff8ff);
     this.phase.setText(`${this.commands.size+1}/${this.planning.length}  ${n.actorId}`);
-    this.status.setText('')
+    this.setStatus('')
   }
 private target(id:string){
   const node=this.currentPlanner();if(!this.selected||!node)return;
-  const selectedActor=this.players.get(id)??this.enemies.get(id);if(selectedActor&&!canTargetActor(selectedActor)){this.status.setText('斷命目標只能由復活效果指定。');return}
+  const selectedActor=this.players.get(id)??this.enemies.get(id);if(selectedActor&&!canTargetActor(selectedActor)){this.setStatus('斷命目標只能由復活效果指定。');return}
   let targetNode:ActionNode|undefined,targetActorId=id;
   if(this.selected.definitionId==='cover'){
     const result=selectCoverIntent({timeline:this.timeline,commands:this.commands,actorId:node.actorId,actorSpeed:node.speed,cardTempo:this.selected.tempo,selectedActorId:id,selectedEnemyId:this.enemies.has(id)?id:undefined});
-    if(!result.ok){this.status.setText(this.coverStatusMessage(result.reason));if(result.reason==='multiple'){this.intentFocus=id;this.renderEnemyIntents()}return}
+    if(!result.ok){this.setStatus(this.coverStatusMessage(result.reason));if(result.reason==='multiple'){this.intentFocus=id;this.renderEnemyIntents()}return}
     targetNode=result.enemy;targetActorId=result.protectedActorId;
   }else{
     const hostile=this.selected.intent==='attack'||this.selected.intent==='disruption',enemy=this.enemies.has(id);
-    if(hostile!==enemy){this.status.setText(hostile?'此卡必須指定敵方。':'此卡必須指定友方。');return}
-    if(this.selected.definitionId==='guard'&&id!==node.actorId){this.status.setText('堅守只能以自身為目標。');return}
-    if(this.selected.definitionId==='cycle'&&id!==node.actorId){this.status.setText('整備由行動者執行，請選擇自身。');return}
+    if(hostile!==enemy){this.setStatus(hostile?'此卡必須指定敵方。':'此卡必須指定友方。');return}
+    if(this.selected.definitionId==='guard'&&id!==node.actorId){this.setStatus('堅守只能以自身為目標。');return}
+    if(this.selected.definitionId==='cycle'&&id!==node.actorId){this.setStatus('整備由行動者執行，請選擇自身。');return}
     targetNode=enemy?this.timeline.find(n=>n.team==='enemy'&&n.actorId===id):undefined
   }
   this.commands.set(node.id,{nodeId:node.id,actorId:node.actorId,card:this.selected,targetNodeId:targetNode?.id,targetActorId});this.selected=undefined;this.previewTargetId=undefined;this.intentFocus=undefined;this.planIndex++;this.renderHand();this.renderTimeline();this.updateUndoVisibility();this.focus();this.renderEnemyIntents()
 }
-private skip(){const node=this.currentPlanner();if(this.busy||!node)return;const actorId=node.actorId;this.commands.set(node.id,null);this.skipBonusNext.add(actorId);this.planIndex++;this.renderTimeline();this.updateUndoVisibility();this.status.setText(`${actorId} 跳過｜下回合速度 +2（一次）`);this.focus()}
+private skip(){const node=this.currentPlanner();if(this.busy||!node)return;const actorId=node.actorId;this.commands.set(node.id,null);this.skipBonusNext.add(actorId);this.planIndex++;this.renderTimeline();this.updateUndoVisibility();this.setStatus(`${actorId} 跳過｜下回合速度 +2（一次）`);this.focus()}
 private undoCommand(){
     if(this.busy||![...this.commands.values()].some(command=>command!==null))return;
     const entries=[...this.commands.entries()],last=entries[entries.length-1];
@@ -591,7 +592,7 @@ private undoCommand(){
 private nextRound(automatic=false){
     if(this.busy)return;
     this.discardMode=false;
-    if(![...this.enemies.values()].some(a=>a.alive)){this.status.setText('戰鬥勝利');return}
+    if(![...this.enemies.values()].some(a=>a.alive)){this.setStatus('戰鬥勝利');return}
     if(this.planIndex<this.planning.length){
       let node=this.currentPlanner();
       while(node){
@@ -607,7 +608,7 @@ private nextRound(automatic=false){
     clearEndOfRoundStatuses([...this.players.values(),...this.enemies.values()]);[...this.players.values(),...this.enemies.values()].forEach(a=>{a.traitReady=true;this.refreshActor(a)});
     this.timeline=this.timeline.filter(n=>(n.team==='player'?this.players:this.enemies).get(n.actorId)?.alive);
     const targets=[...this.players.entries()].filter(([,a])=>a.alive).map(([id])=>id),enemyNodes=this.timeline.filter(n=>n.team==='enemy'),roundRoles=enemyNodes.map(n=>(this.enemies.get(n.actorId)?.archetype??n.enemySkill?.archetype??'wet-corpse') as EnemyArchetype),roundSkills=dealEnemySkillsForArchetypes(roundRoles,Math.random,enemyNodes.map(n=>n.enemySkill?.name));
-    if(targets.length===0){this.status.setText('全隊斷命');return}
+    if(targets.length===0){this.setStatus('全隊斷命');return}
     let enemyIndex=0;
     for(const node of this.timeline){
       const bonus=node.team==='player'&&this.skipBonusNext.has(node.actorId)?2:0;
@@ -658,7 +659,7 @@ private relayAlly(team:'player'|'enemy',sourceId:string){
     return [...actors.keys()].find(id=>id!==sourceId&&actors.get(id)!.alive&&!actors.get(id)!.broken)
   }
 private async resolve(){
-  this.busy=true;this.updateUndoVisibility();this.intentController.beginExecution();this.handLayer.setVisible(false);this.timelineLayer.setAlpha(.18);this.status.setText('');this.players.forEach(a=>{this.clearActorOutline(a);a.root.setAlpha(a.alive?1:.5);a.hud.setAlpha(a.alive?1:.25);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)});this.phase.setText('');
+  this.busy=true;this.updateUndoVisibility();this.intentController.beginExecution();this.handLayer.setVisible(false);this.timelineLayer.setAlpha(.18);this.setStatus('');this.players.forEach(a=>{this.clearActorOutline(a);a.root.setAlpha(a.alive?1:.5);a.hud.setAlpha(a.alive?1:.25);(a.root.list[0]as Phaser.GameObjects.Ellipse).setVisible(false)});this.phase.setText('');
   const {beats}=this.resolutionController.createPlan(this.timeline,this.commands),presenter=new ClashPresenter(this,this.players,this.enemies,this.combatLayer),actions=new ActionPresenter(this,this.players,this.enemies,this.combatLayer),queuedRelays=planPlayerRelayContinuations(beats),consumedRelayNodes=new Set([...queuedRelays.values()].map(command=>command.nodeId));
   let pursuitTarget='';let pursuitCount=0;
   for(const beat of beats){
@@ -717,7 +718,7 @@ private async resolve(){
         else if(beat.command.card.shield)this.shield(target,beat.command.card.shield)
       }else{
         const actor=this.players.get(actorId)!,target=this.enemies.get(targetId)!;if(!actor.alive||!target.alive)continue;if(actor.broken){await actions.cancel(actorId);continue}
-        pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.status.setText('');
+        pursuitCount=pursuitTarget===targetId?pursuitCount+1:1;pursuitTarget=targetId;const flank=target.exposed&&beat.command.card.tags.includes('側襲');this.setStatus('');
         let broke=false;await actions.attack(actorId,targetId,beat.command.card,false,flank?'flank':'normal',!beat.command.card.assist,()=>{const extraBalance=(pursuitCount>1?1:0)+(flank?2:0),style:DeathStyle=beat.command.card.definitionId==='heavy'?'heavy':'normal',result=this.hitMonster(actor,target,beat.command.card,extraBalance,Boolean(beat.command.card.assist),style);broke=result.justBroken;return result.died&&!beat.command.card.assist});
         if(flank){target.exposed=false;this.refreshActor(target)}if(broke&&target.alive)await actions.cancel(targetId,true);if(beat.command.card.assist)await this.relayAssist(actorId,targetId,actions)
       }
@@ -726,6 +727,6 @@ private async resolve(){
   const played=this.resolutionController.committedCards(this.commands);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();
   const outcome=this.resolutionController.outcome(this.players.values(),this.enemies.values());
   if(outcome){this.handLayer.setVisible(false);this.fadeBattleMusic(.05,900);await this.outcomePresenter.show(outcome,{onRetry:()=>this.scene.restart({battlefield:this.battlefieldMode,journeyNodeId:this.journeyNodeId}),onContinue:outcome==='victory'?(this.journeyNodeId?()=>this.returnToJourney():()=>this.scene.restart({battlefield:this.nextBattlefield()})):undefined});return}
-  this.handLayer.setVisible(true);this.timelineLayer.setAlpha(1).setVisible(true);const beginNextRound=()=>{this.status.setText('');this.busy=false;this.nextRound(true)};this.time.delayedCall(140,beginNextRound);
+  this.handLayer.setVisible(true);this.timelineLayer.setAlpha(1).setVisible(true);const beginNextRound=()=>{this.setStatus('');this.busy=false;this.nextRound(true)};this.time.delayedCall(140,beginNextRound);
 }
 }
