@@ -64,9 +64,9 @@ export class ClashPresenter {
   }
   private bladeCut(x:number,y:number,flip=false,color=0xfff3c4){const g=this.scene.add.graphics().setDepth(104);g.lineStyle(12,color,.9);g.beginPath();g.arc(x,y,52,flip?Math.PI*.12:Math.PI*.88,flip?Math.PI*.88:Math.PI*1.88,false);g.strokePath();g.lineStyle(3,0xffffff,.98);g.beginPath();g.arc(x,y,52,flip?Math.PI*.18:Math.PI*.94,flip?Math.PI*.78:Math.PI*1.82,false);g.strokePath();this.combatLayer.add(g);const flash=this.scene.add.circle(x,y,13,0xffffff,.95).setDepth(105);this.combatLayer.add(flash);this.scene.tweens.add({targets:[g,flash],alpha:0,scale:1.5,duration:160,ease:'Cubic.easeOut',onComplete:()=>{g.destroy();flash.destroy()}});for(let i=0;i<8;i++){const shard=this.scene.add.rectangle(x,y,18,3,0xffffff,.85).setDepth(105).setRotation((i-4)*.38);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x+(i-4)*22,y:y+(i%2?1:-1)*(22+i*4),alpha:0,duration:190,onComplete:()=>shard.destroy()})}}
 
-  private focusCamera(x: number, y: number, zoom = 1.14) {
-    this.scene.cameras.main.pan(x, y, 190, 'Sine.easeInOut');
-    this.scene.cameras.main.zoomTo(zoom, 190, 'Sine.easeInOut');
+  private focusCamera(x: number, y: number, zoom = 1.14, duration = 190) {
+    this.scene.cameras.main.pan(x, y, duration, 'Sine.easeInOut');
+    this.scene.cameras.main.zoomTo(zoom, duration, 'Sine.easeInOut');
   }
 
   private resetCamera() {

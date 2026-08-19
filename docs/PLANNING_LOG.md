@@ -778,3 +778,9 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - 建立 `docs/monsters/wayfarer-umbrella.md`，固定破傘主輪廓、單眼、符札、鈴鐺與慢速重擊定位；紅色煙霧列為 runtime FX。
 - 建立 `docs/HANDOFF_CLAUDE_ART.md`，記錄母版位置、斬擊 CC0 FX 接入點、衍生素材規則、驗收流程與目前工作邊界。
 - 狀態：辻傘母版候選等待 Art Director 核准；尚未生成 side-view 或後續怪物。
+# 2026-08-19｜修正 Vercel 交鋒鏡頭建置錯誤
+
+- 狀態：`VERIFIED`
+- 原因：平手交鋒呼叫 `focusCamera(clashX, clashY, 1.32, 160)`，但函式僅宣告三個參數，TypeScript 在 Vercel 建置時回報 TS2554。
+- 修正：`focusCamera` 新增可選 `duration` 參數，預設維持 190ms；平手交鋒保留原設計的 160ms 鏡頭壓進，其餘呼叫行為不變。
+- 驗證：`npm run test` 27 files／115 tests 全通過；`npm run build` 通過；`git diff --check` 通過。Vite bundle size warning 不阻擋部署。
