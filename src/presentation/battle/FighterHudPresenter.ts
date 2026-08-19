@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 
-export interface FighterHudState {alive:boolean;hp:number;maxHp?:number;shield:number;tempShield?:number;balance:number;exposed:boolean;broken:boolean}
+export interface FighterHudState {alive:boolean;hp:number;maxHp?:number;shield:number;tempShield?:number;balance:number;exposed:boolean;broken:boolean;archetype?:string;sprite?:Phaser.GameObjects.Sprite}
 export interface FighterHudView {root:Phaser.GameObjects.Container;hpFill:Phaser.GameObjects.Rectangle;hpEcho:Phaser.GameObjects.Rectangle;shieldFill:Phaser.GameObjects.Rectangle;balanceMarks:Phaser.GameObjects.Rectangle[];state:Phaser.GameObjects.Text}
 export function fighterHudStatus(state:Pick<FighterHudState,'alive'|'broken'|'exposed'>):string{if(!state.alive)return '';return state.broken?'崩勢':state.exposed?'破綻':''}
 export function fighterPostureSegments(balance:number):number{return Math.min(8,Math.max(0,Math.ceil(balance)))}
@@ -22,6 +22,7 @@ export class FighterHudPresenter{
     return{root,hpFill,hpEcho,shieldFill,balanceMarks,state}
   }
   refresh(view:FighterHudView,state:FighterHudState,animate=true){
+    if(state.archetype&&state.sprite){state.sprite.clearTint();const sprite=state.sprite as Phaser.GameObjects.Sprite&{postFX?:{clear:()=>void}};sprite.postFX?.clear()}
     view.root.setVisible(state.alive);if(!state.alive){view.state.setVisible(false);view.balanceMarks.forEach(m=>m.setVisible(false));view.hpFill.width=0;view.hpEcho.width=0;view.shieldFill.width=0;return}
     const maxHp=state.maxHp??100,hpRatio=clamp(state.hp,0,maxHp)/maxHp,targetWidth=54*hpRatio;this.scene.tweens.killTweensOf(view.hpEcho);view.hpFill.width=targetWidth;view.hpFill.setFillStyle(hpRatio<=.25?0xff5a6d:0xd94c61,1);
     if(animate&&view.hpEcho.width>targetWidth)this.scene.tweens.add({targets:view.hpEcho,width:targetWidth,delay:90,duration:260,ease:'Quad.easeIn'});else view.hpEcho.width=targetWidth;
