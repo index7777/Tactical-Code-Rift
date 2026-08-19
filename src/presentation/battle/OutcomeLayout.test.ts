@@ -2,12 +2,12 @@ import{describe,expect,it}from'vitest';
 import{outcomeButtonLayout}from'./OutcomeLayout';
 
 describe('battle outcome layout',()=>{
-  it('keeps defeat retry as the centered primary action',()=>{
+  it('shows retry only after defeat',()=>{
     expect(outcomeButtonLayout('defeat')).toEqual({retry:{x:640,y:394,primary:true}})
   });
 
-  it('keeps journey continuation primary after victory',()=>{
+  it('shows only journey continuation after victory',()=>{
     const layout=outcomeButtonLayout('victory');
-    expect(layout.continue?.x).toBe(640);expect(layout.continue?.primary).toBe(true);expect(layout.retry.y).toBeGreaterThan(layout.continue!.y)
+    expect(layout.continue).toEqual({x:640,y:394,primary:true});expect(layout.retry).toBeUndefined()
   });
 });

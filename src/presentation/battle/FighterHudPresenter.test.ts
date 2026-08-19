@@ -1,5 +1,4 @@
-import {describe,expect,it} from 'vitest';
-import {fighterHudStatus,fighterPostureSegments} from './FighterHudPresenter';
+import{describe,expect,it}from'vitest';import{fighterHudStatus,fighterPostureSegments}from'./FighterHudPresenter';
 
 describe('FighterHudPresenter semantics',()=>{
   it('maps posture directly to the eight visible segments',()=>{

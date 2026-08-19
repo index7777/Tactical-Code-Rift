@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { ClashPair } from '../../core/battle/BattleTypes';
+import type { ClashPair,EnemyArchetype } from '../../core/battle/BattleTypes';
 import{CombatResultFxPresenter}from'./CombatResultFxPresenter';
 import{playHeroinePose}from'./HeroinePose';
 
@@ -8,6 +8,7 @@ export interface VisualActor {
   x: number;
   y: number;
   sprite?: Phaser.GameObjects.Sprite;
+  archetype?: EnemyArchetype;
 }
 
 export class ClashPresenter {
@@ -27,7 +28,6 @@ export class ClashPresenter {
     return new Promise<void>((resolve) => this.scene.time.delayedCall(ms, resolve));
   }
 
-  // Hit-stop should be crisp even while the scene is slowed.
   private realWait(ms:number){
     return new Promise<void>((resolve)=>globalThis.setTimeout(resolve,ms));
   }
@@ -65,7 +65,6 @@ export class ClashPresenter {
     this.scene.sound.play(key, { volume });
   }
 
-  // 打擊音效分級 helper（與 ActionPresenter 同語意，但獨立實作避免跨檔耦合）。
   private playImpact(kind:'clash'|'heavy'|'break'|'death'){
     const cfg={clash:{d:-200,v:.82},heavy:{d:-400,v:1},break:{d:-700,v:1},death:{d:-500,v:.92}}[kind];
     this.scene.sound.play('sword-impact',{volume:cfg.v,detune:cfg.d});
@@ -74,7 +73,6 @@ export class ClashPresenter {
     if(kind==='break')this.scene.time.delayedCall(48,()=>this.scene.sound.play('sword-impact',{volume:.72,detune:-620}));
   }
 
-  // hit-stop + 全螢幕白閃。回傳 Promise 供 await。
   private async impactFreeze(kind:'clash'|'heavy'|'break'){
     const ms=kind==='clash'?120:kind==='heavy'?132:152;
     const flashAlpha=kind==='clash'?.42:kind==='heavy'?.55:.7;
@@ -88,7 +86,7 @@ export class ClashPresenter {
   }
 
   private hitFlash(sprite?:Phaser.GameObjects.Sprite){
-    if(!sprite)return;const prevAlpha=sprite.alpha;sprite.clearTint();sprite.setAlpha(Math.min(prevAlpha,.62));
+    if(!sprite)return;const prevAlpha=sprite.alpha;sprite.setAlpha(Math.min(prevAlpha,.62));
     this.scene.tweens.add({targets:sprite,alpha:prevAlpha,duration:110,ease:'Quad.easeOut'});
   }
 
@@ -129,10 +127,24 @@ export class ClashPresenter {
     const core=this.scene.add.circle(x,y,24*scale,0xffffff,.96).setDepth(118);this.combatLayer.add(core);
     this.scene.tweens.add({targets:core,scale:3.6,alpha:0,duration:120,ease:'Cubic.easeOut',onComplete:()=>core.destroy()});
   }
-  private bladeCut(x:number,y:number,flip=false,color=0xfff3c4){
+
+  private enemySlash(x:number,y:number,flipX:boolean,scale=1,color=0xff86a9){
+    const dir=flipX?-1:1;
+    ['fx-p10-enemy-arc-slash-1','fx-p10-enemy-arc-slash-2'].forEach((key,i)=>this.scene.time.delayedCall(i*24,()=>{
+      const img=this.spawnFxImage(key,x+dir*(i?18:-10),y+(i?8:-7),109+i,{scale:(.72+i*.08)*scale,alpha:i?.74:.96,tint:color,flipX:dir<0,blendMode:Phaser.BlendModes.ADD});
+      if(img)this.scene.tweens.add({targets:img,scale:(img.scaleX||1)*1.14,alpha:0,duration:162+i*26,ease:'Expo.easeOut',onComplete:()=>img.destroy()});
+    }));
+  }
+  private enemySignatureSlash(actor:VisualActor,x:number,y:number,flip=false,scale=1){
+    const archetype=actor.archetype;if(!archetype)return;
+    const key=`fx-p11-enemy-${archetype}`;if(!this.scene.textures.exists(key))return;
+    const img=this.spawnFxImage(key,x,y,111,{scale:.42*scale,alpha:.9,flipX:flip,blendMode:Phaser.BlendModes.ADD});
+    if(img)this.scene.tweens.add({targets:img,scale:(img.scaleX||1)*1.12,alpha:0,duration:210,ease:'Expo.easeOut',onComplete:()=>img.destroy()});
+  }
+  private bladeCut(x:number,y:number,flip=false,color=0xfff3c4,enemySide=false){
     const dir=flip?-1:1;
-    this.slash(x,y,flip,1.12,color);
-    ['fx-p9-line-slash-1','fx-p9-line-slash-2','fx-p9-line-slash-3'].forEach((key,i)=>{
+    if(enemySide)this.enemySlash(x,y,flip,1.12,color);else this.slash(x,y,flip,1.12,color);
+    (enemySide ? ['fx-p10-enemy-line-slash-1','fx-p10-enemy-line-slash-2'] : ['fx-p9-line-slash-1','fx-p9-line-slash-2','fx-p9-line-slash-3']).forEach((key,i)=>{
       this.scene.time.delayedCall(i*14,()=>{
         const line=this.spawnFxImage(key,x+dir*i*16,y-i*3,113+i,{scale:.7+i*.06,alpha:.92-i*.16,tint:i===0?0xffffff:color,flipX:dir<0,rotation:(dir>0?-.08:.08),blendMode:Phaser.BlendModes.ADD});
         if(line)this.scene.tweens.add({targets:line,scaleX:(line.scaleX||1)*1.08,alpha:0,duration:126+i*18,ease:'Expo.easeOut',onComplete:()=>line.destroy()});
@@ -194,8 +206,6 @@ export class ClashPresenter {
     const clashY = clash.source === 'intercept' && protectedActor
       ? Phaser.Math.Clamp(protectedActor.root.y, 190, 458)
       : Phaser.Math.Clamp((player.root.y + enemy.root.y) / 2, 190, 458);
-    // A cover intercept happens on the hostile route immediately before the
-    // protected actor. Only a direct face-to-face clash uses centre stage.
     const clashX = clash.source === 'intercept' && protectedActor
       ? Phaser.Math.Clamp(protectedActor.root.x + 150, 380, 520)
       : 640;
@@ -231,10 +241,8 @@ export class ClashPresenter {
         this.move(enemy.root,enemyEntryX,clashY,280),
       ])
     }
-    // 交鋒瞬間 zoom 拉更近，離開遠景平的觀感。
     this.focusCamera(clashX, clashY, 1.24);
 
-    // 卡片位置上移到 clashY-160，避開母版尺寸的角色頭部；y 座標若過低（角色貼近上邊界）自動吸回螢幕內。
     const cardY = Math.max(60, clashY - 160);
     const playerCard = this.scene.add.text(clashX-108, cardY, `${clash.player.card.name}\n威力 ${clash.playerPower}`, {
       fontFamily: 'sans-serif', fontSize: '19px', fontStyle: 'bold', align: 'center', color: '#dffaff', backgroundColor: '#155268', padding: { x: 18, y: 10 },
@@ -258,22 +266,16 @@ export class ClashPresenter {
     this.playImpact('clash');
     if(player.sprite)player.sprite.setAngle(0);
     if(enemy.sprite)enemy.sprite.setAngle(0);
-    // 交鋒瞬間：玩家在左揮向右（flipX=true），敵人在右揮向左（flipX=false）；同時渲染兩道刀光呈現對砍。
-    // 舊 code 只畫 flipX=false 一道（假設敵人在左）——玩家改站左後看起來像玩家用敵刀砍過去。
     const playerFlip=player.root.x>enemy.root.x;
     this.playerTechniqueAccent(clash.player.actorId,clashX,clashY-13,playerFlip);
-    this.slash(clashX, clashY - 13, true);
-    this.bladeCut(clashX,clashY-13,true,0xfff3c4);
-    this.slash(clashX, clashY - 13, false);
-    this.bladeCut(clashX,clashY-13,false,0xffffff);
+    if(!['PB','PC'].includes(clash.player.actorId))this.bladeCut(clashX,clashY-13,playerFlip,0xfff3c4,false);
+    this.enemySignatureSlash(enemy,clashX,clashY-13,!playerFlip,1.05);
+    this.bladeCut(clashX,clashY-13,!playerFlip,0xff91b1,true);
     this.impactCross(clashX,clashY-13);
     this.burst(clashX, clashY - 13, 0xffed9c, 12);
     this.scene.cameras.main.shake(160, .014);
-    // 拚刀時 hit-stop + 全螢幕白閃；tie 分支後續會再加鎖刀動畫延長節奏。
     await this.impactFreeze('clash');
 
-    // Skill cards are a reveal phase, not a persistent result HUD. Retire the
-    // same instances at impact so they cannot be read as a second card pair.
     this.scene.tweens.add({ targets: [playerCard, enemyCard], alpha: 0, y: cardY - 14, duration: 110, ease: 'Quad.easeIn' });
     await this.wait(120);
     playerCard.destroy();
@@ -300,16 +302,12 @@ export class ClashPresenter {
       playHeroinePose(winner.sprite,'ready');
       await this.wait(38);
       playHeroinePose(winner.sprite,'strike','a');
-      // 破招追擊：勝方發動 windup 前把鏡頭拉到 loser 身上放大 1.42，讓補刀有必殺鏡頭感。
       this.focusCamera(loser.root.x, loser.root.y, 1.42);
       await this.move(winner.root, loser.root.x - direction * 48, loser.root.y, 125, 'Cubic.easeIn');
-      // 破招追擊：勝方在左（playerWon）→ 揮向右，flipX=true；勝方在右（enemy 勝）→ flipX=false。
-      // 舊 !playerWon 假設 winner 在右，玩家改站左後方向反了。
-      // 更正：base slash 為左向揮擊，勝方在**右**才需 flipX=true。
-      // playerWon → 勝方=player 在左 → flipX=false；enemy 贏 → 勝方在右 → flipX=true。
       playHeroinePose(winner.sprite,'strike','b');
       if(playerWon)this.playerTechniqueAccent(clash.player.actorId,loser.root.x,loser.root.y-5,!playerWon);
       this.slash(loser.root.x, loser.root.y - 5, !playerWon);
+      if(!playerWon)this.enemySignatureSlash(enemy,loser.root.x,loser.root.y-5,!playerWon,1.12);
       this.bladeCut(loser.root.x,loser.root.y-5,!playerWon,playerWon?0x9fe8ff:0xff7487);
       this.burst(loser.root.x, loser.root.y - 5, playerWon ? 0x67e8ff : 0xff6b78, 16);
       this.impactBackdrop('break',loser.root.x,loser.root.y-5);
@@ -338,19 +336,14 @@ export class ClashPresenter {
       loser.root.setAngle(0);
       await this.wait(90);
     } else {
-      // 相殺（tie）重做：不再是「burst 一下就分開」，而是「兩人卡住 400ms，鎖刀微振、鏡頭壓進、慢動作，然後彈開」。
-      this.focusCamera(clashX, clashY, 1.32, 160);
-      // 鎖刀微抖：雙方 root 高頻震動 3 拍，模擬刀鋒卡住彼此的張力。
+      this.focusCamera(clashX, clashY, 1.32);
       this.scene.tweens.add({targets:[player.root,enemy.root],x:'+=5',yoyo:true,repeat:3,duration:55,ease:'Sine.easeInOut'});
-      // 額外雙 bladeCut 反向疊，強化「兩把刀鎖住」的視覺。
       this.bladeCut(clashX-6, clashY-8, false, 0xffd989);
       this.bladeCut(clashX+6, clashY-8, true, 0xffffff);
       this.burst(clashX, clashY - 13, 0xffffff, 22);
-      // 慢動作 220ms 讓玩家真的看到刀鋒鎖在一起。
       this.scene.time.timeScale = .18;
       await this.realWait(220);
       this.scene.time.timeScale = 1;
-      // 兩人彈開之前補一次 impact 音（低頻疊播）與 shake，做為分離瞬間的收音。
       this.impactBackdrop('clash',clashX,clashY-13);
       this.playImpact('clash');
       this.scene.cameras.main.shake(140, .012);

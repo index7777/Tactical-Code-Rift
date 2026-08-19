@@ -41,9 +41,9 @@ export class ActionPresenter {
     this.scene.cameras.main.shake(cfg.d,cfg.a);
   }
 
-  // 受擊 sprite 紅閃：破符或大於 0 傷害才觸發，避免每次 balance damage 都閃。
+  // P11.4: neutral contact flash. Never mutate actor tint/texture color.
   private hitFlash(sprite:Phaser.GameObjects.Sprite|undefined){
-    if(!sprite)return;const prevAlpha=sprite.alpha;sprite.clearTint();sprite.setAlpha(Math.min(prevAlpha,.62));
+    if(!sprite)return;const prevAlpha=sprite.alpha;sprite.setAlpha(Math.min(prevAlpha,.62));
     this.scene.tweens.add({targets:sprite,alpha:prevAlpha,duration:110,ease:'Quad.easeOut'});
   }
 
@@ -81,9 +81,11 @@ export class ActionPresenter {
     if(actorId==='PB'){
       const scale=cardId==='heavy'?1.32:cardId==='break'?1.18:1.05;this.lineSlash(x,y,direction<0,scale,p.main);const sweep=this.scene.add.rectangle(x-direction*20,y+28,190*scale,6,p.edge,.76).setRotation(direction>0?-.28:.28).setDepth(107);this.combatLayer.add(sweep);this.scene.tweens.add({targets:sweep,scaleX:1.3,alpha:0,duration:180,onComplete:()=>sweep.destroy()});
     }else{
-      const lengths=cardId==='heavy'?[128,112]:[104,92];
-      lengths.forEach((length,i)=>{const cut=this.scene.add.rectangle(x,y-6,length,i?3:7,i?p.edge:p.main,i?.96:.82).setRotation((i?-.78:.72)*direction).setDepth(110+i);this.combatLayer.add(cut);this.scene.tweens.add({targets:cut,scaleX:1.28,alpha:0,duration:145+i*35,ease:'Cubic.easeOut',onComplete:()=>cut.destroy()})});
-      for(let i=0;i<4;i++){const needle=this.scene.add.rectangle(x-direction*(18+i*5),y-32+i*18,34,2,p.edge,.65).setRotation((-.15+i*.12)*direction).setDepth(109);this.combatLayer.add(needle);this.scene.tweens.add({targets:needle,x:needle.x+direction*(72+i*12),alpha:0,duration:150+i*20,onComplete:()=>needle.destroy()})}
+      const flip=direction<0,primary=cardId==='heavy'?1.28:1.08,secondary=cardId==='heavy'?1.12:.96;
+      this.lineSlash(x-12*direction,y-10,flip,primary,p.main);
+      this.scene.time.delayedCall(24,()=>this.lineSlash(x+10*direction,y+10,!flip,secondary,p.edge));
+      this.scene.time.delayedCall(16,()=>this.slash(x,y-2,flip,.9,p.main));
+      for(let i=0;i<5;i++){const needle=this.scene.add.rectangle(x-direction*(16+i*6),y-28+i*15,36,2,p.edge,.62).setRotation((-.28+i*.14)*direction).setDepth(109);this.combatLayer.add(needle);this.scene.tweens.add({targets:needle,x:needle.x+direction*(84+i*14),alpha:0,duration:150+i*18,onComplete:()=>needle.destroy()})}
     }
   }
 
@@ -146,6 +148,25 @@ export class ActionPresenter {
     const core=this.scene.add.circle(x,y,30*scale,0xffffff,.98).setDepth(118);this.combatLayer.add(core);
     this.scene.tweens.add({targets:core,scale:4.4,alpha:0,duration:125,ease:'Cubic.easeOut',onComplete:()=>core.destroy()});
   }
+
+  private enemySlash(x:number,y:number,flipX:boolean,scale=1,color=0xff7ea5){
+    const dir=flipX?-1:1;
+    ['fx-p10-enemy-arc-slash-1','fx-p10-enemy-arc-slash-2'].forEach((key,i)=>this.scene.time.delayedCall(i*26,()=>{
+      const img=this.spawnFxImage(key,x+dir*(i?16:-10),y+(i?8:-6),108+i,{scale:(.72+i*.08)*scale,alpha:i?.74:.96,tint:color,flipX:dir<0,blendMode:Phaser.BlendModes.ADD});
+      if(img)this.scene.tweens.add({targets:img,scale:(img.scaleX||1)*1.18,alpha:0,duration:168+i*26,ease:'Expo.easeOut',onComplete:()=>img.destroy()});
+    }));
+    const flash=this.scene.add.circle(x,y,22*scale,0xfff6fb,.9).setDepth(116);this.combatLayer.add(flash);
+    this.scene.tweens.add({targets:flash,scale:3.6,alpha:0,duration:120,ease:'Cubic.easeOut',onComplete:()=>flash.destroy()});
+  }
+  private enemyLineSlash(x:number,y:number,flipX:boolean,scale=1,color=0xff8fad){
+    const dir=flipX?-1:1;
+    ['fx-p10-enemy-line-slash-1','fx-p10-enemy-line-slash-2'].forEach((key,i)=>this.scene.time.delayedCall(i*24,()=>{
+      const img=this.spawnFxImage(key,x+dir*(i?18:-12),y+(i?8:-5),111+i,{scale:(.7+i*.08)*scale,alpha:i?.78:.98,tint:i===0?0xfff6fb:color,flipX:dir<0,rotation:(dir>0?-.08:.08),blendMode:Phaser.BlendModes.ADD});
+      if(img)this.scene.tweens.add({targets:img,scaleX:(img.scaleX||1)*1.14,alpha:0,duration:152+i*20,ease:'Expo.easeOut',onComplete:()=>img.destroy()});
+    }));
+    const core=this.scene.add.circle(x,y,24*scale,0xffeef6,.92).setDepth(118);this.combatLayer.add(core);
+    this.scene.tweens.add({targets:core,scale:3.9,alpha:0,duration:120,ease:'Cubic.easeOut',onComplete:()=>core.destroy()});
+  }
   private impactCameraPunch(kind:'quick'|'normal'|'heavy'|'break',x:number,y:number){
     const zoom=kind==='quick'?1.03:kind==='normal'?1.055:kind==='heavy'?1.095:1.13;
     const inMs=kind==='quick'?42:56;
@@ -154,30 +175,37 @@ export class ActionPresenter {
     this.scene.cameras.main.zoomTo(zoom,inMs,'Quad.easeOut');
     this.scene.time.delayedCall(inMs+26,()=>{this.scene.cameras.main.pan(640,360,outMs,'Sine.easeOut');this.scene.cameras.main.zoomTo(1,outMs,'Sine.easeOut')});
   }
-  private cardImpact(x:number,y:number,definitionId?:string,flip=false){
+  private enemySignatureSlash(actor:VisualActor|undefined,x:number,y:number,flip=false,scale=1){
+    const archetype=actor?.archetype;if(!archetype)return;
+    const key=`fx-p11-enemy-${archetype}`;if(!this.scene.textures.exists(key))return;
+    const img=this.spawnFxImage(key,x,y,112,{scale:.44*scale,alpha:.92,flipX:flip,blendMode:Phaser.BlendModes.ADD});
+    if(img)this.scene.tweens.add({targets:img,scale:(img.scaleX||1)*1.12,alpha:0,duration:220,ease:'Expo.easeOut',onComplete:()=>img.destroy()});
+  }
+  private cardImpact(x:number,y:number,definitionId?:string,flip=false,enemySide=false,enemyActor?:VisualActor){
     const dir=flip?-1:1;
+    if(enemySide)this.enemySignatureSlash(enemyActor,x,y,flip,definitionId==='heavy'||definitionId==='break'?1.15:1);
     const burstLines=(color:number,count:number,reach:number)=>{for(let i=0;i<count;i++){const a=-1.18+i*(2.36/Math.max(1,count-1)),ray=this.scene.add.rectangle(x,y,reach,3,color,.86).setOrigin(0,.5).setRotation(a).setDepth(106);this.combatLayer.add(ray);this.scene.tweens.add({targets:ray,scaleX:1.42,alpha:0,duration:180+i*10,ease:'Cubic.easeOut',onComplete:()=>ray.destroy()})}};
     if(definitionId==='break'){
-      this.impactBackdrop('break',x,y);this.lineSlash(x,y,flip,1.62,0xffd36b);this.slash(x-dir*24,y-14,flip,1.12,0xfff0a8);burstLines(0xffd36b,13,124);this.debrisBurst(x,y,0xffc85c,dir,15,110);
+      this.impactBackdrop('break',x,y);(enemySide?this.enemyLineSlash:this.lineSlash).call(this,x,y,flip,1.62,enemySide?0xff86a9:0xffd36b);(enemySide?this.enemySlash:this.slash).call(this,x-dir*24,y-14,flip,1.12,enemySide?0xffc0d4:0xfff0a8);burstLines(enemySide?0xff7098:0xffd36b,13,124);this.debrisBurst(x,y,enemySide?0xd73667:0xffc85c,dir,15,110);
       const crack=this.scene.add.rectangle(x,y+24,260,10,0xffc85c,.86).setDepth(105);this.combatLayer.add(crack);this.scene.tweens.add({targets:crack,scaleX:1.75,scaleY:.3,alpha:0,duration:280,ease:'Expo.easeOut',onComplete:()=>crack.destroy()});
     }else if(definitionId==='delay'){
       this.impactBackdrop('normal',x,y);const bars=[-34,0,34].map((dy,i)=>this.scene.add.rectangle(x-dir*26,y+dy,190-i*24,7,0x9cecff,.88).setDepth(104+i));this.combatLayer.add(bars);bars.forEach((b,i)=>this.scene.tweens.add({targets:b,x:b.x+dir*64,scaleX:.3,alpha:0,delay:i*18,duration:230,onComplete:()=>b.destroy()}));this.debrisBurst(x,y,0xbcefff,dir,8,70);
     }else if(definitionId==='heavy'){
-      this.impactBackdrop('heavy',x,y);this.lineSlash(x,y,flip,1.84,0xffd8a0);burstLines(0xffd8a0,15,136);this.debrisBurst(x,y,0xffd8a0,dir,18,126);
+      this.impactBackdrop('heavy',x,y);(enemySide?this.enemyLineSlash:this.lineSlash).call(this,x,y,flip,1.84,enemySide?0xff96b5:0xffd8a0);burstLines(enemySide?0xff86a9:0xffd8a0,15,136);this.debrisBurst(x,y,enemySide?0xe14375:0xffd8a0,dir,18,126);
       const shock=this.scene.add.rectangle(x,y+42,320,12,0xffd8a0,.76).setDepth(101);this.combatLayer.add(shock);this.scene.tweens.add({targets:shock,scaleX:1.8,scaleY:.22,alpha:0,duration:300,ease:'Expo.easeOut',onComplete:()=>shock.destroy()});
     }else if(definitionId==='quick'){
-      this.slash(x-14,y-10,flip,1.18,0x9fe8ff);this.scene.time.delayedCall(34,()=>this.slash(x+14,y+8,!flip,1.04,0x67cfff));this.debrisBurst(x,y,0x7fdfff,dir,6,56);
+      (enemySide?this.enemySlash:this.slash).call(this,x-14,y-10,flip,1.18,enemySide?0xff7fa8:0x9fe8ff);this.scene.time.delayedCall(34,()=> (enemySide?this.enemySlash:this.slash).call(this,x+14,y+8,!flip,1.04,enemySide?0xffaac2:0x67cfff));this.debrisBurst(x,y,enemySide?0xff7b9d:0x7fdfff,dir,6,56);
     }else if(definitionId==='guard'){
       const shield=this.scene.add.ellipse(x,y,142,174,0x7dd9ff,.12).setStrokeStyle(8,0xc6f4ff,.95).setDepth(101);this.combatLayer.add(shield);this.scene.tweens.add({targets:shield,scale:.68,alpha:0,duration:350,onComplete:()=>shield.destroy()});
     }else if(definitionId==='cover'){
       const intercept=this.scene.add.triangle(x,y-24,0,86,50,0,100,86,0x8eeeff,.74).setStrokeStyle(5,0xe6fbff,.95).setDepth(102);this.combatLayer.add(intercept);this.scene.tweens.add({targets:intercept,y:y-74,scale:1.28,alpha:0,duration:280,onComplete:()=>intercept.destroy()});
     }else if(definitionId==='relay'){
-      this.impactBackdrop('heavy',x,y);this.slash(x,y,flip,1.28,0xffd56f);this.lineSlash(x+dir*18,y-8,flip,1.08,0xffe2a0);this.debrisBurst(x,y,0xffd56f,dir,10,92);
+      this.impactBackdrop('heavy',x,y);(enemySide?this.enemySlash:this.slash).call(this,x,y,flip,1.28,enemySide?0xff8aaa:0xffd56f);(enemySide?this.enemyLineSlash:this.lineSlash).call(this,x+dir*18,y-8,flip,1.08,enemySide?0xffbfd2:0xffe2a0);this.debrisBurst(x,y,enemySide?0xff8aaa:0xffd56f,dir,10,92);
       const handoff=this.scene.add.rectangle(x-dir*96,y+28,220,6,0xffd56f,.84).setDepth(103);this.combatLayer.add(handoff);this.scene.tweens.add({targets:handoff,x:handoff.x+dir*110,scaleX:1.42,alpha:0,duration:220,onComplete:()=>handoff.destroy()});
     }else if(definitionId==='cycle'){
       for(let i=0;i<3;i++){const ring=this.scene.add.ellipse(x,y,78+i*24,46+i*14,0x8fe6c0,.05).setStrokeStyle(4,0xb9ffe3,.88-i*.16).setDepth(101+i);this.combatLayer.add(ring);this.scene.tweens.add({targets:ring,scale:1.65,alpha:0,delay:i*45,duration:360,onComplete:()=>ring.destroy()})}
     }else{
-      this.impactBackdrop('normal',x,y);this.slash(x,y,flip,1.08,0xf7fbff);this.debrisBurst(x,y,0xd8f2ff,dir,8,68);
+      this.impactBackdrop('normal',x,y);(enemySide?this.enemySlash:this.slash).call(this,x,y,flip,1.08,enemySide?0xff8daa:0xf7fbff);this.debrisBurst(x,y,enemySide?0xff96b5:0xd8f2ff,dir,8,68);
     }
   }
   private resetCamera() { this.scene.cameras.main.pan(640, 360, 250, 'Sine.easeInOut'); this.scene.cameras.main.zoomTo(1, 250, 'Sine.easeInOut'); }
@@ -186,6 +214,11 @@ export class ActionPresenter {
     const attacker = (enemy ? this.enemies : this.players).get(actorId)!;
     const target = (enemy ? this.players : this.enemies).get(targetId)!;
     const direction = attacker.root.x < target.root.x ? 1 : -1;
+    // P11.4-B camera reinforcement: keep the tactical wide shot as the base,
+    // then make a restrained local push-in for the acting beat. This is NOT
+    // the future actor-follow planning camera; it only strengthens resolution.
+    const actionFocusX=(attacker.root.x+target.root.x)/2,actionFocusY=Phaser.Math.Clamp((attacker.root.y+target.root.y)/2,190,430);
+    this.focusCamera(actionFocusX,actionFocusY,1.1,150);
     // 卡片資訊往上抬到 -132 避免蓋到怪物母版尺寸的頭部；若 y 太靠近上邊界則吸回 40。
     const badgeY = Math.max(40, attacker.root.y - 132);
     const isChikage=!enemy&&actorId==='PB',isOboro=!enemy&&actorId==='PC';
@@ -213,7 +246,7 @@ export class ActionPresenter {
     // 依卡型決定打擊重量：heavy/break 有 hit-stop + 白閃 + 大 shake，quick 較輕。
     const impactKind:'quick'|'normal'|'heavy'|'break'=card.definitionId==='heavy'?'heavy':card.definitionId==='break'?'break':card.definitionId==='quick'?'quick':'normal';
     this.techniqueImpact(actorId,target.root.x,target.root.y-5,direction,card.definitionId);
-    this.cardImpact(target.root.x,target.root.y-5,card.definitionId,direction < 0);
+    this.cardImpact(target.root.x,target.root.y-5,card.definitionId,direction < 0,enemy,attacker);
     this.playImpact(impactKind);
     this.impactShake(impactKind);
     this.impactCameraPunch(impactKind,target.root.x,target.root.y-8);
@@ -234,10 +267,15 @@ export class ActionPresenter {
     } else {
       target.root.setAngle(direction * 9);
     }
+    if(isOboro&&!defeated){
+      this.spawnAfterimage(attacker,direction,0xc7bbff,16,.2);
+      await this.move(attacker.root,target.root.x+direction*22,target.root.y,56,'Quad.easeOut');
+      this.spawnAfterimage(attacker,-direction,0x6f57b5,20,.18);
+    }
     await this.wait(90); badge.destroy();
     if (returnToSlot) await this.move(attacker.root, attacker.x, attacker.y, isOboro?150:isChikage?265:240,isOboro?'Cubic.easeOut':'Quad.easeInOut');
     if(attacker.sprite)attacker.sprite.setAngle(0);playHeroinePose(attacker.sprite,'idle');if(!defeated)playHeroinePose(target.sprite,'idle');
-    if(defeated)this.resetCamera()
+    if(returnToSlot||defeated)this.resetCamera()
   }
 
   async relay(sourceId: string, allyId: string, targetId: string, enemy = false, onImpact?: () => boolean) {
@@ -321,17 +359,23 @@ export class ActionPresenter {
   async cancel(actorId: string, enemy = false) {
     const key=`${enemy?'E':'P'}:${actorId}`;
     if(this.cancelPresented.has(key))return;
+    const actor = (enemy ? this.enemies : this.players).get(actorId);
+    if(!actor)return;
+    // Scene-level dedupe: one collapse prompt per actor even if two resolution paths race.
+    const existing=this.scene.children.list.find(child=>child instanceof Phaser.GameObjects.Text&&child.getData('collapsePromptActor')===key);
+    if(existing)return;
     this.cancelPresented.add(key);
-    const actor = (enemy ? this.enemies : this.players).get(actorId)!;
     // 崩勢是最戲劇的鏡頭：拉近＋壓 timeScale＋vignette，破除舊 code 只 shake 幾下就過去的平淡感。
     this.focusCamera(actor.root.x,actor.root.y,1.38,220);
     const w=this.scene.cameras.main.width,h=this.scene.cameras.main.height;
     const vignette=this.scene.add.rectangle(w/2,h/2,w,h,0x120409,.55).setDepth(180).setScrollFactor(0);
     this.combatLayer.add(vignette);
     this.scene.tweens.add({targets:vignette,alpha:0,duration:640,ease:'Cubic.easeOut',onComplete:()=>vignette.destroy()});
-    const label = this.scene.add.text(actor.root.x, Math.max(48, actor.root.y - 130), '崩勢\n殺意斷絕', { fontFamily: 'serif', fontSize: '21px', fontStyle: 'bold', align: 'center', color: '#fff', stroke:'#3a0713', strokeThickness:5, backgroundColor: '#8b2034', padding: { x: 14, y: 8 } }).setOrigin(.5).setDepth(190).setScale(1.55);
+    const label = this.scene.add.text(actor.root.x, Math.max(48, actor.root.y - 130), '崩勢\n殺意斷絕', { fontFamily: 'serif', fontSize: '21px', fontStyle: 'bold', align: 'center', color: '#fff', stroke:'#3a0713', strokeThickness:5, backgroundColor: '#8b2034', padding: { x: 14, y: 8 } }).setOrigin(.5).setDepth(190).setScale(1.55).setData('collapsePromptActor',key);
+    this.combatLayer.add(label);
     this.scene.tweens.add({targets:label,scale:1,duration:220,ease:'Back.easeOut'});
     const ring = this.scene.add.circle(actor.root.x, actor.root.y, 38, 0xff274d, .2).setStrokeStyle(5, 0xff637b).setDepth(80);
+    this.combatLayer.add(ring);
     this.scene.tweens.add({ targets: actor.root, x: actor.root.x + 9, duration: 40, yoyo: true, repeat: 6 });
     this.scene.tweens.add({ targets: ring, scale: 2.2, alpha: 0, duration: 420 });
     // 崩勢音效：低頻疊播模擬「架勢斷開」的空音。
