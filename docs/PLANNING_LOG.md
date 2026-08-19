@@ -778,6 +778,16 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - 建立 `docs/monsters/wayfarer-umbrella.md`，固定破傘主輪廓、單眼、符札、鈴鐺與慢速重擊定位；紅色煙霧列為 runtime FX。
 - 建立 `docs/HANDOFF_CLAUDE_ART.md`，記錄母版位置、斬擊 CC0 FX 接入點、衍生素材規則、驗收流程與目前工作邊界。
 - 狀態：辻傘母版候選等待 Art Director 核准；尚未生成 side-view 或後續怪物。
+# 2026-08-19｜D 槽改版黑畫面／閃退與同步結構修復
+
+- 狀態：`VERIFIED_PENDING_SYNC`
+- 建置錯誤：`BootScene` 的 killing-intent tween 把 `number | null` 傳給 `CubicBezier.getPoint`；改以 `t.getValue() ?? 0` 保證合法進度值。
+- 執行期根因：BootScene 在顯示路線前預載兩首戰鬥 MP3，JourneyScene 又阻塞載入旅程 MP3；WebAudio 解碼期間 Phaser 場景停在 LOADING，造成十多秒黑畫面，使用者體感為閃退。
+- 修正：路線入口跳過全部戰鬥素材；旅程與戰鬥音樂改為畫面建立後背景載入，音訊慢或失敗不再阻塞場景。
+- 斬擊修正：`classic-slash-sheet.png` 為 750×150、6 幀，frameWidth 由 126 修為 125，恢復第 6 幀。
+- Git 修復：前次 `71502a6` 誤刪受追蹤 `src` 並加入 ZIP／RAR；本批重新追蹤現行 `src`，大型本機備份保留但由 Git 忽略。
+- 驗證：27 files／115 tests 通過；正式 build 通過；D 槽 `:5174` 實測路線與 `?draw-proof=1` 4v4 戰場均成功顯示。
+
 # 2026-08-19｜修正 Vercel 交鋒鏡頭建置錯誤
 
 - 狀態：`VERIFIED`

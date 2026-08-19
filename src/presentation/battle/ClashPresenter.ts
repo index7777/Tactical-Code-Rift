@@ -27,6 +27,38 @@ export class ClashPresenter {
     return new Promise<void>((resolve) => this.scene.time.delayedCall(ms, resolve));
   }
 
+  // Hit-stop should be crisp even while the scene is slowed.
+  private realWait(ms:number){
+    return new Promise<void>((resolve)=>globalThis.setTimeout(resolve,ms));
+  }
+
+  private createClashLock(player:VisualActor,enemy:VisualActor,x:number,y:number){
+    const lock=this.scene.add.container().setDepth(96);
+    const playerLine=this.scene.add.graphics();
+    playerLine.lineStyle(7,0x56ddea,.11).lineBetween(player.root.x+26,player.root.y,x,y);
+    playerLine.lineStyle(2,0xcafcff,.88).lineBetween(player.root.x+26,player.root.y,x,y);
+    const enemyLine=this.scene.add.graphics();
+    enemyLine.lineStyle(8,0x7f1830,.16).lineBetween(enemy.root.x-26,enemy.root.y,x,y);
+    enemyLine.lineStyle(2,0xff5a73,.9).lineBetween(enemy.root.x-26,enemy.root.y,x,y);
+    const ring=this.scene.add.circle(x,y,15,0xffd66d,.06).setStrokeStyle(2,0xffe8a0,.92);
+    const core=this.scene.add.circle(x,y,3,0xffffff,.98);
+    lock.add([playerLine,enemyLine,ring,core]);
+    this.combatLayer.add(lock);
+    this.scene.tweens.add({targets:ring,scale:1.75,alpha:0,duration:440,repeat:-1,ease:'Cubic.easeOut'});
+    this.scene.tweens.add({targets:core,scale:1.55,alpha:.3,duration:220,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+    this.scene.tweens.add({targets:[playerLine,enemyLine],alpha:{from:.55,to:1},duration:190,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+    return lock
+  }
+
+  private impactCross(x:number,y:number,color=0xfff1ba){
+    const a=this.scene.add.rectangle(x,y,122,7,color,.94).setRotation(-.66).setDepth(112);
+    const b=this.scene.add.rectangle(x,y,100,4,0xffffff,.98).setRotation(.72).setDepth(113);
+    const core=this.scene.add.circle(x,y,18,0xffffff,.88).setDepth(114);
+    this.combatLayer.add([a,b,core]);
+    this.scene.tweens.add({targets:[a,b],scaleX:1.55,alpha:0,duration:180,ease:'Cubic.easeOut'});
+    this.scene.tweens.add({targets:core,scale:2.3,alpha:0,duration:150,ease:'Quad.easeOut',onComplete:()=>{a.destroy();b.destroy();core.destroy()}})
+  }
+
   private sound(key: string, volume: number) {
     this.scene.sound.play(key, { volume });
   }
@@ -49,7 +81,7 @@ export class ClashPresenter {
     this.combatLayer.add(overlay);
     this.scene.tweens.add({targets:overlay,alpha:0,duration:Math.max(90,ms+40),ease:'Cubic.easeOut',onComplete:()=>overlay.destroy()});
     this.scene.time.timeScale=kind==='break'?.08:kind==='heavy'?.12:.18;
-    await new Promise<void>(r=>this.scene.time.delayedCall(ms,r));
+    await this.realWait(ms);
     this.scene.time.timeScale=1;
   }
 
@@ -63,6 +95,14 @@ export class ClashPresenter {
     this.scene.tweens.add({ targets: fx, alpha: 1, scale: .72, angle: flipX ? -12 : 12, duration: 80, yoyo: true, hold: 55, onComplete: () => fx.destroy() });
   }
   private bladeCut(x:number,y:number,flip=false,color=0xfff3c4){const g=this.scene.add.graphics().setDepth(104);g.lineStyle(12,color,.9);g.beginPath();g.arc(x,y,52,flip?Math.PI*.12:Math.PI*.88,flip?Math.PI*.88:Math.PI*1.88,false);g.strokePath();g.lineStyle(3,0xffffff,.98);g.beginPath();g.arc(x,y,52,flip?Math.PI*.18:Math.PI*.94,flip?Math.PI*.78:Math.PI*1.82,false);g.strokePath();this.combatLayer.add(g);const flash=this.scene.add.circle(x,y,13,0xffffff,.95).setDepth(105);this.combatLayer.add(flash);this.scene.tweens.add({targets:[g,flash],alpha:0,scale:1.5,duration:160,ease:'Cubic.easeOut',onComplete:()=>{g.destroy();flash.destroy()}});for(let i=0;i<8;i++){const shard=this.scene.add.rectangle(x,y,18,3,0xffffff,.85).setDepth(105).setRotation((i-4)*.38);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x+(i-4)*22,y:y+(i%2?1:-1)*(22+i*4),alpha:0,duration:190,onComplete:()=>shard.destroy()})}}
+
+  private playerTechniqueAccent(actorId:string,x:number,y:number,flip:boolean){
+    if(actorId==='PB'){
+      const g=this.scene.add.graphics().setDepth(116);g.lineStyle(11,0xe6c56f,.72);g.beginPath();g.arc(x,y,74,flip?Math.PI*.1:Math.PI*.9,flip?Math.PI*.9:Math.PI*1.9,false);g.strokePath();g.lineStyle(3,0xffffff,.96);g.beginPath();g.arc(x,y,82,flip?Math.PI*.16:Math.PI*.96,flip?Math.PI*.84:Math.PI*1.84,false);g.strokePath();this.combatLayer.add(g);this.scene.tweens.add({targets:g,scale:1.18,alpha:0,duration:220,ease:'Cubic.easeOut',onComplete:()=>g.destroy()});
+    }else if(actorId==='PC'){
+      for(let i=0;i<2;i++){const cut=this.scene.add.rectangle(x,y-8,116-i*18,i?3:7,i?0xffffff:0x9f8cff,.9).setRotation((i?-.78:.72)*(flip?-1:1)).setDepth(116+i);this.combatLayer.add(cut);this.scene.tweens.add({targets:cut,scaleX:1.28,alpha:0,duration:150+i*35,onComplete:()=>cut.destroy()})}
+    }
+  }
 
   private focusCamera(x: number, y: number, zoom = 1.14, duration = 190) {
     this.scene.cameras.main.pan(x, y, duration, 'Sine.easeInOut');
@@ -120,6 +160,8 @@ export class ClashPresenter {
     player.root.setDepth(55);
     enemy.root.setDepth(55);
     this.focusCamera((player.root.x + enemy.root.x) / 2, (player.root.y + enemy.root.y) / 2, 1.08);
+    const clashLock=this.createClashLock(player,enemy,clashX,clashY);
+    await this.realWait(105);
 
     if (clash.source === 'intercept' && protectedActor) {
       const intentTrail=this.scene.add.graphics().setDepth(48);
@@ -164,15 +206,19 @@ export class ClashPresenter {
     this.sound('sword-swish', .55);
     playHeroinePose(player.sprite,'strike');
     await Promise.all([this.move(player.root, clashX-16, clashY, 135, 'Cubic.easeIn'), this.move(enemy.root, clashX+16, clashY, 135, 'Cubic.easeIn')]);
+    clashLock.destroy();
     this.playImpact('clash');
     if(player.sprite)player.sprite.setAngle(0);
     if(enemy.sprite)enemy.sprite.setAngle(0);
     // 交鋒瞬間：玩家在左揮向右（flipX=true），敵人在右揮向左（flipX=false）；同時渲染兩道刀光呈現對砍。
     // 舊 code 只畫 flipX=false 一道（假設敵人在左）——玩家改站左後看起來像玩家用敵刀砍過去。
+    const playerFlip=player.root.x>enemy.root.x;
+    this.playerTechniqueAccent(clash.player.actorId,clashX,clashY-13,playerFlip);
     this.slash(clashX, clashY - 13, true);
     this.bladeCut(clashX,clashY-13,true,0xfff3c4);
     this.slash(clashX, clashY - 13, false);
     this.bladeCut(clashX,clashY-13,false,0xffffff);
+    this.impactCross(clashX,clashY-13);
     this.burst(clashX, clashY - 13, 0xffed9c, 12);
     this.scene.cameras.main.shake(160, .014);
     // 拚刀時 hit-stop + 全螢幕白閃；tie 分支後續會再加鎖刀動畫延長節奏。
@@ -211,6 +257,7 @@ export class ClashPresenter {
       // 舊 !playerWon 假設 winner 在右，玩家改站左後方向反了。
       // 更正：base slash 為左向揮擊，勝方在**右**才需 flipX=true。
       // playerWon → 勝方=player 在左 → flipX=false；enemy 贏 → 勝方在右 → flipX=true。
+      if(playerWon)this.playerTechniqueAccent(clash.player.actorId,loser.root.x,loser.root.y-5,!playerWon);
       this.slash(loser.root.x, loser.root.y - 5, !playerWon);
       this.bladeCut(loser.root.x,loser.root.y-5,!playerWon,playerWon?0x9fe8ff:0xff7487);
       this.burst(loser.root.x, loser.root.y - 5, playerWon ? 0x67e8ff : 0xff6b78, 16);
@@ -247,7 +294,7 @@ export class ClashPresenter {
       this.burst(clashX, clashY - 13, 0xffffff, 22);
       // 慢動作 220ms 讓玩家真的看到刀鋒鎖在一起。
       this.scene.time.timeScale = .18;
-      await this.wait(220);
+      await this.realWait(220);
       this.scene.time.timeScale = 1;
       // 兩人彈開之前補一次 impact 音（低頻疊播）與 shake，做為分離瞬間的收音。
       this.playImpact('clash');

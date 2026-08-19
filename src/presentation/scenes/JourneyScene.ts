@@ -6,9 +6,9 @@ const labels:Record<StoryNodeType,string>={departure:'出發',battle:'迎擊',ev
 const colors:Record<StoryNodeType,number>={departure:0x477889,battle:0x963d50,event:0x74578c,exploration:0x367360,companion:0x3b7896,elite:0xb56a34,boss:0x8e263c};
 
 export class JourneyScene extends Phaser.Scene{
-  private journeyMusic?:Phaser.Sound.BaseSound;private loopTimer?:Phaser.Time.TimerEvent;private leavingMap=false;
+  private journeyMusic?:Phaser.Sound.BaseSound;private loopTimer?:Phaser.Time.TimerEvent;private leavingMap=false;private journeyMusicLoadPending=false;
   constructor(){super('JourneyScene')}
-  preload(){this.load.audio('journey-world-01','assets/music/world-01/zone1-train-bgm.mp3');this.load.image('journey-bg-world01','assets/journey/world01/route-bg-rainfall-ridgeline.svg');this.load.image('journey-train-token','assets/journey/world01/train-token-topdown.svg')}
+  preload(){this.load.image('journey-bg-world01','assets/journey/world01/route-bg-rainfall-ridgeline.svg');this.load.image('journey-train-token','assets/journey/world01/train-token-topdown.svg')}
   create(){
     this.startJourneyMusic();
     const state=(this.registry.get('journey-state')as JourneyState|undefined)??createJourneyState();this.registry.set('journey-state',state);
@@ -32,6 +32,13 @@ export class JourneyScene extends Phaser.Scene{
     }})
   }
   private startJourneyMusic(){
+    if(!this.cache.audio.exists('journey-world-01')){
+      if(this.journeyMusicLoadPending)return;
+      this.journeyMusicLoadPending=true;
+      this.load.once('filecomplete-audio-journey-world-01',()=>{this.journeyMusicLoadPending=false;if(this.scene.isActive())this.startJourneyMusic()});
+      this.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR,()=>{this.journeyMusicLoadPending=false});
+      this.load.audio('journey-world-01','assets/music/world-01/zone1-train-bgm.mp3');this.load.start();return;
+    }
     this.leavingMap=false;this.journeyMusic=this.sound.get('journey-world-01')??this.sound.add('journey-world-01',{loop:false,volume:0});
     if(!this.journeyMusic.isPlaying)this.journeyMusic.play({loop:false,volume:0});this.fadeJourneyMusic(.34,JOURNEY_MUSIC_FADE_IN_MS);this.scheduleJourneyLoop();
     this.game.events.off(Phaser.Core.Events.BLUR,this.onGameBlur,this);this.game.events.off(Phaser.Core.Events.FOCUS,this.onGameFocus,this);this.game.events.on(Phaser.Core.Events.BLUR,this.onGameBlur,this);this.game.events.on(Phaser.Core.Events.FOCUS,this.onGameFocus,this);

@@ -16,7 +16,7 @@ export class ActionPresenter {
       this.combatLayer.add(overlay);
       this.scene.tweens.add({targets:overlay,alpha:0,duration:Math.max(90,ms+40),ease:'Cubic.easeOut',onComplete:()=>overlay.destroy()})}
     this.scene.time.timeScale=kind==='break'?.08:kind==='heavy'?.12:kind==='clash'?.18:.25;
-    return new Promise<void>(r=>this.scene.time.delayedCall(ms,()=>{this.scene.time.timeScale=1;r()}))
+    return this.realWait(ms).finally(()=>{this.scene.time.timeScale=1})
   }
 
   // 音效 helper：以 detune / volume / 疊播分級表現不同攻擊的重量感。
@@ -46,10 +46,56 @@ export class ActionPresenter {
     this.scene.time.delayedCall(110,()=>{if(prev===0xffffff)sprite.clearTint();else sprite.setTint(prev)});
   }
 
+  private techniquePalette(actorId:string){
+    if(actorId==='PB')return{main:0xe6c56f,edge:0xfff0b0,trail:0x7d5db7};
+    if(actorId==='PC')return{main:0x9f8cff,edge:0xe9e3ff,trail:0x4b3b7e};
+    return{main:0x9fe8ff,edge:0xffffff,trail:0x4b9ab5};
+  }
+
+  private spawnAfterimage(actor:VisualActor,direction:number,color:number,offset:number,alpha:number){
+    const sprite=actor.sprite;if(!sprite)return;
+    const ghost=this.scene.add.sprite(actor.root.x-direction*offset,actor.root.y+(sprite.y??0),sprite.texture.key,sprite.frame.name)
+      .setDepth(82).setAlpha(alpha).setTint(color).setFlipX(sprite.flipX).setAngle(sprite.angle);
+    ghost.setDisplaySize(sprite.displayWidth,sprite.displayHeight);this.combatLayer.add(ghost);
+    this.scene.tweens.add({targets:ghost,x:ghost.x-direction*18,alpha:0,duration:170+offset,ease:'Cubic.easeOut',onComplete:()=>ghost.destroy()});
+  }
+
+  private techniqueWindup(actorId:string,actor:VisualActor,direction:number,cardId?:string){
+    if(!actor.sprite||!['PB','PC'].includes(actorId))return;
+    const palette=this.techniquePalette(actorId);
+    if(actorId==='PC'){
+      this.spawnAfterimage(actor,direction,palette.main,16,.34);this.spawnAfterimage(actor,direction,palette.trail,32,.22);this.spawnAfterimage(actor,direction,palette.edge,48,.12);
+      const streak=this.scene.add.rectangle(actor.root.x-direction*34,actor.root.y-5,94,2,palette.edge,.72).setDepth(85);this.combatLayer.add(streak);
+      this.scene.tweens.add({targets:streak,x:streak.x+direction*70,scaleX:1.7,alpha:0,duration:120,ease:'Cubic.easeIn',onComplete:()=>streak.destroy()});
+    }else{
+      const reach=cardId==='heavy'?180:150;
+      const g=this.scene.add.graphics().setDepth(85);g.lineStyle(5,palette.main,.42).lineBetween(actor.root.x,actor.root.y-20,actor.root.x+direction*reach,actor.root.y-32);g.lineStyle(2,palette.edge,.82).lineBetween(actor.root.x+direction*12,actor.root.y-18,actor.root.x+direction*reach,actor.root.y-32);this.combatLayer.add(g);
+      this.scene.tweens.add({targets:g,alpha:0,duration:190,ease:'Quad.easeOut',onComplete:()=>g.destroy()});
+    }
+  }
+
+  private techniqueImpact(actorId:string,x:number,y:number,direction:number,cardId?:string){
+    if(!['PB','PC'].includes(actorId))return;
+    const p=this.techniquePalette(actorId);
+    if(actorId==='PB'){
+      const radius=cardId==='heavy'?78:cardId==='break'?68:58;
+      for(const [i,width] of [12,4].entries()){
+        const g=this.scene.add.graphics().setDepth(108+i);g.lineStyle(width,i?0xffffff:p.main,i?.92:.68);g.beginPath();g.arc(x-direction*8,y,radius+i*7,direction>0?Math.PI*.72:Math.PI*1.28,direction>0?Math.PI*1.72:Math.PI*.28,false);g.strokePath();this.combatLayer.add(g);
+        this.scene.tweens.add({targets:g,scale:1.18,alpha:0,duration:210+i*35,ease:'Cubic.easeOut',onComplete:()=>g.destroy()});
+      }
+      const sweep=this.scene.add.rectangle(x-direction*26,y+20,132,4,p.edge,.8).setRotation(direction>0?-.22:.22).setDepth(107);this.combatLayer.add(sweep);this.scene.tweens.add({targets:sweep,x:sweep.x+direction*46,scaleX:1.35,alpha:0,duration:190,onComplete:()=>sweep.destroy()});
+    }else{
+      const lengths=cardId==='heavy'?[128,112]:[104,92];
+      lengths.forEach((length,i)=>{const cut=this.scene.add.rectangle(x,y-6,length,i?3:7,i?p.edge:p.main,i?.96:.82).setRotation((i?-.78:.72)*direction).setDepth(110+i);this.combatLayer.add(cut);this.scene.tweens.add({targets:cut,scaleX:1.28,alpha:0,duration:145+i*35,ease:'Cubic.easeOut',onComplete:()=>cut.destroy()})});
+      for(let i=0;i<4;i++){const needle=this.scene.add.rectangle(x-direction*(18+i*5),y-32+i*18,34,2,p.edge,.65).setRotation((-.15+i*.12)*direction).setDepth(109);this.combatLayer.add(needle);this.scene.tweens.add({targets:needle,x:needle.x+direction*(72+i*12),alpha:0,duration:150+i*20,onComplete:()=>needle.destroy()})}
+    }
+  }
+
   // 供 BootScene 從外部觸發（例如 onImpact callback 內），因為 damage() 在 BootScene 裡。
   triggerHitFlash(sprite:Phaser.GameObjects.Sprite|undefined){this.hitFlash(sprite)}
   private move(o: Phaser.GameObjects.Container, x: number, y: number, d = 210, ease = 'Quad.easeInOut') { return new Promise<void>((r) => this.scene.tweens.add({ targets: o, x, y, duration: d, ease, onComplete: () => r() })); }
   private wait(ms: number) { return new Promise<void>((r) => this.scene.time.delayedCall(ms, r)); }
+  private realWait(ms:number){return new Promise<void>((resolve)=>globalThis.setTimeout(resolve,ms));}
   private slash(x: number, y: number, flipX: boolean) { const fx = this.scene.add.sprite(x, y, 'slash-cc0').setDepth(100).setScale(.56).setFlipX(flipX).setAlpha(0); this.combatLayer.add(fx); fx.play('slash-cc0'); this.scene.tweens.add({ targets: fx, alpha: 1, duration: 55, yoyo: true, hold: 115, onComplete: () => fx.destroy() }); }
   private bladeArc(x:number,y:number,color:number=0xffe8b0,flip=false){const g=this.scene.add.graphics().setDepth(103);g.lineStyle(10,color,.88);g.beginPath();g.arc(x,y,48,flip?Math.PI*.12:Math.PI*.88,flip?Math.PI*.88:Math.PI*1.88,false);g.strokePath();g.lineStyle(3,0xffffff,.98);g.beginPath();g.arc(x,y,48,flip?Math.PI*.2:Math.PI*.96,flip?Math.PI*.8:Math.PI*1.84,false);g.strokePath();this.combatLayer.add(g);const flash=this.scene.add.circle(x,y,10,0xffffff,.95).setDepth(104);this.combatLayer.add(flash);this.scene.tweens.add({targets:[g,flash],alpha:0,scale:1.5,duration:180,ease:'Cubic.easeOut',onComplete:()=>{g.destroy();flash.destroy()}});for(let i=0;i<6;i++){const shard=this.scene.add.rectangle(x,y,16,3,0xffffff,.9).setDepth(104).setRotation((i-3)*.45);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x+(i-3)*18,y:y+(i%2?1:-1)*(18+i*5),alpha:0,duration:180,onComplete:()=>shard.destroy()})}}
   private cardImpact(x:number,y:number,definitionId?:string){
@@ -69,12 +115,23 @@ export class ActionPresenter {
     const direction = attacker.root.x < target.root.x ? 1 : -1;
     // 卡片資訊往上抬到 -132 避免蓋到怪物母版尺寸的頭部；若 y 太靠近上邊界則吸回 40。
     const badgeY = Math.max(40, attacker.root.y - 132);
-    const badge = this.scene.add.text(attacker.root.x, badgeY, `${card.name}\n威力 ${card.clashPower}`, { fontFamily: 'sans-serif', fontSize: '16px', fontStyle: 'bold', align: 'center', color: '#fff', backgroundColor: enemy ? '#713142' : '#155268', padding: { x: 14, y: 8 } }).setOrigin(.5).setDepth(70);
-    await this.move(attacker.root, attacker.root.x - direction * 42, attacker.root.y, 100, 'Quad.easeOut');
-    this.scene.sound.play('sword-swish', { volume: .7 });
-    const contactX = mode === 'flank' ? target.root.x + direction * 62 : target.root.x - direction * 58;
+    const isChikage=!enemy&&actorId==='PB',isOboro=!enemy&&actorId==='PC';
+    const techniqueColor=isChikage?'#5b4520':isOboro?'#33245c':enemy?'#713142':'#155268';
+    const badge = this.scene.add.text(attacker.root.x, badgeY, `${card.name}\n威力 ${card.clashPower}`, { fontFamily: (isChikage||isOboro)?'serif':'sans-serif', fontSize: (isChikage||isOboro)?'18px':'16px', fontStyle: 'bold', align: 'center', color: '#fff', stroke:(isChikage||isOboro)?'#0a0810':undefined,strokeThickness:(isChikage||isOboro)?4:0, backgroundColor: techniqueColor, padding: { x: 14, y: 8 } }).setOrigin(.5).setDepth(70).setAlpha((isChikage||isOboro) ? .15 : 1);
+    if(isChikage||isOboro)this.scene.tweens.add({targets:badge,alpha:1,y:badgeY-8,duration:120,ease:'Back.easeOut'});
+    const anticipation=isChikage?128:isOboro?58:100;
+    const dashDuration=isChikage?168:isOboro?92:150;
+    const retreat=isChikage?54:isOboro?30:42;
+    await this.move(attacker.root, attacker.root.x - direction * retreat, attacker.root.y, anticipation, 'Quad.easeOut');
+    this.techniqueWindup(actorId,attacker,direction,card.definitionId);
+    this.scene.sound.play('sword-swish', { volume: isOboro ? .82 : isChikage ? .74 : .7, rate: isOboro ? 1.18 : isChikage ? .9 : 1 });
+    const baseContact=isChikage?78:isOboro?44:58;
+    const contactX = mode === 'flank' ? target.root.x + direction * Math.max(54,baseContact) : target.root.x - direction * baseContact;
     playHeroinePose(attacker.sprite,'strike');
-    await this.move(attacker.root, contactX, target.root.y, 150, 'Cubic.easeIn');
+    if(isChikage&&attacker.sprite)this.scene.tweens.add({targets:attacker.sprite,angle:direction*6,duration:dashDuration,ease:'Cubic.easeIn'});
+    if(isOboro&&attacker.sprite)this.scene.tweens.add({targets:attacker.sprite,angle:-direction*8,duration:dashDuration,ease:'Expo.easeIn'});
+    if(isOboro){this.spawnAfterimage(attacker,direction,0x9988ff,20,.28);this.spawnAfterimage(attacker,direction,0x5e4a98,42,.18)}
+    await this.move(attacker.root, contactX, target.root.y, dashDuration, isOboro?'Expo.easeIn':'Cubic.easeIn');
     if (mode === 'flank') badge.setText(`${card.name}\n側襲`);
     // 斬擊方向：flipX 由攻擊者→目標方向決定（direction>0 = 攻擊者在左，揮向右需 flipX=true）；
     // 不再用 enemy 旗標硬綁，避免玩家改站左邊後斬擊方向反了。
@@ -83,6 +140,7 @@ export class ActionPresenter {
     // 更正：classic-slash-sheet 的 crescent 朝向與先前假設相反——base 為左向揮擊，
     // flipX=true 才是「揮向左」。因此攻擊者在**右邊**（direction<0）才要 flipX=true。
     // 玩家在左攻擊右 → direction=+1 → flipX=false；敵人在右攻擊左 → direction=-1 → flipX=true。
+    this.techniqueImpact(actorId,target.root.x,target.root.y-5,direction,card.definitionId);
     this.slash(target.root.x, target.root.y - 5, direction < 0);
     this.cardImpact(target.root.x,target.root.y-5,card.definitionId);
     this.playImpact(impactKind);
@@ -103,8 +161,8 @@ export class ActionPresenter {
       target.root.setAngle(direction * 9);
     }
     await this.wait(90); badge.destroy();
-    if (returnToSlot) await this.move(attacker.root, attacker.x, attacker.y, 240);
-    playHeroinePose(attacker.sprite,'idle');if(!defeated)playHeroinePose(target.sprite,'idle');
+    if (returnToSlot) await this.move(attacker.root, attacker.x, attacker.y, isOboro?150:isChikage?265:240,isOboro?'Cubic.easeOut':'Quad.easeInOut');
+    if(attacker.sprite)attacker.sprite.setAngle(0);playHeroinePose(attacker.sprite,'idle');if(!defeated)playHeroinePose(target.sprite,'idle');
     if(defeated)this.resetCamera()
   }
 
@@ -198,7 +256,7 @@ export class ActionPresenter {
     // 崩勢音效：低頻疊播模擬「架勢斷開」的空音。
     this.playImpact('break');
     this.scene.time.timeScale=.22;
-    await this.wait(180);
+    await this.realWait(180);
     this.scene.time.timeScale=1;
     await this.wait(300); label.destroy(); ring.destroy(); actor.root.x = actor.x;
     this.resetCamera();
