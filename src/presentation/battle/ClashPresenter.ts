@@ -51,12 +51,14 @@ export class ClashPresenter {
   }
 
   private impactCross(x:number,y:number,color=0xfff1ba){
-    const a=this.scene.add.rectangle(x,y,122,7,color,.94).setRotation(-.66).setDepth(112);
-    const b=this.scene.add.rectangle(x,y,100,4,0xffffff,.98).setRotation(.72).setDepth(113);
-    const core=this.scene.add.circle(x,y,18,0xffffff,.88).setDepth(114);
+    const cross=this.spawnFxImage('fx-p9-clash-cross',x,y,114,{scale:.78,alpha:.98,tint:color,blendMode:Phaser.BlendModes.ADD});
+    const a=this.scene.add.rectangle(x,y,146,8,color,.94).setRotation(-.66).setDepth(112);
+    const b=this.scene.add.rectangle(x,y,122,5,0xffffff,.98).setRotation(.72).setDepth(113);
+    const core=this.scene.add.circle(x,y,20,0xffffff,.9).setDepth(114);
     this.combatLayer.add([a,b,core]);
-    this.scene.tweens.add({targets:[a,b],scaleX:1.55,alpha:0,duration:180,ease:'Cubic.easeOut'});
-    this.scene.tweens.add({targets:core,scale:2.3,alpha:0,duration:150,ease:'Quad.easeOut',onComplete:()=>{a.destroy();b.destroy();core.destroy()}})
+    this.scene.tweens.add({targets:[a,b],scaleX:1.7,alpha:0,duration:180,ease:'Cubic.easeOut'});
+    if(cross)this.scene.tweens.add({targets:cross,scale:1.18,alpha:0,duration:170,ease:'Cubic.easeOut',onComplete:()=>cross.destroy()});
+    this.scene.tweens.add({targets:core,scale:2.5,alpha:0,duration:150,ease:'Quad.easeOut',onComplete:()=>{a.destroy();b.destroy();core.destroy()}})
   }
 
   private sound(key: string, volume: number) {
@@ -90,13 +92,48 @@ export class ClashPresenter {
     this.scene.time.delayedCall(110,()=>{if(prev===0xffffff)sprite.clearTint();else sprite.setTint(prev)});
   }
 
-  private slash(x:number,y:number,flipX:boolean,scale=1,color=0xffffff){const dir=flipX?-1:1,angle=-.62*dir;const glow=this.scene.add.rectangle(x,y,290*scale,32*scale,color,.16).setRotation(angle).setDepth(110).setScale(.18,1.35),core=this.scene.add.rectangle(x,y,290*scale,8*scale,0xffffff,.99).setRotation(angle).setDepth(112).setScale(.14,1);this.combatLayer.add([glow,core]);this.scene.tweens.add({targets:glow,scaleX:1.2,scaleY:.7,alpha:0,duration:150,ease:'Expo.easeOut',onComplete:()=>glow.destroy()});this.scene.tweens.add({targets:core,scaleX:1.08,alpha:0,duration:128,ease:'Expo.easeOut',onComplete:()=>core.destroy()})}
-  private bladeCut(x:number,y:number,flip=false,color=0xfff3c4){this.slash(x,y,flip,1.08,color);for(let i=0;i<8;i++){const shard=this.scene.add.rectangle(x,y,24,3,i%2?0xffffff:color,.9).setDepth(114).setRotation((i-4)*.38);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x+(i-4)*28,y:y+(i%2?1:-1)*(30+i*4),alpha:0,duration:190,onComplete:()=>shard.destroy()})}}
+  private spawnFxImage(key:string,x:number,y:number,depth:number,opts?:{scale?:number;rotation?:number;tint?:number;alpha?:number;flipX?:boolean;blendMode?:Phaser.BlendModes|string}){
+    if(!this.scene.textures.exists(key))return;
+    const img=this.scene.add.image(x,y,key).setDepth(depth).setAlpha(opts?.alpha??1).setScale(opts?.scale??1).setRotation(opts?.rotation??0).setFlipX(Boolean(opts?.flipX));
+    if(typeof opts?.tint==='number')img.setTint(opts.tint);
+    if(opts?.blendMode)img.setBlendMode(opts.blendMode);
+    this.combatLayer.add(img);
+    return img;
+  }
+  private impactBackdrop(kind:'clash'|'heavy'|'break',x:number,y:number){
+    const w=this.scene.cameras.main.width,h=this.scene.cameras.main.height;
+    const alpha=kind==='clash'?.16:kind==='heavy'?.22:.28;
+    const overlay=this.scene.add.rectangle(w/2,h/2,w,h,0x020611,alpha).setDepth(97).setScrollFactor(0);
+    this.combatLayer.add(overlay);
+    const bloom=this.spawnFxImage('fx-p9-impact-bloom',x,y,118,{scale:kind==='break'?1.95:kind==='heavy'?1.55:1.3,alpha:kind==='break'?.95:.8,tint:kind==='break'?0xffd681:0xffffff,blendMode:Phaser.BlendModes.ADD});
+    if(bloom)this.scene.tweens.add({targets:bloom,scale:(bloom.scaleX||1)*(kind==='break'?1.38:1.24),alpha:0,duration:kind==='break'?220:180,ease:'Cubic.easeOut',onComplete:()=>bloom.destroy()});
+    this.scene.tweens.add({targets:overlay,alpha:0,duration:kind==='break'?220:180,ease:'Quad.easeOut',onComplete:()=>overlay.destroy()});
+  }
+  private slash(x:number,y:number,flipX:boolean,scale=1,color=0xffffff){
+    const dir=flipX?-1:1;
+    ['fx-p9a-arc-slash-1','fx-p9a-arc-slash-2'].forEach((key,i)=>this.scene.time.delayedCall(i*28,()=>{
+      const img=this.spawnFxImage(key,x+dir*(i?18:-8),y+(i?7:-7),108+i,{scale:(.4+i*.06)*scale,alpha:i?.7:.92,tint:color,flipX:dir<0,blendMode:Phaser.BlendModes.ADD});
+      if(img)this.scene.tweens.add({targets:img,scale:(img.scaleX||1)*1.16,alpha:0,duration:155+i*30,ease:'Expo.easeOut',onComplete:()=>img.destroy()});
+    }));
+    const edge=this.spawnFxImage('fx-p9-arc-slash-3',x,y,112,{scale:.82*scale,alpha:.62,tint:color,flipX:dir<0,blendMode:Phaser.BlendModes.ADD});
+    if(edge)this.scene.tweens.add({targets:edge,scale:(edge.scaleX||1)*1.1,alpha:0,duration:165,ease:'Expo.easeOut',onComplete:()=>edge.destroy()});
+  }
+  private bladeCut(x:number,y:number,flip=false,color=0xfff3c4){
+    const dir=flip?-1:1;
+    this.slash(x,y,flip,1.12,color);
+    ['fx-p9-line-slash-1','fx-p9-line-slash-2','fx-p9-line-slash-3'].forEach((key,i)=>{
+      this.scene.time.delayedCall(i*14,()=>{
+        const line=this.spawnFxImage(key,x+dir*i*16,y-i*3,113+i,{scale:.7+i*.06,alpha:.92-i*.16,tint:i===0?0xffffff:color,flipX:dir<0,rotation:(dir>0?-.08:.08),blendMode:Phaser.BlendModes.ADD});
+        if(line)this.scene.tweens.add({targets:line,scaleX:(line.scaleX||1)*1.08,alpha:0,duration:126+i*18,ease:'Expo.easeOut',onComplete:()=>line.destroy()});
+      });
+    });
+    for(let i=0;i<10;i++){const shard=this.scene.add.rectangle(x,y,26,3,i%2?0xffffff:color,.92).setDepth(114).setRotation((i-5)*.34);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x+dir*(28+i*9),y:y+(i%2?1:-1)*(26+i*4),alpha:0,duration:180+i*4,onComplete:()=>shard.destroy()})}
+  }
   private playerTechniqueAccent(actorId:string,x:number,y:number,flip:boolean){
     if(actorId==='PB'){
-      this.slash(x,y,flip,1.25,0xe6c56f);
+      this.lineSlash(x,y,flip,1.22,0xe6c56f);
     }else if(actorId==='PC'){
-      for(let i=0;i<2;i++){const cut=this.scene.add.rectangle(x,y-8,116-i*18,i?3:7,i?0xffffff:0x9f8cff,.9).setRotation((i?-.78:.72)*(flip?-1:1)).setDepth(116+i);this.combatLayer.add(cut);this.scene.tweens.add({targets:cut,scaleX:1.28,alpha:0,duration:150+i*35,onComplete:()=>cut.destroy()})}
+      for(let i=0;i<2;i++){const cut=this.scene.add.rectangle(x,y-8,132-i*22,i?3:8,i?0xffffff:0x9f8cff,.92).setRotation((i?-.78:.72)*(flip?-1:1)).setDepth(116+i);this.combatLayer.add(cut);this.scene.tweens.add({targets:cut,scaleX:1.3,alpha:0,duration:150+i*35,onComplete:()=>cut.destroy()})}
     }
   }
 
@@ -206,6 +243,7 @@ export class ClashPresenter {
     await Promise.all([this.move(player.root, clashX-16, clashY, 135, 'Cubic.easeIn'), this.move(enemy.root, clashX+16, clashY, 135, 'Cubic.easeIn')]);
     playHeroinePose(player.sprite,'strike','b');
     clashLock.destroy();
+    this.impactBackdrop('clash',clashX,clashY-13);
     this.playImpact('clash');
     if(player.sprite)player.sprite.setAngle(0);
     if(enemy.sprite)enemy.sprite.setAngle(0);
@@ -263,6 +301,7 @@ export class ClashPresenter {
       this.slash(loser.root.x, loser.root.y - 5, !playerWon);
       this.bladeCut(loser.root.x,loser.root.y-5,!playerWon,playerWon?0x9fe8ff:0xff7487);
       this.burst(loser.root.x, loser.root.y - 5, playerWon ? 0x67e8ff : 0xff6b78, 16);
+      this.impactBackdrop('break',loser.root.x,loser.root.y-5);
       this.playImpact('break');
       this.scene.cameras.main.shake(240, .022);
       playHeroinePose(loser.sprite,'hit','a');
@@ -301,6 +340,7 @@ export class ClashPresenter {
       await this.realWait(220);
       this.scene.time.timeScale = 1;
       // 兩人彈開之前補一次 impact 音（低頻疊播）與 shake，做為分離瞬間的收音。
+      this.impactBackdrop('clash',clashX,clashY-13);
       this.playImpact('clash');
       this.scene.cameras.main.shake(140, .012);
       await Promise.all([

@@ -92,31 +92,94 @@ export class ActionPresenter {
   private move(o: Phaser.GameObjects.Container, x: number, y: number, d = 210, ease = 'Quad.easeInOut') { return new Promise<void>((r) => this.scene.tweens.add({ targets: o, x, y, duration: d, ease, onComplete: () => r() })); }
   private wait(ms: number) { return new Promise<void>((r) => this.scene.time.delayedCall(ms, r)); }
   private realWait(ms:number){return new Promise<void>((resolve)=>globalThis.setTimeout(resolve,ms));}
-  // P6 contact-anchored slash families. They are impact planes, never projectiles.
+  private spawnFxImage(key:string,x:number,y:number,depth:number,opts?:{scale?:number;rotation?:number;tint?:number;alpha?:number;flipX?:boolean;blendMode?:Phaser.BlendModes|string}){
+    if(!this.scene.textures.exists(key))return;
+    const img=this.scene.add.image(x,y,key).setDepth(depth).setAlpha(opts?.alpha??1).setScale(opts?.scale??1).setRotation(opts?.rotation??0).setFlipX(Boolean(opts?.flipX));
+    if(typeof opts?.tint==='number')img.setTint(opts.tint);
+    if(opts?.blendMode)img.setBlendMode(opts.blendMode);
+    this.combatLayer.add(img);
+    return img;
+  }
+  private impactBackdrop(kind:'quick'|'normal'|'heavy'|'break'|'clash',x:number,y:number){
+    if(kind==='quick')return;
+    const w=this.scene.cameras.main.width,h=this.scene.cameras.main.height;
+    const alpha=kind==='normal'?.12:kind==='heavy'?.2:kind==='clash'?.16:.28;
+    const overlay=this.scene.add.rectangle(w/2,h/2,w,h,0x020611,alpha).setDepth(98).setScrollFactor(0);
+    this.combatLayer.add(overlay);
+    const bloom=this.spawnFxImage('fx-p9-impact-bloom',x,y,118,{scale:kind==='break'?1.9:kind==='heavy'?1.55:1.22,alpha:kind==='break'?.9:.72,tint:kind==='break'?0xffd37f:0xffffff,blendMode:Phaser.BlendModes.ADD});
+    if(bloom)this.scene.tweens.add({targets:bloom,scale:(bloom.scaleX||1)*(kind==='break'?1.42:1.26),alpha:0,duration:kind==='break'?220:180,ease:'Cubic.easeOut',onComplete:()=>bloom.destroy()});
+    this.scene.tweens.add({targets:overlay,alpha:0,duration:kind==='break'?220:180,ease:'Quad.easeOut',onComplete:()=>overlay.destroy()});
+  }
+  private debrisBurst(x:number,y:number,color:number,direction:number,count=10,spread=84){
+    for(let i=0;i<count;i++){
+      const dy=(i-(count-1)/2)*(spread/Math.max(1,count-1));
+      const shard=this.scene.add.rectangle(x,y,Phaser.Math.Between(16,34),Phaser.Math.Between(2,5),i%3===0?0xffffff:color,.9).setDepth(115).setRotation((-.6+Math.random()*1.2)+(direction>0?0:-Math.PI));
+      this.combatLayer.add(shard);
+      this.scene.tweens.add({targets:shard,x:x+direction*Phaser.Math.Between(70,170),y:y+dy,angle:shard.angle+direction*(.2+Math.random()*.55),alpha:0,scaleX:.45,scaleY:.72,duration:150+Math.random()*70,ease:'Cubic.easeOut',onComplete:()=>shard.destroy()});
+    }
+  }
+  // P8: cinematic slash families. They remain contact-anchored and never fly behind the target.
   private slash(x:number,y:number,flipX:boolean,scale=1,color=0xf7fbff){
-    const dir=flipX?-1:1,g=this.scene.add.graphics().setDepth(108).setPosition(x,y),start=dir>0?-2.5:-.64,end=dir>0?.64:2.5,r=148*scale;
-    g.lineStyle(36*scale,color,.09).beginPath().arc(0,0,r,start,end,dir<0).strokePath();
-    g.lineStyle(13*scale,color,.62).beginPath().arc(0,0,r-3*scale,start,end,dir<0).strokePath();
-    g.lineStyle(Math.max(3,5.5*scale),0xffffff,.98).beginPath().arc(0,0,r-9*scale,start+.045*dir,end-.045*dir,dir<0).strokePath();
-    this.combatLayer.add(g);g.setScale(.48);
-    this.scene.tweens.add({targets:g,scale:1.12,alpha:0,duration:145,ease:'Expo.easeOut',onComplete:()=>g.destroy()});
-    const flash=this.scene.add.circle(x,y,22*scale,0xffffff,.9).setDepth(112);this.combatLayer.add(flash);
-    this.scene.tweens.add({targets:flash,scale:3.25,alpha:0,duration:118,ease:'Cubic.easeOut',onComplete:()=>flash.destroy()});
+    const dir=flipX?-1:1;
+    const generated=['fx-p9a-arc-slash-1','fx-p9a-arc-slash-2'];
+    generated.forEach((key,i)=>this.scene.time.delayedCall(i*34,()=>{
+      const img=this.spawnFxImage(key,x+dir*(i?24:-12),y+(i?8:-8),108+i,{scale:(.44+i*.08)*scale,alpha:i?.72:.94,tint:color,flipX:dir<0,blendMode:Phaser.BlendModes.ADD});
+      if(img)this.scene.tweens.add({targets:img,scale:(img.scaleX||1)*(i?1.12:1.2),alpha:0,duration:i?205:165,ease:'Expo.easeOut',onComplete:()=>img.destroy()});
+    }));
+    ['fx-p9-arc-slash-2','fx-p9-arc-slash-3'].forEach((key,i)=>this.scene.time.delayedCall(20+i*20,()=>{
+      const img=this.spawnFxImage(key,x+dir*i*10,y+i*2,111+i,{scale:(.78+i*.08)*scale,alpha:.7-i*.18,tint:color,flipX:dir<0,blendMode:Phaser.BlendModes.ADD});
+      if(img)this.scene.tweens.add({targets:img,scale:(img.scaleX||1)*1.12,alpha:0,duration:150+i*18,ease:'Expo.easeOut',onComplete:()=>img.destroy()});
+    }));
+    const flash=this.scene.add.circle(x,y,26*scale,0xffffff,.94).setDepth(116);this.combatLayer.add(flash);
+    this.scene.tweens.add({targets:flash,scale:4.3,alpha:0,duration:135,ease:'Cubic.easeOut',onComplete:()=>flash.destroy()});
   }
   private lineSlash(x:number,y:number,flipX:boolean,scale=1,color=0xffe0a8){
-    const dir=flipX?-1:1,angles=[-.11,.08,-.39,.34],lengths=[470,390,310,260];
-    angles.forEach((a,i)=>{const main=i===0,line=this.scene.add.rectangle(x-dir*(i*11),y+(i-1.5)*15,lengths[i]!*scale,main?13:5,main?0xffffff:color,main?.98:.78).setRotation(a*dir).setDepth(110+i).setScale(.12,1);this.combatLayer.add(line);this.scene.tweens.add({targets:line,scaleX:1.08,alpha:0,duration:main?128:158+i*18,delay:i*16,ease:'Expo.easeOut',onComplete:()=>line.destroy()})});
-    const core=this.scene.add.circle(x,y,26*scale,0xffffff,.95).setDepth(116);this.combatLayer.add(core);
-    this.scene.tweens.add({targets:core,scale:3.4,alpha:0,duration:130,ease:'Cubic.easeOut',onComplete:()=>core.destroy()});
+    const dir=flipX?-1:1;
+    ['fx-p9a-line-slash-1','fx-p9a-line-slash-2'].forEach((key,i)=>this.scene.time.delayedCall(i*30,()=>{
+      const img=this.spawnFxImage(key,x+dir*(i?26:-18),y+(i?10:-8),109+i,{scale:(.42+i*.05)*scale,alpha:i?.72:.96,tint:i===0?0xffffff:color,flipX:dir<0,rotation:(dir>0?-.08:.08),blendMode:Phaser.BlendModes.ADD});
+      if(img)this.scene.tweens.add({targets:img,scaleX:(img.scaleX||1)*(i?1.14:1.24),alpha:0,duration:i?190:150,ease:'Expo.easeOut',onComplete:()=>img.destroy()});
+    }));
+    ['fx-p9-line-slash-2','fx-p9-line-slash-3'].forEach((key,i)=>this.scene.time.delayedCall(18+i*18,()=>{
+      const img=this.spawnFxImage(key,x+dir*i*18,y-i*4,113+i,{scale:(.9+i*.07)*scale,alpha:.66-i*.16,tint:color,flipX:dir<0,rotation:(dir>0?-.08:.08),blendMode:Phaser.BlendModes.ADD});
+      if(img)this.scene.tweens.add({targets:img,scaleX:(img.scaleX||1)*1.12,alpha:0,duration:142+i*20,ease:'Expo.easeOut',onComplete:()=>img.destroy()});
+    }));
+    const core=this.scene.add.circle(x,y,30*scale,0xffffff,.98).setDepth(118);this.combatLayer.add(core);
+    this.scene.tweens.add({targets:core,scale:4.4,alpha:0,duration:125,ease:'Cubic.easeOut',onComplete:()=>core.destroy()});
   }
   private impactCameraPunch(kind:'quick'|'normal'|'heavy'|'break',x:number,y:number){
-    const zoom=kind==='quick'?1.025:kind==='normal'?1.045:kind==='heavy'?1.075:1.095;
-    const inMs=kind==='quick'?38:48,outMs=kind==='quick'?95:kind==='normal'?120:150;
+    const zoom=kind==='quick'?1.03:kind==='normal'?1.055:kind==='heavy'?1.095:1.13;
+    const inMs=kind==='quick'?42:56;
+    const outMs=kind==='quick'?110:kind==='normal'?140:kind==='heavy'?170:195;
     this.scene.cameras.main.pan(x,y,inMs,'Quad.easeOut');
     this.scene.cameras.main.zoomTo(zoom,inMs,'Quad.easeOut');
-    this.scene.time.delayedCall(inMs+20,()=>{this.scene.cameras.main.pan(640,360,outMs,'Sine.easeOut');this.scene.cameras.main.zoomTo(1,outMs,'Sine.easeOut')});
+    this.scene.time.delayedCall(inMs+26,()=>{this.scene.cameras.main.pan(640,360,outMs,'Sine.easeOut');this.scene.cameras.main.zoomTo(1,outMs,'Sine.easeOut')});
   }
-  private cardImpact(x:number,y:number,definitionId?:string,flip=false){const burstLines=(color:number,count:number,reach:number)=>{for(let i=0;i<count;i++){const a=-1.15+i*(2.3/Math.max(1,count-1)),ray=this.scene.add.rectangle(x,y,reach,3,color,.86).setOrigin(0,.5).setRotation(a).setDepth(106);this.combatLayer.add(ray);this.scene.tweens.add({targets:ray,scaleX:1.35,alpha:0,duration:180+i*8,ease:'Cubic.easeOut',onComplete:()=>ray.destroy()})}};if(definitionId==='break'){this.lineSlash(x,y,flip,1.18,0xffd36b);burstLines(0xffd36b,9,92);const crack=this.scene.add.rectangle(x,y+22,190,7,0xffc85c,.8).setDepth(105);this.combatLayer.add(crack);this.scene.tweens.add({targets:crack,scaleX:1.45,alpha:0,duration:240,onComplete:()=>crack.destroy()})}else if(definitionId==='delay'){const bars=[-34,0,34].map((dy,i)=>this.scene.add.rectangle(x-(flip?-1:1)*18,y+dy,150-i*18,5,0x9cecff,.82).setDepth(104+i));this.combatLayer.add(bars);bars.forEach((b,i)=>this.scene.tweens.add({targets:b,x:b.x+(flip?-1:1)*42,scaleX:.35,alpha:0,delay:i*24,duration:250,onComplete:()=>b.destroy()}))}else if(definitionId==='heavy'){this.lineSlash(x,y,flip,1.38,0xffd8a0);burstLines(0xffd8a0,11,112);const shock=this.scene.add.rectangle(x,y+38,230,9,0xffd8a0,.72).setDepth(101);this.combatLayer.add(shock);this.scene.tweens.add({targets:shock,scaleX:1.55,scaleY:.25,alpha:0,duration:300,onComplete:()=>shock.destroy()})}else if(definitionId==='quick'){this.slash(x-10,y-8,flip,1.08,0x9fe8ff);this.scene.time.delayedCall(42,()=>this.slash(x+12,y+10,!flip,.96,0x67cfff))}else if(definitionId==='guard'){const shield=this.scene.add.ellipse(x,y,118,146,0x7dd9ff,.10).setStrokeStyle(7,0xc6f4ff,.95).setDepth(101);this.combatLayer.add(shield);this.scene.tweens.add({targets:shield,scale:.72,alpha:0,duration:330,onComplete:()=>shield.destroy()})}else if(definitionId==='cover'){const intercept=this.scene.add.triangle(x,y-20,0,76,44,0,88,76,0x8eeeff,.72).setStrokeStyle(4,0xe6fbff,.95).setDepth(102);this.combatLayer.add(intercept);this.scene.tweens.add({targets:intercept,y:y-64,scale:1.22,alpha:0,duration:280,onComplete:()=>intercept.destroy()})}else if(definitionId==='relay'){this.slash(x,y,flip,1.18,0xffd56f);const handoff=this.scene.add.rectangle(x-(flip?-1:1)*80,y+28,180,5,0xffd56f,.82).setDepth(103);this.combatLayer.add(handoff);this.scene.tweens.add({targets:handoff,x:handoff.x+(flip?-1:1)*95,scaleX:1.35,alpha:0,duration:220,onComplete:()=>handoff.destroy()})}else if(definitionId==='cycle'){for(let i=0;i<3;i++){const ring=this.scene.add.ellipse(x,y,72+i*22,42+i*12,0x8fe6c0,.05).setStrokeStyle(3,0xb9ffe3,.86-i*.16).setDepth(101+i);this.combatLayer.add(ring);this.scene.tweens.add({targets:ring,scale:1.55,alpha:0,delay:i*45,duration:360,onComplete:()=>ring.destroy()})}}}
+  private cardImpact(x:number,y:number,definitionId?:string,flip=false){
+    const dir=flip?-1:1;
+    const burstLines=(color:number,count:number,reach:number)=>{for(let i=0;i<count;i++){const a=-1.18+i*(2.36/Math.max(1,count-1)),ray=this.scene.add.rectangle(x,y,reach,3,color,.86).setOrigin(0,.5).setRotation(a).setDepth(106);this.combatLayer.add(ray);this.scene.tweens.add({targets:ray,scaleX:1.42,alpha:0,duration:180+i*10,ease:'Cubic.easeOut',onComplete:()=>ray.destroy()})}};
+    if(definitionId==='break'){
+      this.impactBackdrop('break',x,y);this.lineSlash(x,y,flip,1.62,0xffd36b);this.slash(x-dir*24,y-14,flip,1.12,0xfff0a8);burstLines(0xffd36b,13,124);this.debrisBurst(x,y,0xffc85c,dir,15,110);
+      const crack=this.scene.add.rectangle(x,y+24,260,10,0xffc85c,.86).setDepth(105);this.combatLayer.add(crack);this.scene.tweens.add({targets:crack,scaleX:1.75,scaleY:.3,alpha:0,duration:280,ease:'Expo.easeOut',onComplete:()=>crack.destroy()});
+    }else if(definitionId==='delay'){
+      this.impactBackdrop('normal',x,y);const bars=[-34,0,34].map((dy,i)=>this.scene.add.rectangle(x-dir*26,y+dy,190-i*24,7,0x9cecff,.88).setDepth(104+i));this.combatLayer.add(bars);bars.forEach((b,i)=>this.scene.tweens.add({targets:b,x:b.x+dir*64,scaleX:.3,alpha:0,delay:i*18,duration:230,onComplete:()=>b.destroy()}));this.debrisBurst(x,y,0xbcefff,dir,8,70);
+    }else if(definitionId==='heavy'){
+      this.impactBackdrop('heavy',x,y);this.lineSlash(x,y,flip,1.84,0xffd8a0);burstLines(0xffd8a0,15,136);this.debrisBurst(x,y,0xffd8a0,dir,18,126);
+      const shock=this.scene.add.rectangle(x,y+42,320,12,0xffd8a0,.76).setDepth(101);this.combatLayer.add(shock);this.scene.tweens.add({targets:shock,scaleX:1.8,scaleY:.22,alpha:0,duration:300,ease:'Expo.easeOut',onComplete:()=>shock.destroy()});
+    }else if(definitionId==='quick'){
+      this.slash(x-14,y-10,flip,1.18,0x9fe8ff);this.scene.time.delayedCall(34,()=>this.slash(x+14,y+8,!flip,1.04,0x67cfff));this.debrisBurst(x,y,0x7fdfff,dir,6,56);
+    }else if(definitionId==='guard'){
+      const shield=this.scene.add.ellipse(x,y,142,174,0x7dd9ff,.12).setStrokeStyle(8,0xc6f4ff,.95).setDepth(101);this.combatLayer.add(shield);this.scene.tweens.add({targets:shield,scale:.68,alpha:0,duration:350,onComplete:()=>shield.destroy()});
+    }else if(definitionId==='cover'){
+      const intercept=this.scene.add.triangle(x,y-24,0,86,50,0,100,86,0x8eeeff,.74).setStrokeStyle(5,0xe6fbff,.95).setDepth(102);this.combatLayer.add(intercept);this.scene.tweens.add({targets:intercept,y:y-74,scale:1.28,alpha:0,duration:280,onComplete:()=>intercept.destroy()});
+    }else if(definitionId==='relay'){
+      this.impactBackdrop('heavy',x,y);this.slash(x,y,flip,1.28,0xffd56f);this.lineSlash(x+dir*18,y-8,flip,1.08,0xffe2a0);this.debrisBurst(x,y,0xffd56f,dir,10,92);
+      const handoff=this.scene.add.rectangle(x-dir*96,y+28,220,6,0xffd56f,.84).setDepth(103);this.combatLayer.add(handoff);this.scene.tweens.add({targets:handoff,x:handoff.x+dir*110,scaleX:1.42,alpha:0,duration:220,onComplete:()=>handoff.destroy()});
+    }else if(definitionId==='cycle'){
+      for(let i=0;i<3;i++){const ring=this.scene.add.ellipse(x,y,78+i*24,46+i*14,0x8fe6c0,.05).setStrokeStyle(4,0xb9ffe3,.88-i*.16).setDepth(101+i);this.combatLayer.add(ring);this.scene.tweens.add({targets:ring,scale:1.65,alpha:0,delay:i*45,duration:360,onComplete:()=>ring.destroy()})}
+    }else{
+      this.impactBackdrop('normal',x,y);this.slash(x,y,flip,1.08,0xf7fbff);this.debrisBurst(x,y,0xd8f2ff,dir,8,68);
+    }
+  }
   private resetCamera() { this.scene.cameras.main.pan(640, 360, 250, 'Sine.easeInOut'); this.scene.cameras.main.zoomTo(1, 250, 'Sine.easeInOut'); }
 
   async attack(actorId: string, targetId: string, card: { name: string; clashPower: number; definitionId?: string }, enemy = false, mode: 'normal' | 'flank' = 'normal', returnToSlot = true, onImpact?: () => boolean) {
