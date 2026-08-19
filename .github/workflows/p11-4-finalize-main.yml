@@ -1,0 +1,98 @@
+name: P11.4 Finalizer Main
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Retire finalizer from main first
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm .github/workflows/p11-4-finalize-main.yml
+          git add -u .github/workflows/p11-4-finalize-main.yml
+          git commit -m "chore: retire P11.4 finalizer"
+          git push origin HEAD:main
+      - name: Checkout integration branch and sync latest main history
+        run: |
+          git fetch origin main feat/p11-4-integration
+          git checkout -B feat/p11-4-integration origin/feat/p11-4-integration
+          git merge -s ours origin/main -m "merge: sync main production hotfixes into P11.4"
+      - name: Final visible runtime integration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          boot=Path('src/presentation/scenes/BootScene.ts')
+          s=boot.read_text(encoding='utf-8')
+          repl=[
+          ("this.load.image('heroine-idle-a','assets/battle/generated/characters/heroine/heroine-sd-idle-runtime-a.png');this.load.image('heroine-idle-b','assets/battle/generated/characters/heroine/heroine-sd-idle-runtime-b.png');this.load.image('heroine-ready','assets/battle/heroine-sd-ready-v1.png');this.load.image('heroine-attack-a','assets/battle/generated/characters/heroine/heroine-sd-attack-runtime-a.png');this.load.image('heroine-attack-b','assets/battle/generated/characters/heroine/heroine-sd-attack-runtime-b.png');this.load.image('heroine-down','assets/battle/heroine-sd-down-v2.png');","for(const pose of ['idle-a','idle-b','ready','attack-a','attack-b','hit-a','hit-b','down'])this.load.image(`heroine-${pose}`,`assets/battle/generated/characters/heroine/p11-4/heroine-${pose}.svg`);for(const pose of ['idle-a','idle-b','ready','attack-a','attack-b','hit-a','hit-b','down'])this.load.image(`redleaf-${pose}`,`assets/battle/generated/characters/redleaf/redleaf-${pose}.svg`);"),
+          ("for(const name of ['heroine','chikage','oboro','wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior']){this.load.image(`portrait-${name}-current`,`assets/battle/portraits/${name}-current.png`);this.load.image(`portrait-${name}-timeline`,`assets/battle/portraits/${name}-timeline.png`)};","for(const name of ['chikage','oboro','wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior']){this.load.image(`portrait-${name}-current`,`assets/battle/portraits/${name}-current.png`);this.load.image(`portrait-${name}-timeline`,`assets/battle/portraits/${name}-timeline.png`)};for(const name of ['heroine','redleaf']){this.load.image(`portrait-${name}-current`,`assets/battle/portraits/${name}-p11-4-current.svg`);this.load.image(`portrait-${name}-timeline`,`assets/battle/portraits/${name}-p11-4-timeline.svg`)};"),
+          ("const heroine=f.team==='player',chikage=heroine&&f.id==='PB',oboro=heroine&&f.id==='PC',poseLocked=chikage||oboro,playerTexture=chikage?'chikage-idle-a':oboro?'oboro-idle-a':'heroine-idle-a',","const heroine=f.team==='player',pa=heroine&&f.id==='PA',chikage=heroine&&f.id==='PB',oboro=heroine&&f.id==='PC',redleaf=heroine&&f.id==='PD',poseLocked=pa||chikage||oboro||redleaf,playerTexture=chikage?'chikage-idle-a':oboro?'oboro-idle-a':redleaf?'redleaf-idle-a':'heroine-idle-a',"),
+          (".setData('poseLocked',poseLocked).setData('poseAssetPrefix',chikage?'chikage':oboro?'oboro':'heroine').setData('heroBaseY',-8).setData('darkSilhouette',oboro);",".setData('poseLocked',poseLocked).setData('poseAssetPrefix',chikage?'chikage':oboro?'oboro':redleaf?'redleaf':'heroine').setData('heroBaseY',-8).setData('darkSilhouette',oboro);"),
+          ("if(team==='player')return actorId==='PB'?'千景':actorId==='PC'?'朧':actorId==='PA'?'女主':'隊員';","if(team==='player')return actorId==='PB'?'千景':actorId==='PC'?'朧':actorId==='PD'?'紅葉':'女主';"),
+          ("if(n.team==='player')return n.actorId==='PB'?'chikage':n.actorId==='PC'?'oboro':'heroine';","if(n.team==='player')return n.actorId==='PB'?'chikage':n.actorId==='PC'?'oboro':n.actorId==='PD'?'redleaf':'heroine';"),
+          ("private playerPortraitBase(actorId:string){return actorId==='PB'?'chikage':actorId==='PC'?'oboro':'heroine'}","private playerPortraitBase(actorId:string){return actorId==='PB'?'chikage':actorId==='PC'?'oboro':actorId==='PD'?'redleaf':'heroine'}"),
+          ("this.clearCardTooltip();const p=this.cardPalette(card),tip=this.add.container(1092,548).setDepth(96).setData('cardTooltip',true);","this.clearCardTooltip();const p=this.cardPalette(card),tip=this.add.container(1170,566).setDepth(96).setData('cardTooltip',true);")]
+          for old,new in repl:
+              if old not in s: raise SystemExit('missing patch marker: '+old[:70])
+              s=s.replace(old,new,1)
+          boot.write_text(s,encoding='utf-8')
+
+          candidate=Path('public/assets/battle/generated/characters/heroine/heroine-p11-4-style-rework-candidate.svg').read_text(encoding='utf-8')
+          marker='<g stroke="#17151a" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">'
+          def variant(svg,tr):
+              if marker not in svg: raise SystemExit('PA candidate marker missing')
+              return svg.replace(marker,f'<g transform="{tr}">{marker}',1).replace('</g>\n</svg>','</g></g>\n</svg>',1)
+          out=Path('public/assets/battle/generated/characters/heroine/p11-4');out.mkdir(parents=True,exist_ok=True)
+          transforms={'idle-a':'translate(0 0)','idle-b':'translate(0 -3) rotate(.6 180 300)','ready':'translate(8 0) rotate(-2.2 180 300)','attack-a':'translate(24 -4) rotate(-7 180 300) skewX(-3)','attack-b':'translate(42 -7) rotate(-10 180 300) skewX(-6)','hit-a':'translate(-15 5) rotate(5 180 300)','hit-b':'translate(-24 9) rotate(8 180 300)','down':'translate(-58 150) rotate(72 180 300) scale(.86)'}
+          for n,tr in transforms.items():(out/f'heroine-{n}.svg').write_text(variant(candidate,tr),encoding='utf-8')
+
+          red='''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520"><defs><linearGradient id="h"><stop stop-color="#29262d"/><stop offset="1" stop-color="#0f1015"/></linearGradient><linearGradient id="r"><stop stop-color="#b53b45"/><stop offset="1" stop-color="#6f202d"/></linearGradient></defs><g stroke="#15151a" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"><path d="M150 78 C112 46 88 61 96 91 C69 98 70 126 99 133 C76 151 88 181 118 169 C105 201 131 216 151 188 C163 165 164 112 157 90 Z" fill="url(#h)"/><path d="M149 72 C119 55 99 57 87 75 C113 72 129 82 153 101" fill="none" stroke="#8f2936" stroke-width="11"/><ellipse cx="179" cy="118" rx="51" ry="58" fill="#efd8c9"/><path d="M132 111 C135 69 155 51 188 56 C216 60 231 80 230 105 C213 94 192 91 174 94 C161 109 148 119 132 124 Z" fill="url(#h)"/><path d="M205 112 q9 -6 17 0" fill="none" stroke="#3c2930" stroke-width="5"/><circle cx="215" cy="115" r="3.5" fill="#8d2937" stroke="none"/><path d="M159 166 h39 l-1 31 -42 2 Z" fill="#e8cabb"/><path d="M128 190 C99 211 98 254 113 295 L99 331 C117 344 138 345 153 337 L162 302 L204 302 L222 340 C241 344 258 334 270 319 L246 289 C256 242 239 205 207 188 Z" fill="#1a1b21"/><path d="M130 195 L158 213 L181 195 L204 214 L210 189" fill="#e6dfd2"/><path d="M122 211 L106 244 L136 254 L158 220" fill="url(#r)"/><path d="M210 209 L239 237 L220 260 L190 220" fill="url(#r)"/><path d="M118 294 Q174 316 246 291 M139 338 Q181 349 222 340" fill="none" stroke="#a77c45" stroke-width="5"/><path d="M132 294 H221 L233 327 L216 353 H141 L122 327 Z" fill="#17191f"/><path d="M139 306 H215" fill="none" stroke="#9e2e3c" stroke-width="11"/><path d="M145 347 L171 347 L167 438 L130 438 L134 392 Z" fill="#22232a"/><path d="M184 347 L212 347 L226 438 L190 438 L188 393 Z" fill="#22232a"/><path d="M130 436 C121 460 132 469 156 469 H174 V448 L164 436 Z" fill="#111218"/><path d="M190 437 V467 H244 C251 455 242 445 224 438 Z" fill="#111218"/><path d="M209 218 C237 236 257 254 272 278 L257 296 C236 280 214 260 193 247 Z" fill="#24252d"/><path d="M129 218 C113 244 113 270 128 294 L149 284 C142 264 146 240 158 221 Z" fill="#24252d"/><path d="M91 319 L355 282" fill="none" stroke="#24252b" stroke-width="18"/><path d="M91 319 L355 282" fill="none" stroke="#a77c45" stroke-width="7"/><path d="M332 286 L380 278" fill="none" stroke="#d9d5c8" stroke-width="13"/><path d="M375 278 l-28 -17 11 19 -9 21 Z" fill="#d9d5c8"/><circle cx="109" cy="317" r="13" fill="#9e2e3c"/></g></svg>'''
+          rdir=Path('public/assets/battle/generated/characters/redleaf');rdir.mkdir(parents=True,exist_ok=True)
+          rmarker='<g stroke="#15151a" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">'
+          def rv(tr):return red.replace(rmarker,f'<g transform="{tr}">{rmarker}',1).replace('</g></svg>','</g></g></svg>',1)
+          rtrans={'idle-a':'translate(0 0)','idle-b':'translate(0 -3) rotate(.5 205 300)','ready':'translate(7 0) rotate(-2 205 300)','attack-a':'translate(24 -4) rotate(-6 205 300)','attack-b':'translate(42 -6) rotate(-9 205 300)','hit-a':'translate(-14 5) rotate(5 205 300)','hit-b':'translate(-22 8) rotate(8 205 300)','down':'translate(-70 160) rotate(70 205 300) scale(.84)'}
+          for n,tr in rtrans.items():(rdir/f'redleaf-{n}.svg').write_text(rv(tr),encoding='utf-8')
+
+          portraits=Path('public/assets/battle/portraits');portraits.mkdir(parents=True,exist_ok=True)
+          hp='''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" fill="#07090d"/><path d="M21 111 C29 80 40 68 61 66 C82 66 99 80 108 111" fill="#202128"/><ellipse cx="65" cy="50" rx="28" ry="31" fill="#efd6c7"/><path d="M37 47 C39 23 51 13 70 16 C85 18 95 29 95 44 C83 37 73 36 62 37 C55 47 48 51 37 55" fill="#17171d"/><circle cx="94" cy="49" r="3" fill="#8e2634"/><path d="M24 31 C10 18 13 5 31 13 C42 6 51 13 50 24" stroke="#8e2634" stroke-width="7" fill="none"/></svg>'''
+          rp='''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" fill="#07090d"/><path d="M18 112 C27 80 42 68 63 67 C86 67 101 82 110 112" fill="#1c1d23"/><ellipse cx="65" cy="51" rx="28" ry="31" fill="#efd8c9"/><path d="M37 48 C39 24 51 14 70 17 C86 19 96 30 96 45 C83 38 72 37 62 38 C55 48 48 52 37 56" fill="#15161b"/><circle cx="94" cy="50" r="3" fill="#9e2e3c"/><path d="M23 32 C8 19 13 5 31 13 C43 6 52 14 50 25" stroke="#9e2e3c" stroke-width="7" fill="none"/></svg>'''
+          for stem,svg in [('heroine',hp),('redleaf',rp)]:
+              (portraits/f'{stem}-p11-4-current.svg').write_text(svg,encoding='utf-8');(portraits/f'{stem}-p11-4-timeline.svg').write_text(svg,encoding='utf-8')
+
+          doc=Path('docs/characters/redleaf.md');d=doc.read_text(encoding='utf-8')
+          d=d.replace('- Runtime 僅先接 idle；ready／attack／hit／down 暫沿用位移、角度、hit-stop 與共用 FX，不把尚未核准的衍生圖偽裝成完成素材。','- Runtime trial 已接 idle／ready／attack／hit／down；各 pose 由同一候選母版做 deterministic 變體，僅供一致性與 4V4 驗收，仍不是 approved final art。')
+          doc.write_text(d,encoding='utf-8')
+          PY
+      - name: Source audit
+        run: |
+          ! grep -R -n -E "multi-cover-proof|result-proof|death-proof|relay-proof|card-proof|monster-proof|outcome-proof|boss-proof|keydown-Q|keydown-W|keydown-A|keydown-S|toolsVisible|setDevTools|drawCommandSlots|P11RuntimeWiring|ProductionRuntime" src
+          ! grep -R -n -E "actorId} →" src/presentation/scenes/BootScene.ts
+          test -f public/assets/battle/generated/characters/heroine/p11-4/heroine-down.svg
+          test -f public/assets/battle/generated/characters/redleaf/redleaf-down.svg
+          test -f public/assets/battle/portraits/redleaf-p11-4-current.svg
+      - name: Build and test
+        run: |
+          npm ci
+          npm run build
+          npm test -- --run
+      - name: Commit final runtime batch
+        run: |
+          git add src/presentation/scenes/BootScene.ts docs/characters/redleaf.md public/assets/battle/generated/characters/heroine/p11-4 public/assets/battle/generated/characters/redleaf public/assets/battle/portraits
+          git commit -m "feat: finalize P11.4 visible runtime integration"
+          git push origin HEAD:feat/p11-4-integration
