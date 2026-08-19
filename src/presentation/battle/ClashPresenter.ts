@@ -118,6 +118,17 @@ export class ClashPresenter {
     const edge=this.spawnFxImage('fx-p9-arc-slash-3',x,y,112,{scale:.82*scale,alpha:.62,tint:color,flipX:dir<0,blendMode:Phaser.BlendModes.ADD});
     if(edge)this.scene.tweens.add({targets:edge,scale:(edge.scaleX||1)*1.1,alpha:0,duration:165,ease:'Expo.easeOut',onComplete:()=>edge.destroy()});
   }
+  private lineSlash(x:number,y:number,flipX:boolean,scale=1,color=0xffe0a8){
+    const dir=flipX?-1:1;
+    ['fx-p9-line-slash-1','fx-p9-line-slash-2','fx-p9-line-slash-3'].forEach((key,i)=>{
+      this.scene.time.delayedCall(i*14,()=>{
+        const line=this.spawnFxImage(key,x+dir*i*16,y-i*3,113+i,{scale:(.72+i*.06)*scale,alpha:.94-i*.16,tint:i===0?0xffffff:color,flipX:dir<0,rotation:(dir>0?-.08:.08),blendMode:Phaser.BlendModes.ADD});
+        if(line)this.scene.tweens.add({targets:line,scaleX:(line.scaleX||1)*1.1,alpha:0,duration:126+i*18,ease:'Expo.easeOut',onComplete:()=>line.destroy()});
+      });
+    });
+    const core=this.scene.add.circle(x,y,24*scale,0xffffff,.96).setDepth(118);this.combatLayer.add(core);
+    this.scene.tweens.add({targets:core,scale:3.6,alpha:0,duration:120,ease:'Cubic.easeOut',onComplete:()=>core.destroy()});
+  }
   private bladeCut(x:number,y:number,flip=false,color=0xfff3c4){
     const dir=flip?-1:1;
     this.slash(x,y,flip,1.12,color);
