@@ -14,9 +14,9 @@ P11.4 重新設計 PD 的目的，是修正舊槍母版在側視戰鬥中武器�
 
 ## P11.4 候選
 
-- `public/assets/battle/generated/characters/redleaf/redleaf-sd-master-runtime-trial-v5.png`：由 P11.4 原創概念稿擷取並 deterministic 去背的 runtime-trial 候選。
-- Runtime 僅先接 idle；ready／attack／hit／down 暫沿用位移、角度、hit-stop 與共用 FX，不把尚未核准的衍生圖偽裝成完成素材。
-- `portrait-redleaf-current`／`portrait-redleaf-timeline` 由同一候選裁切，供 P11.4 菱形 Current Actor 與 timeline 使用。
+- `public/assets/battle/generated/characters/redleaf/redleaf-idle-a.svg` 起的一組 runtime-trial pose set 已接入 idle／ready／attack／hit／down。
+- 這組 pose 以同一候選母版做 deterministic 變體，目的只為 runtime 一致性與 4V4 驗收；仍不是 approved final art。
+- `portrait-redleaf-current`／`portrait-redleaf-timeline` 使用同一造型語彙，供菱形 Current Actor 與 timeline 使用。
 
 ## Gate
 
