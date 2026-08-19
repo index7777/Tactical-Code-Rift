@@ -74,13 +74,13 @@ export class ClashPresenter {
 
   // hit-stop + 全螢幕白閃。回傳 Promise 供 await。
   private async impactFreeze(kind:'clash'|'heavy'|'break'){
-    const ms=kind==='clash'?90:kind==='heavy'?110:140;
+    const ms=kind==='clash'?120:kind==='heavy'?132:152;
     const flashAlpha=kind==='clash'?.42:kind==='heavy'?.55:.7;
     const w=this.scene.cameras.main.width,h=this.scene.cameras.main.height;
     const overlay=this.scene.add.rectangle(w/2,h/2,w,h,0xffffff,flashAlpha).setDepth(200).setScrollFactor(0);
     this.combatLayer.add(overlay);
     this.scene.tweens.add({targets:overlay,alpha:0,duration:Math.max(90,ms+40),ease:'Cubic.easeOut',onComplete:()=>overlay.destroy()});
-    this.scene.time.timeScale=kind==='break'?.08:kind==='heavy'?.12:.18;
+    this.scene.time.timeScale=kind==='break'?.06:kind==='heavy'?.09:.12;
     await this.realWait(ms);
     this.scene.time.timeScale=1;
   }
@@ -90,7 +90,7 @@ export class ClashPresenter {
     this.scene.time.delayedCall(110,()=>{if(prev===0xffffff)sprite.clearTint();else sprite.setTint(prev)});
   }
 
-  private slash(x:number,y:number,flipX:boolean,scale=1,color=0xffffff){const dir=flipX?-1:1,angle=-.62*dir;const glow=this.scene.add.rectangle(x,y,205*scale,20*scale,color,.2).setRotation(angle).setDepth(110).setScale(.3,1.5),core=this.scene.add.rectangle(x,y,205*scale,5*scale,0xffffff,.98).setRotation(angle).setDepth(112).setScale(.25,1);this.combatLayer.add([glow,core]);this.scene.tweens.add({targets:glow,scaleX:1.18,scaleY:.65,alpha:0,duration:175,ease:'Cubic.easeOut',onComplete:()=>glow.destroy()});this.scene.tweens.add({targets:core,scaleX:1.04,alpha:0,duration:145,ease:'Cubic.easeOut',onComplete:()=>core.destroy()})}
+  private slash(x:number,y:number,flipX:boolean,scale=1,color=0xffffff){const dir=flipX?-1:1,angle=-.62*dir;const glow=this.scene.add.rectangle(x,y,290*scale,32*scale,color,.16).setRotation(angle).setDepth(110).setScale(.18,1.35),core=this.scene.add.rectangle(x,y,290*scale,8*scale,0xffffff,.99).setRotation(angle).setDepth(112).setScale(.14,1);this.combatLayer.add([glow,core]);this.scene.tweens.add({targets:glow,scaleX:1.2,scaleY:.7,alpha:0,duration:150,ease:'Expo.easeOut',onComplete:()=>glow.destroy()});this.scene.tweens.add({targets:core,scaleX:1.08,alpha:0,duration:128,ease:'Expo.easeOut',onComplete:()=>core.destroy()})}
   private bladeCut(x:number,y:number,flip=false,color=0xfff3c4){this.slash(x,y,flip,1.08,color);for(let i=0;i<8;i++){const shard=this.scene.add.rectangle(x,y,24,3,i%2?0xffffff:color,.9).setDepth(114).setRotation((i-4)*.38);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x+(i-4)*28,y:y+(i%2?1:-1)*(30+i*4),alpha:0,duration:190,onComplete:()=>shard.destroy()})}}
   private playerTechniqueAccent(actorId:string,x:number,y:number,flip:boolean){
     if(actorId==='PB'){
@@ -200,8 +200,11 @@ export class ClashPresenter {
     this.scene.tweens.add({ targets: [playerCard, enemyCard], alpha: 1, scale: 1, duration: 170, ease: 'Back.easeOut' });
     await this.wait(420);
     this.sound('sword-swish', .55);
-    playHeroinePose(player.sprite,'strike');
+    playHeroinePose(player.sprite,'ready');
+    await this.wait(36);
+    playHeroinePose(player.sprite,'strike','a');
     await Promise.all([this.move(player.root, clashX-16, clashY, 135, 'Cubic.easeIn'), this.move(enemy.root, clashX+16, clashY, 135, 'Cubic.easeIn')]);
+    playHeroinePose(player.sprite,'strike','b');
     clashLock.destroy();
     this.playImpact('clash');
     if(player.sprite)player.sprite.setAngle(0);
@@ -245,7 +248,9 @@ export class ClashPresenter {
       const windupX = winner.root.x - direction * 45;
       await this.move(winner.root, windupX, winner.root.y, 100, 'Quad.easeOut');
       this.sound('sword-swish', .72);
-      playHeroinePose(winner.sprite,'strike');
+      playHeroinePose(winner.sprite,'ready');
+      await this.wait(38);
+      playHeroinePose(winner.sprite,'strike','a');
       // 破招追擊：勝方發動 windup 前把鏡頭拉到 loser 身上放大 1.42，讓補刀有必殺鏡頭感。
       this.focusCamera(loser.root.x, loser.root.y, 1.42);
       await this.move(winner.root, loser.root.x - direction * 48, loser.root.y, 125, 'Cubic.easeIn');
@@ -253,14 +258,17 @@ export class ClashPresenter {
       // 舊 !playerWon 假設 winner 在右，玩家改站左後方向反了。
       // 更正：base slash 為左向揮擊，勝方在**右**才需 flipX=true。
       // playerWon → 勝方=player 在左 → flipX=false；enemy 贏 → 勝方在右 → flipX=true。
+      playHeroinePose(winner.sprite,'strike','b');
       if(playerWon)this.playerTechniqueAccent(clash.player.actorId,loser.root.x,loser.root.y-5,!playerWon);
       this.slash(loser.root.x, loser.root.y - 5, !playerWon);
       this.bladeCut(loser.root.x,loser.root.y-5,!playerWon,playerWon?0x9fe8ff:0xff7487);
       this.burst(loser.root.x, loser.root.y - 5, playerWon ? 0x67e8ff : 0xff6b78, 16);
       this.playImpact('break');
       this.scene.cameras.main.shake(240, .022);
+      playHeroinePose(loser.sprite,'hit','a');
       this.hitFlash(loser.sprite);
       await this.impactFreeze('break');
+      playHeroinePose(loser.sprite,'hit','b');
       const defeated=onFollowThrough?.()??false;
       if(defeated&&!holdForRelay){
         await Promise.all([

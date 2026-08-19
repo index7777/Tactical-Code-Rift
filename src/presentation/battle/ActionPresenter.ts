@@ -9,13 +9,13 @@ export class ActionPresenter {
   // 打擊 helper：hit-stop（暫停 timeScale）與全螢幕白閃。
   // kind: quick 40ms / normal 70ms / heavy 110ms / break 140ms。
   private impactFreeze(kind:'quick'|'normal'|'heavy'|'break'|'clash',flash=true){
-    const ms=kind==='quick'?40:kind==='normal'?70:kind==='heavy'?110:kind==='clash'?90:140;
+    const ms=kind==='quick'?68:kind==='normal'?88:kind==='heavy'?132:kind==='clash'?118:152;
     const flashAlpha=kind==='quick'?.28:kind==='normal'?.4:kind==='heavy'?.55:kind==='clash'?.42:.7;
     if(flash){const w=this.scene.cameras.main.width,h=this.scene.cameras.main.height;
       const overlay=this.scene.add.rectangle(w/2,h/2,w,h,0xffffff,flashAlpha).setDepth(200).setScrollFactor(0);
       this.combatLayer.add(overlay);
       this.scene.tweens.add({targets:overlay,alpha:0,duration:Math.max(90,ms+40),ease:'Cubic.easeOut',onComplete:()=>overlay.destroy()})}
-    this.scene.time.timeScale=kind==='break'?.08:kind==='heavy'?.12:kind==='clash'?.18:.25;
+    this.scene.time.timeScale=kind==='break'?.06:kind==='heavy'?.09:kind==='clash'?.12:kind==='quick'?.34:.2;
     return this.realWait(ms).finally(()=>{this.scene.time.timeScale=1})
   }
 
@@ -36,7 +36,7 @@ export class ActionPresenter {
 
   // 依卡型分級 shake：break/heavy 最重、quick 最輕。
   private impactShake(kind:'quick'|'normal'|'heavy'|'break'){
-    const cfg={quick:{d:80,a:.008},normal:{d:130,a:.012},heavy:{d:200,a:.018},break:{d:240,a:.022}}[kind];
+    const cfg={quick:{d:92,a:.009},normal:{d:145,a:.014},heavy:{d:225,a:.023},break:{d:270,a:.028}}[kind];
     this.scene.cameras.main.shake(cfg.d,cfg.a);
   }
 
@@ -91,10 +91,31 @@ export class ActionPresenter {
   private move(o: Phaser.GameObjects.Container, x: number, y: number, d = 210, ease = 'Quad.easeInOut') { return new Promise<void>((r) => this.scene.tweens.add({ targets: o, x, y, duration: d, ease, onComplete: () => r() })); }
   private wait(ms: number) { return new Promise<void>((r) => this.scene.time.delayedCall(ms, r)); }
   private realWait(ms:number){return new Promise<void>((resolve)=>globalThis.setTimeout(resolve,ms));}
-  // Contact-anchored slash families. ArcSlash is a blade trail, never a projectile; LineSlash is the oversized screen-cut language.
-  private slash(x:number,y:number,flipX:boolean,scale=1,color=0xf7fbff){const dir=flipX?-1:1,g=this.scene.add.graphics().setDepth(104).setPosition(x,y),start=dir>0?-2.45:-.7,end=dir>0?.55:2.45,r=112*scale;g.lineStyle(22*scale,color,.12).beginPath().arc(0,0,r,start,end,dir<0).strokePath();g.lineStyle(7*scale,color,.78).beginPath().arc(0,0,r,start,end,dir<0).strokePath();g.lineStyle(Math.max(2,3.5*scale),0xffffff,.98).beginPath().arc(0,0,r-4*scale,start+.05*dir,end-.05*dir,dir<0).strokePath();this.combatLayer.add(g);g.setScale(.72);this.scene.tweens.add({targets:g,scale:1.12,alpha:0,duration:175,ease:'Cubic.easeOut',onComplete:()=>g.destroy()});const flash=this.scene.add.circle(x,y,16*scale,0xffffff,.88).setDepth(106);this.combatLayer.add(flash);this.scene.tweens.add({targets:flash,scale:2.4,alpha:0,duration:125,onComplete:()=>flash.destroy()})}
-  private lineSlash(x:number,y:number,flipX:boolean,scale=1,color=0xffe0a8){const dir=flipX?-1:1,angles=[-.18,.12,-.52],lengths=[330,260,210];angles.forEach((a,i)=>{const line=this.scene.add.rectangle(x-dir*(i*12),y+(i-1)*13,lengths[i]!*scale,i===0?9:4,i===0?0xffffff:color,i===0?.98:.8).setRotation(a*dir).setDepth(108+i).setScale(.28,1);this.combatLayer.add(line);this.scene.tweens.add({targets:line,scaleX:1.08,alpha:0,duration:155+i*34,ease:'Cubic.easeOut',onComplete:()=>line.destroy()})});const core=this.scene.add.circle(x,y,20*scale,0xffffff,.9).setDepth(112);this.combatLayer.add(core);this.scene.tweens.add({targets:core,scale:2.8,alpha:0,duration:140,onComplete:()=>core.destroy()})}
-  private cardImpact(x:number,y:number,definitionId?:string,flip=false){const burstLines=(color:number,count:number,reach:number)=>{for(let i=0;i<count;i++){const a=-1.15+i*(2.3/Math.max(1,count-1)),ray=this.scene.add.rectangle(x,y,reach,3,color,.86).setOrigin(0,.5).setRotation(a).setDepth(106);this.combatLayer.add(ray);this.scene.tweens.add({targets:ray,scaleX:1.35,alpha:0,duration:180+i*8,ease:'Cubic.easeOut',onComplete:()=>ray.destroy()})}};if(definitionId==='break'){this.lineSlash(x,y,flip,1.18,0xffd36b);burstLines(0xffd36b,9,92);const crack=this.scene.add.rectangle(x,y+22,190,7,0xffc85c,.8).setDepth(105);this.combatLayer.add(crack);this.scene.tweens.add({targets:crack,scaleX:1.45,alpha:0,duration:240,onComplete:()=>crack.destroy()})}else if(definitionId==='delay'){const bars=[-34,0,34].map((dy,i)=>this.scene.add.rectangle(x-(flip?-1:1)*18,y+dy,150-i*18,5,0x9cecff,.82).setDepth(104+i));this.combatLayer.add(bars);bars.forEach((b,i)=>this.scene.tweens.add({targets:b,x:b.x+(flip?-1:1)*42,scaleX:.35,alpha:0,delay:i*24,duration:250,onComplete:()=>b.destroy()}))}else if(definitionId==='heavy'){this.lineSlash(x,y,flip,1.38,0xffd8a0);burstLines(0xffd8a0,11,112);const shock=this.scene.add.rectangle(x,y+38,230,9,0xffd8a0,.72).setDepth(101);this.combatLayer.add(shock);this.scene.tweens.add({targets:shock,scaleX:1.55,scaleY:.25,alpha:0,duration:300,onComplete:()=>shock.destroy()})}else if(definitionId==='quick'){this.slash(x-8,y-8,flip,.92,0x9fe8ff);this.scene.time.delayedCall(42,()=>this.slash(x+12,y+10,!flip,.82,0x67cfff))}else if(definitionId==='guard'){const shield=this.scene.add.ellipse(x,y,118,146,0x7dd9ff,.10).setStrokeStyle(7,0xc6f4ff,.95).setDepth(101);this.combatLayer.add(shield);this.scene.tweens.add({targets:shield,scale:.72,alpha:0,duration:330,onComplete:()=>shield.destroy()})}else if(definitionId==='cover'){const intercept=this.scene.add.triangle(x,y-20,0,76,44,0,88,76,0x8eeeff,.72).setStrokeStyle(4,0xe6fbff,.95).setDepth(102);this.combatLayer.add(intercept);this.scene.tweens.add({targets:intercept,y:y-64,scale:1.22,alpha:0,duration:280,onComplete:()=>intercept.destroy()})}else if(definitionId==='relay'){this.slash(x,y,flip,1.05,0xffd56f);const handoff=this.scene.add.rectangle(x-(flip?-1:1)*80,y+28,180,5,0xffd56f,.82).setDepth(103);this.combatLayer.add(handoff);this.scene.tweens.add({targets:handoff,x:handoff.x+(flip?-1:1)*95,scaleX:1.35,alpha:0,duration:220,onComplete:()=>handoff.destroy()})}else if(definitionId==='cycle'){for(let i=0;i<3;i++){const ring=this.scene.add.ellipse(x,y,72+i*22,42+i*12,0x8fe6c0,.05).setStrokeStyle(3,0xb9ffe3,.86-i*.16).setDepth(101+i);this.combatLayer.add(ring);this.scene.tweens.add({targets:ring,scale:1.55,alpha:0,delay:i*45,duration:360,onComplete:()=>ring.destroy()})}}}
+  // P6 contact-anchored slash families. They are impact planes, never projectiles.
+  private slash(x:number,y:number,flipX:boolean,scale=1,color=0xf7fbff){
+    const dir=flipX?-1:1,g=this.scene.add.graphics().setDepth(108).setPosition(x,y),start=dir>0?-2.5:-.64,end=dir>0?.64:2.5,r=148*scale;
+    g.lineStyle(36*scale,color,.09).beginPath().arc(0,0,r,start,end,dir<0).strokePath();
+    g.lineStyle(13*scale,color,.62).beginPath().arc(0,0,r-3*scale,start,end,dir<0).strokePath();
+    g.lineStyle(Math.max(3,5.5*scale),0xffffff,.98).beginPath().arc(0,0,r-9*scale,start+.045*dir,end-.045*dir,dir<0).strokePath();
+    this.combatLayer.add(g);g.setScale(.48);
+    this.scene.tweens.add({targets:g,scale:1.12,alpha:0,duration:145,ease:'Expo.easeOut',onComplete:()=>g.destroy()});
+    const flash=this.scene.add.circle(x,y,22*scale,0xffffff,.9).setDepth(112);this.combatLayer.add(flash);
+    this.scene.tweens.add({targets:flash,scale:3.25,alpha:0,duration:118,ease:'Cubic.easeOut',onComplete:()=>flash.destroy()});
+  }
+  private lineSlash(x:number,y:number,flipX:boolean,scale=1,color=0xffe0a8){
+    const dir=flipX?-1:1,angles=[-.11,.08,-.39,.34],lengths=[470,390,310,260];
+    angles.forEach((a,i)=>{const main=i===0,line=this.scene.add.rectangle(x-dir*(i*11),y+(i-1.5)*15,lengths[i]!*scale,main?13:5,main?0xffffff:color,main?.98:.78).setRotation(a*dir).setDepth(110+i).setScale(.12,1);this.combatLayer.add(line);this.scene.tweens.add({targets:line,scaleX:1.08,alpha:0,duration:main?128:158+i*18,delay:i*16,ease:'Expo.easeOut',onComplete:()=>line.destroy()})});
+    const core=this.scene.add.circle(x,y,26*scale,0xffffff,.95).setDepth(116);this.combatLayer.add(core);
+    this.scene.tweens.add({targets:core,scale:3.4,alpha:0,duration:130,ease:'Cubic.easeOut',onComplete:()=>core.destroy()});
+  }
+  private impactCameraPunch(kind:'quick'|'normal'|'heavy'|'break',x:number,y:number){
+    const zoom=kind==='quick'?1.025:kind==='normal'?1.045:kind==='heavy'?1.075:1.095;
+    const inMs=kind==='quick'?38:48,outMs=kind==='quick'?95:kind==='normal'?120:150;
+    this.scene.cameras.main.pan(x,y,inMs,'Quad.easeOut');
+    this.scene.cameras.main.zoomTo(zoom,inMs,'Quad.easeOut');
+    this.scene.time.delayedCall(inMs+20,()=>{this.scene.cameras.main.pan(640,360,outMs,'Sine.easeOut');this.scene.cameras.main.zoomTo(1,outMs,'Sine.easeOut')});
+  }
+  private cardImpact(x:number,y:number,definitionId?:string,flip=false){const burstLines=(color:number,count:number,reach:number)=>{for(let i=0;i<count;i++){const a=-1.15+i*(2.3/Math.max(1,count-1)),ray=this.scene.add.rectangle(x,y,reach,3,color,.86).setOrigin(0,.5).setRotation(a).setDepth(106);this.combatLayer.add(ray);this.scene.tweens.add({targets:ray,scaleX:1.35,alpha:0,duration:180+i*8,ease:'Cubic.easeOut',onComplete:()=>ray.destroy()})}};if(definitionId==='break'){this.lineSlash(x,y,flip,1.18,0xffd36b);burstLines(0xffd36b,9,92);const crack=this.scene.add.rectangle(x,y+22,190,7,0xffc85c,.8).setDepth(105);this.combatLayer.add(crack);this.scene.tweens.add({targets:crack,scaleX:1.45,alpha:0,duration:240,onComplete:()=>crack.destroy()})}else if(definitionId==='delay'){const bars=[-34,0,34].map((dy,i)=>this.scene.add.rectangle(x-(flip?-1:1)*18,y+dy,150-i*18,5,0x9cecff,.82).setDepth(104+i));this.combatLayer.add(bars);bars.forEach((b,i)=>this.scene.tweens.add({targets:b,x:b.x+(flip?-1:1)*42,scaleX:.35,alpha:0,delay:i*24,duration:250,onComplete:()=>b.destroy()}))}else if(definitionId==='heavy'){this.lineSlash(x,y,flip,1.38,0xffd8a0);burstLines(0xffd8a0,11,112);const shock=this.scene.add.rectangle(x,y+38,230,9,0xffd8a0,.72).setDepth(101);this.combatLayer.add(shock);this.scene.tweens.add({targets:shock,scaleX:1.55,scaleY:.25,alpha:0,duration:300,onComplete:()=>shock.destroy()})}else if(definitionId==='quick'){this.slash(x-10,y-8,flip,1.08,0x9fe8ff);this.scene.time.delayedCall(42,()=>this.slash(x+12,y+10,!flip,.96,0x67cfff))}else if(definitionId==='guard'){const shield=this.scene.add.ellipse(x,y,118,146,0x7dd9ff,.10).setStrokeStyle(7,0xc6f4ff,.95).setDepth(101);this.combatLayer.add(shield);this.scene.tweens.add({targets:shield,scale:.72,alpha:0,duration:330,onComplete:()=>shield.destroy()})}else if(definitionId==='cover'){const intercept=this.scene.add.triangle(x,y-20,0,76,44,0,88,76,0x8eeeff,.72).setStrokeStyle(4,0xe6fbff,.95).setDepth(102);this.combatLayer.add(intercept);this.scene.tweens.add({targets:intercept,y:y-64,scale:1.22,alpha:0,duration:280,onComplete:()=>intercept.destroy()})}else if(definitionId==='relay'){this.slash(x,y,flip,1.18,0xffd56f);const handoff=this.scene.add.rectangle(x-(flip?-1:1)*80,y+28,180,5,0xffd56f,.82).setDepth(103);this.combatLayer.add(handoff);this.scene.tweens.add({targets:handoff,x:handoff.x+(flip?-1:1)*95,scaleX:1.35,alpha:0,duration:220,onComplete:()=>handoff.destroy()})}else if(definitionId==='cycle'){for(let i=0;i<3;i++){const ring=this.scene.add.ellipse(x,y,72+i*22,42+i*12,0x8fe6c0,.05).setStrokeStyle(3,0xb9ffe3,.86-i*.16).setDepth(101+i);this.combatLayer.add(ring);this.scene.tweens.add({targets:ring,scale:1.55,alpha:0,delay:i*45,duration:360,onComplete:()=>ring.destroy()})}}}
   private resetCamera() { this.scene.cameras.main.pan(640, 360, 250, 'Sine.easeInOut'); this.scene.cameras.main.zoomTo(1, 250, 'Sine.easeInOut'); }
 
   async attack(actorId: string, targetId: string, card: { name: string; clashPower: number; definitionId?: string }, enemy = false, mode: 'normal' | 'flank' = 'normal', returnToSlot = true, onImpact?: () => boolean) {
@@ -110,16 +131,18 @@ export class ActionPresenter {
     const anticipation=isChikage?128:isOboro?58:100;
     const dashDuration=isChikage?168:isOboro?92:150;
     const retreat=isChikage?54:isOboro?30:42;
+    playHeroinePose(attacker.sprite,'ready');
     await this.move(attacker.root, attacker.root.x - direction * retreat, attacker.root.y, anticipation, 'Quad.easeOut');
     this.techniqueWindup(actorId,attacker,direction,card.definitionId);
     this.scene.sound.play('sword-swish', { volume: isOboro ? .82 : isChikage ? .74 : .7, rate: isOboro ? 1.18 : isChikage ? .9 : 1 });
     const baseContact=isChikage?78:isOboro?44:58;
     const contactX = mode === 'flank' ? target.root.x + direction * Math.max(54,baseContact) : target.root.x - direction * baseContact;
-    playHeroinePose(attacker.sprite,'strike');
+    playHeroinePose(attacker.sprite,'strike','a');
     if(isChikage&&attacker.sprite)this.scene.tweens.add({targets:attacker.sprite,angle:direction*6,duration:dashDuration,ease:'Cubic.easeIn'});
     if(isOboro&&attacker.sprite)this.scene.tweens.add({targets:attacker.sprite,angle:-direction*8,duration:dashDuration,ease:'Expo.easeIn'});
     if(isOboro){this.spawnAfterimage(attacker,direction,0x9988ff,20,.28);this.spawnAfterimage(attacker,direction,0x5e4a98,42,.18)}
     await this.move(attacker.root, contactX, target.root.y, dashDuration, isOboro?'Expo.easeIn':'Cubic.easeIn');
+    playHeroinePose(attacker.sprite,'strike','b');
     if (mode === 'flank') badge.setText(`${card.name}\n側襲`);
     // 斬擊方向：flipX 由攻擊者→目標方向決定（direction>0 = 攻擊者在左，揮向右需 flipX=true）；
     // 不再用 enemy 旗標硬綁，避免玩家改站左邊後斬擊方向反了。
@@ -129,9 +152,12 @@ export class ActionPresenter {
     this.cardImpact(target.root.x,target.root.y-5,card.definitionId,direction < 0);
     this.playImpact(impactKind);
     this.impactShake(impactKind);
+    this.impactCameraPunch(impactKind,target.root.x,target.root.y-8);
+    playHeroinePose(target.sprite,'hit','a');
     this.hitFlash(target.sprite);
     if(impactKind!=='quick')await this.impactFreeze(impactKind);
-    await this.move(target.root, target.root.x + direction * (impactKind==='heavy'||impactKind==='break'?46:30), target.root.y, 70, 'Quad.easeOut');
+    await this.move(target.root, target.root.x + direction * (impactKind==='heavy'||impactKind==='break'?56:34), target.root.y, impactKind==='quick'?62:78, 'Quad.easeOut');
+    playHeroinePose(target.sprite,'hit','b');
     const defeated=onImpact?.()??false;
     if(defeated){
       await Promise.all([
@@ -166,16 +192,23 @@ export class ActionPresenter {
     // The target keeps the first hit's recoil pose until this second blade lands.
     await this.wait(55);
     this.scene.sound.play('sword-swish', { volume: .78 });
-    playHeroinePose(ally.sprite,'strike');
+    playHeroinePose(ally.sprite,'ready');
+    await this.wait(38);
+    playHeroinePose(ally.sprite,'strike','a');
+    await this.wait(42);
     // 斬擊方向：flipX 由攻擊者→目標方向決定（direction>0 = 攻擊者在左，揮向右需 flipX=true）；
     // 不再用 enemy 旗標硬綁，避免玩家改站左邊後斬擊方向反了。
-    this.slash(target.root.x, target.root.y - 5, direction < 0);
+    playHeroinePose(ally.sprite,'strike','b');
+    this.slash(target.root.x, target.root.y - 5, direction < 0,1.12);
     // 繼刀＝補刀，一律走 heavy 級的打擊反饋。
     this.playImpact('heavy');
     this.impactShake('heavy');
+    this.impactCameraPunch('heavy',target.root.x,target.root.y-8);
+    playHeroinePose(target.sprite,'hit','a');
     this.hitFlash(target.sprite);
     await this.impactFreeze('heavy');
-    await this.move(target.root, target.root.x + direction * 52, target.root.y, 85, 'Quad.easeOut');
+    await this.move(target.root, target.root.x + direction * 58, target.root.y, 90, 'Quad.easeOut');
+    playHeroinePose(target.sprite,'hit','b');
     const defeated = onImpact?.() ?? false;
     if (defeated) {
       await Promise.all([
@@ -200,7 +233,7 @@ export class ActionPresenter {
       this.move(pa.root,674,y+22,180,'Cubic.easeIn'),this.move(ea.root,606,y-22,180,'Cubic.easeIn'),
       this.move(ps.root,690,y-22,150,'Quad.easeOut'),this.move(es.root,590,y+22,150,'Quad.easeOut'),
     ]);
-    playHeroinePose(ps.sprite,'strike');playHeroinePose(pa.sprite,'strike');this.scene.sound.play('sword-swish',{volume:.85});this.slash(640,y-10,false);this.slash(640,y-10,true);
+    playHeroinePose(ps.sprite,'ready');playHeroinePose(pa.sprite,'ready');await this.wait(38);playHeroinePose(ps.sprite,'strike','a');playHeroinePose(pa.sprite,'strike','a');this.scene.sound.play('sword-swish',{volume:.85});await this.wait(36);playHeroinePose(ps.sprite,'strike','b');playHeroinePose(pa.sprite,'strike','b');this.slash(640,y-10,false,1.1);this.slash(640,y-10,true,1.1);
     this.playImpact('heavy');this.impactShake('break');this.hitFlash(ea.sprite);this.hitFlash(es.sprite);
     await this.impactFreeze('heavy');
     const enemyDefeated=onEnemyImpact?.()??false;

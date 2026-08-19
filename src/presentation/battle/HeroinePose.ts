@@ -1,43 +1,95 @@
 import type Phaser from'phaser';
 
-export type HeroinePose='idle'|'ready'|'strike'|'down';
+export type HeroinePose='idle'|'ready'|'strike'|'hit'|'down';
+export type HeroineFrameVariant='a'|'b';
 
 /**
- * Keeps the important silhouette readable after the 1280x720 canvas is fitted
- * into a small landscape viewport. These are display pixels, not source-art
- * pixels; the master texture remains the single source of truth.
+ * Display height on the 1280x720 combat canvas. The source art stays high-res;
+ * only the runtime presentation is normalized here.
  */
 export function heroineDisplayHeight(playerCount:number):number{
   return playerCount<=1?160:playerCount===2?138:playerCount===3?122:108;
 }
 
-export function playHeroinePose(sprite:Phaser.GameObjects.Sprite|undefined,pose:HeroinePose):void{
-  if(!sprite?.getData('heroine'))return;
-  const poseLocked=Boolean(sprite.getData('poseLocked'));
-  const prefix=sprite.getData('poseAssetPrefix') as string|undefined;
-  if(poseLocked&&prefix){
-    const poseSprite=sprite as Phaser.GameObjects.Sprite&{setTexture?: (key:string)=>unknown};
-    const key=pose==='idle'?`${prefix}-idle`:`${prefix}-${pose}`;
-    const textureManager=(sprite as Phaser.GameObjects.Sprite&{scene?:Phaser.Scene}).scene?.textures as {exists?: (textureKey:string)=>boolean}|undefined;
-    if(textureManager?.exists?.(key)!==false)poseSprite.setTexture?.(key);
-  }else if(!poseLocked)sprite.play(`heroine-${pose}`);
+function stopIdleLoop(sprite:Phaser.GameObjects.Sprite){
+  const timer=sprite.getData('heroineIdleTimer') as Phaser.Time.TimerEvent|undefined;
+  timer?.remove(false);
+  sprite.setData('heroineIdleTimer',undefined);
+}
+
+function poseTextureKey(prefix:string,pose:HeroinePose,variant:HeroineFrameVariant):string{
+  if(pose==='idle')return `${prefix}-idle-${variant}`;
+  if(pose==='strike')return `${prefix}-attack-${variant}`;
+  if(pose==='hit')return `${prefix}-hit-${variant}`;
+  return `${prefix}-${pose}`;
+}
+
+function applyTexture(sprite:Phaser.GameObjects.Sprite,prefix:string,pose:HeroinePose,variant:HeroineFrameVariant){
+  const key=poseTextureKey(prefix,pose,variant);
+  if(sprite.scene?.textures.exists(key))sprite.setTexture(key);
+  else{
+    // Fallback keeps older projects compatible if a new pose frame is missing.
+    const fallback=pose==='strike'?`${prefix}-attack`:pose==='hit'?`${prefix}-hit`:`${prefix}-${pose}`;
+    if(sprite.scene?.textures.exists(fallback))sprite.setTexture(fallback);
+  }
+}
+
+function normalizePoseSize(sprite:Phaser.GameObjects.Sprite,pose:HeroinePose){
   const source=sprite.texture.getSourceImage()as{width:number;height:number};
-  // The down drawing is naturally much wider and shorter. Keeping it at the
-  // standing display height would enlarge the body during death.
-  const isDown=pose==='down';
   const baseHeight=Number(sprite.getData('heroHeight'));
-  // Dedicated PB/PC down masters are authored death poses; never apply the legacy fallback shrink/rotation.
-  const height=baseHeight*(isDown?(poseLocked?0.9:0.52):1);
+  const isDown=pose==='down';
+  const dedicated=Boolean(sprite.getData('poseLocked'));
+  const height=baseHeight*(isDown?(dedicated?0.9:0.52):1);
   if(height>0&&source.width>0&&source.height>0)sprite.setDisplaySize(Math.round(height*source.width/source.height),height);
   const baseY=Number(sprite.getData('heroBaseY')??-8);
-  const runtimePosition=sprite as Phaser.GameObjects.Sprite&{setY?: (y:number)=>unknown};
-  runtimePosition.setY?.(baseY+(isDown?Math.max(0,(baseHeight-height)/2):0));
-  // PB/PC currently share their approved-pending Master texture for all
-  // poses.  Keep the low-cost runtime pose readable without fabricating a
-  // second drawing: a short fall angle plus a muted tint communicates Down.
-  if(poseLocked){
-    const runtimeSprite=sprite as Phaser.GameObjects.Sprite&{setAngle?: (angle:number)=>unknown;setTint?: (tint:number)=>unknown};
-    runtimeSprite.setAngle?.(0);
-    runtimeSprite.setTint?.(isDown?0xb9aab4:0xffffff);
+  sprite.setY(baseY+(isDown?Math.max(0,(baseHeight-height)/2):0));
+  if(dedicated){
+    sprite.setAngle(0);
+    sprite.setTint(isDown?0xb9aab4:0xffffff);
   }
+}
+
+function startIdleLoop(sprite:Phaser.GameObjects.Sprite,prefix:string){
+  stopIdleLoop(sprite);
+  let frame:HeroineFrameVariant='a';
+  applyTexture(sprite,prefix,'idle',frame);
+  normalizePoseSize(sprite,'idle');
+  const timer=sprite.scene.time.addEvent({
+    delay:620,
+    loop:true,
+    callback:()=>{
+      if(!sprite.active){timer.remove(false);return}
+      frame=frame==='a'?'b':'a';
+      applyTexture(sprite,prefix,'idle',frame);
+      normalizePoseSize(sprite,'idle');
+    },
+  });
+  sprite.setData('heroineIdleTimer',timer);
+}
+
+/**
+ * Shared runtime pose switcher. Dedicated Character Masters use real texture
+ * frames; legacy sprites keep their animation fallback.
+ */
+export function playHeroinePose(sprite:Phaser.GameObjects.Sprite|undefined,pose:HeroinePose,variant:HeroineFrameVariant='a'):void{
+  if(!sprite?.getData('heroine'))return;
+  stopIdleLoop(sprite);
+  const rawPrefix=sprite.getData('poseAssetPrefix');
+  const prefix=typeof rawPrefix==='string'?rawPrefix:undefined;
+  if(prefix){
+    if(pose==='idle')startIdleLoop(sprite,prefix);
+    else{
+      applyTexture(sprite,prefix,pose,variant);
+      normalizePoseSize(sprite,pose);
+    }
+    return;
+  }
+  if(Boolean(sprite.getData('poseLocked'))){normalizePoseSize(sprite,pose);return;}
+  if(pose==='hit'){
+    sprite.play('heroine-ready');
+    normalizePoseSize(sprite,'ready');
+    return;
+  }
+  sprite.play(`heroine-${pose}`);
+  normalizePoseSize(sprite,pose);
 }
