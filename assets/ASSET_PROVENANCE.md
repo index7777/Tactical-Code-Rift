@@ -43,6 +43,7 @@ Project-authored journey prototype: `public/assets/journey/world01/train-token-t
 |---|---|---|---|---|
 | `characters/rin/runtime/*.png`, `characters/rin/portraits/*.png`, `characters/rin/fx/*.png` | Amamiya Rin 8-pose side-view runtime, portraits and FX | User-provided project asset | Provenance/license pending; prototype runtime only | `chikage_oboro_rin_split_assets_v1/amamiya-rin/` for the corrected side-view runtime; `momiji_rin_single_assets_v1/amamiya-rin/` for portraits and FX |
 | `characters/chikage/**` | Chikage 8-pose side-view runtime, portraits and FX | User-provided project asset | Provenance/license pending; prototype runtime only | `chikage_oboro_rin_split_assets_v1/chikage/` |
+| `assets/candidates/characters/chikage/runtime-cleanup-v1/*.png` | Chikage 8-pose runtime alpha-layer cleanup | Deterministic connected-component cleanup of the user-provided runtime PNGs | Runtime candidate; identity and primary pose pixels unchanged | Removed only disconnected neighboring-frame fragments, then rebuilt the 4x2 runtime sheet; source references remain preserved |
 | `characters/oboro/**` | Oboro 8-pose side-view runtime, portraits and FX | User-provided project asset | Provenance/license pending; prototype runtime only | `chikage_oboro_rin_split_assets_v1/oboro/` |
 | `characters/mo/**` | Momiji 8-pose side-view runtime, portraits and FX | User-provided project asset | Provenance/license pending; prototype runtime only | `momiji_rin_single_assets_v1/momiji/` |
 

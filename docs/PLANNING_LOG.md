@@ -822,3 +822,9 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 
 - Kept the stable character identity `mo` and fourth DEMO `actorIndex`, but corrected its visual `assetPrefix` from the mistakenly copied `mo` runtime set to the approved `redleaf` production set.
 - Added a roster regression test locking the current DEMO order (`rin`, `chikage`, `oboro`, `mo`) without treating that order as permanent formation identity.
+
+## 2026-08-20 — Clean Chikage runtime action layers
+
+- Audited all eight Chikage runtime poses after the action screenshot exposed a horizontally flipped blade fragment.
+- Added deterministic primary-layer cleanup, preserved the original reference crops, wrote a versioned candidate set, synchronized the package/runtime copies, and rebuilt the 4x2 runtime sheet.
+- Cleanup is restricted to disconnected neighboring-frame fragments; the character silhouette, intended weapon, pose, scale, and pivot remain unchanged.
