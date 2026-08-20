@@ -817,3 +817,8 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Root cause: named player assets were queued from `BootScene.init()`. Chikage and Oboro were also loaded by legacy `preload()` entries, masking the lifecycle bug for those two characters, while Rin and Mo became missing black textures in the Vercel production build.
 - Moved the named-player asset queue into the actual Phaser `preload` lifecycle for all four characters.
 - Verification: clean alternate production output completed successfully; Rin and Mo runtime files were present under the generated Vercel-style output; full suite passed (29 files, 117 tests).
+
+## 2026-08-20 — Restore Redleaf art to Mo in demo slot 4
+
+- Kept the stable character identity `mo` and fourth DEMO `actorIndex`, but corrected its visual `assetPrefix` from the mistakenly copied `mo` runtime set to the approved `redleaf` production set.
+- Added a roster regression test locking the current DEMO order (`rin`, `chikage`, `oboro`, `mo`) without treating that order as permanent formation identity.
