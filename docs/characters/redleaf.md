@@ -1,29 +1,51 @@
-# PD・紅葉 Character Master（P11.4 runtime trial）
+# PD・紅葉 Character Master
 
-狀態：`RUNTIME_TRIAL_PENDING_ART_DIRECTOR_APPROVAL`
+狀態：`VISUAL_MASTER_APPROVED_RUNTIME_INTEGRATION`
 
-P11.4 重新設計 PD 的目的，是修正舊槍母版在側視戰鬥中武器比例、握點與輪廓不穩定，導致無法安全接入 runtime 的問題。
+紅葉為人類女性隊員，代號 PD。使用者已指定本批視覺母版；舊槍／薙槍 runtime trial 全部退役，不再作為角色設計來源。
+
+## Approved visual source
+
+- 原始母版與衍生 runtime 素材封裝：`.artifacts/redleaf-runtime-bundle.zip`
+- Build materializer：`scripts/materialize-redleaf.mjs`
+- Runtime 生成目錄：`public/assets/battle/generated/characters/redleaf/`
+- Production reference 目錄：`public/assets/battle/generated/characters/redleaf/production/`
+- UI portraits：`public/assets/battle/portraits/redleaf-p11-4-current.svg`、`redleaf-p11-4-timeline.svg`
 
 ## 身分與輪廓
 
-- 人類女性隊員，代號 PD，暫名「紅葉」。
-- 黑髮高束、黑／朱紅／象牙為主色。
-- 武器為長柄槍／薙槍類，不使用火器語彙。
-- 戰鬥方向以橫向 2D 左右兩面為準；本體母版優先確保 108px 高時可讀。
-- 武器必須與身體形成單一清楚輪廓，不可超長到侵入相鄰角色 HUD 或中央交鋒安全區。
+- 人類女性，PD，名稱「紅葉」。
+- 黑色高馬尾，紅楓髮飾；紅眼。
+- 黑／朱紅／白／少量金屬金為主色。
+- 武器正式改為太刀／打刀系單刃長刀；禁止回到舊槍母版。
+- 白色寬袖帶紅楓紋、黑紅束腰、黑色腿部裝甲／長靴是主要辨識點。
+- 玩家位於左側，戰鬥 runtime 以朝右側視輪廓為準。
 
-## P11.4 候選
+## Runtime asset contract
 
-- `public/assets/battle/generated/characters/redleaf/redleaf-idle-a.svg` 起的一組 runtime-trial pose set 已接入 idle／ready／attack／hit／down。
-- 這組 pose 以同一候選母版做 deterministic 變體，目的只為 runtime 一致性與 4V4 驗收；仍不是 approved final art。
-- `portrait-redleaf-current`／`portrait-redleaf-timeline` 使用同一造型語彙，供菱形 Current Actor 與 timeline 使用。
+`npm run dev` 與 `npm run build` 會先執行 `npm run prepare:redleaf`，由 approved bundle deterministic 產生：
 
-## Gate
+- `redleaf-idle-a.svg`
+- `redleaf-idle-b.svg`
+- `redleaf-ready.svg`
+- `redleaf-attack-a.svg`
+- `redleaf-attack-b.svg`
+- `redleaf-hit-a.svg`
+- `redleaf-hit-b.svg`
+- `redleaf-down.svg`
+- Current Actor／timeline UI portraits
+- `production/redleaf-runtime-sprite-sheet.svg`
+- `production/redleaf-attack-sequence.svg`
+- `production/redleaf-slash-arc.svg`
+- `production/redleaf-slash-impact.svg`
+- `production/redleaf-master-approved-v1.svg`
 
-正式升級為 approved master 前必須人工確認：
+現有 BootScene 已把 PD 映射到 `redleaf-*` pose prefix，因此上述生成檔會直接取代舊 placeholder；不修改戰鬥規則與卡牌語意。`redleaf-attack-b.svg` 同時疊入 approved slash arc，讓現有兩段 strike pipeline 直接使用紅葉專屬攻擊視覺。
 
-1. 1280×720 4V4 站位不越界。
-2. 槍尖／槍尾不穿進鄰位角色 HUD。
-3. 左右鏡像後握點合理。
-4. 頭像在菱形 mask 內不溢出。
-5. 與女主／千景／朧的 SD 細節密度與輪廓權重接近。
+## Runtime gate
+
+1. PD 在 1280×720 4V4 站位不越界。
+2. idle／ready／attack／hit／down 不得回到舊槍手造型。
+3. Current Actor 菱形與 timeline 頭像使用同一母版臉型。
+4. 攻擊段必須可看見紅葉專屬紅楓斬擊視覺。
+5. build／Vercel 必須先成功執行 `prepare:redleaf`，缺少 bundle 時直接 fail，不可靜默 fallback。
