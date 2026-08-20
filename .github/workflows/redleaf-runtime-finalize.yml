@@ -24,7 +24,8 @@ jobs:
           cache: npm
       - name: Expand approved Redleaf assets
         run: |
-          tar -xzf .asset-staging/redleaf-assets.tar.gz
+          cat .asset-staging/redleaf-part-* > /tmp/redleaf-assets.tar.gz
+          tar -xzf /tmp/redleaf-assets.tar.gz
           rm -rf .asset-staging
       - name: Wire PD Redleaf runtime and FX
         run: |
@@ -53,7 +54,7 @@ jobs:
           a=a.replace(marker,insert,1); action.write_text(a,encoding='utf-8')
 
           doc=Path('docs/characters/redleaf.md'); d=doc.read_text(encoding='utf-8')
-          block='''\n\n## Production master hookup\n\n- Visual authority: `public/assets/battle/masters/redleaf-master-reference.jpg` (user-approved master reference).\n- PD runtime frames: `public/assets/battle/generated/characters/redleaf/production/`.\n- Runtime sprite sheet: `redleaf-runtime-spritesheet.png`, 320×240 cells, 4×2 layout.\n- UI portraits: `public/assets/battle/portraits/redleaf-current.png` and `redleaf-timeline.png`.\n- Signature attack FX: `public/assets/battle/fx/redleaf/`.\n- PD remains the combat slot id; player-facing display name is 紅葉.\n'''
+          block='''\n\n## Production master hookup\n\n- Visual authority: `public/assets/battle/masters/redleaf-master-reference.jpg` (user-approved master reference).\n- PD runtime frames: `public/assets/battle/generated/characters/redleaf/production/`.\n- Runtime sprite sheet: `redleaf-runtime-spritesheet.png`, 256×192 cells, 4×2 layout.\n- UI portraits: `public/assets/battle/portraits/redleaf-current.png` and `redleaf-timeline.png`.\n- Signature attack FX: `public/assets/battle/fx/redleaf/`.\n- PD remains the combat slot id; player-facing display name is 紅葉.\n'''
           if '## Production master hookup' not in d:d+=block
           doc.write_text(d,encoding='utf-8')
           PY
@@ -64,6 +65,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public src docs .asset-staging || true
+          git add -A
           git commit -m "feat: wire approved Redleaf master into PD runtime"
           git push origin HEAD:feat/redleaf-production-runtime
