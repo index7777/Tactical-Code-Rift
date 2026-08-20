@@ -15,6 +15,7 @@ import{planPlayerRelayContinuations}from'../../core/battle/RelayPlanner';
 import{isCardSelected}from'../../core/cards/CardSelection';
 import{brokenClashAction}from'../../core/battle/BrokenActionPolicy';
 import{heroineDisplayHeight,playHeroinePose}from'../battle/HeroinePose';
+import{playerRoster,playerRosterEntry}from'../../core/battle/PlayerRoster';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;maxHp:number;shield:number;tempShield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean;archetype?:EnemyArchetype;traitReady:boolean}
 export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private discardMode=false;private discardUsedThisRound=false;private intentFocus?:string;private previewTargetId?:string;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private undoButton!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;private cardTooltip?:Phaser.GameObjects.Container;
 constructor(){super('BootScene')}
@@ -25,12 +26,27 @@ private visibleHandCount=5;
 private battlefieldMode:BattlefieldMode='rooftop';private battlefieldPresenter!:BattlefieldPresenter;
 private requestedBattlefield?:BattlefieldMode;private journeyNodeId?:string;private selectedBattleMusicKey='battle-music';
 init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){
+  this.loadNamedPlayerAssets();
   this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId;this.pc=4;
   const encounter=storyEncounter(this.journeyNodeId);this.ec=encounter?.enemies.length??4;if(encounter&&!data?.battlefield)this.requestedBattlefield=encounter.battlefield;
   this.selectedBattleMusicKey=battleMusicKey(battleMusicKind(this.journeyNodeId))
 }
 private nextBattlefield():BattlefieldMode{return this.battlefieldMode==='rooftop'?'wayside':this.battlefieldMode==='wayside'?'exploration':'rooftop'}
 private currentPlanner(){return applyPlannedInitiative(this.timeline,this.commands).find(n=>n.team==='player'&&!this.commands.has(n.id))}
+private loadNamedPlayerAssets(){
+  const poses=['idle-a','idle-b','ready','attack-a','attack-b','hit-a','hit-b','down'];
+  for(const id of ['rin','chikage','oboro','mo'])for(const pose of poses)this.load.image(`${id}-${pose}`,`assets/battle/characters/${id}/runtime/${id}-${pose}.png`);
+  this.load.image('portrait-rin-current','assets/battle/characters/rin/portraits/amamiya-rin-portrait-current.png');
+  this.load.image('portrait-rin-timeline','assets/battle/characters/rin/portraits/amamiya-rin-portrait-timeline.png');
+  this.load.image('portrait-mo-current','assets/battle/characters/mo/portraits/momiji-portrait-current.png');
+  this.load.image('portrait-mo-timeline','assets/battle/characters/mo/portraits/momiji-portrait-timeline.png');
+  this.load.image('portrait-chikage-current','assets/battle/characters/chikage/portraits/chikage-portrait-normal.png');
+  this.load.image('portrait-chikage-timeline','assets/battle/characters/chikage/portraits/chikage-portrait-combat.png');
+  this.load.image('portrait-oboro-current','assets/battle/characters/oboro/portraits/oboro-portrait-current.png');
+  this.load.image('portrait-oboro-timeline','assets/battle/characters/oboro/portraits/oboro-portrait-timeline.png');
+  this.load.image('fx-mo-slash-arc','assets/battle/characters/mo/fx/momiji-slash-arc.png');
+  this.load.image('fx-mo-slash-impact','assets/battle/characters/mo/fx/momiji-impact-final.png');
+}
 preload(){['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('bg-world01-rooftop-candidate','assets/battle/world01-rooftop-composite-candidate-v3.png');this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('boss-battle-music','assets/music/world-01/zone1-boss-bgm.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.image('fx-p9-arc-slash-1','assets/battle/fx/p9-arc-slash-1.svg');this.load.image('fx-p9-arc-slash-2','assets/battle/fx/p9-arc-slash-2.svg');this.load.image('fx-p9-arc-slash-3','assets/battle/fx/p9-arc-slash-3.svg');this.load.image('fx-p9-line-slash-1','assets/battle/fx/p9-line-slash-1.svg');this.load.image('fx-p9-line-slash-2','assets/battle/fx/p9-line-slash-2.svg');this.load.image('fx-p9-line-slash-3','assets/battle/fx/p9-line-slash-3.svg');this.load.image('fx-p9-impact-bloom','assets/battle/fx/p9-impact-bloom.svg');this.load.image('fx-p9-clash-cross','assets/battle/fx/p9-clash-cross.svg');this.load.image('fx-p9a-arc-slash-1','assets/battle/fx/p9a-arc-slash-1.png');this.load.image('fx-p9a-arc-slash-2','assets/battle/fx/p9a-arc-slash-2.png');this.load.image('fx-p9a-line-slash-1','assets/battle/fx/p9a-line-slash-1.png');this.load.image('fx-p9a-line-slash-2','assets/battle/fx/p9a-line-slash-2.png');this.load.image('fx-p10-enemy-arc-slash-1','assets/battle/fx/p10-enemy-arc-slash-1.svg');this.load.image('fx-p10-enemy-arc-slash-2','assets/battle/fx/p10-enemy-arc-slash-2.svg');this.load.image('fx-p10-enemy-line-slash-1','assets/battle/fx/p10-enemy-line-slash-1.svg');this.load.image('fx-p10-enemy-line-slash-2','assets/battle/fx/p10-enemy-line-slash-2.svg');for(const id of ['quick','heavy','break','guard','cover','relay','cycle','delay'])this.load.image(`card-art-${id}`,`assets/battle/cards/art/${id}.svg`);for(const id of ['power','tempo','damage','balance','shield','intercept','relay','restore'])this.load.image(`card-icon-${id}`,`assets/battle/cards/icons/${id}.svg`);for(const id of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior','rain-boss'])this.load.image(`fx-p11-enemy-${id}`,`assets/battle/fx/enemy/p11-${id}-slash.svg`);for(const family of ['attack','defense','support','tactics'])this.load.image(`card-frame-${family}`,`assets/battle/cards/frames/${family}.svg`);for(const pose of ['idle-a','idle-b','ready','attack-a','attack-b','hit-a','hit-b','down'])this.load.image(`heroine-${pose}`,`assets/battle/generated/characters/heroine/p11-4/heroine-${pose}.svg`);for(const pose of ['idle-a','idle-b','ready','attack-a','attack-b','hit-a','hit-b','down'])this.load.image(`redleaf-${pose}`,`assets/battle/generated/characters/redleaf/production/redleaf-${pose}.png`);this.load.image('fx-redleaf-slash-arc','assets/battle/generated/characters/redleaf/production/redleaf-slash-arc.png');this.load.image('fx-redleaf-slash-impact','assets/battle/generated/characters/redleaf/production/redleaf-slash-impact.png');this.load.image('chikage-idle-a','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-a.png');this.load.image('chikage-idle-b','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-b.png');this.load.image('oboro-idle-a','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-a.png');this.load.image('oboro-idle-b','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-b.png');for(const name of ['chikage','oboro','wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior']){this.load.image(`portrait-${name}-current`,`assets/battle/portraits/${name}-current.png`);this.load.image(`portrait-${name}-timeline`,`assets/battle/portraits/${name}-timeline.png`)};this.load.image('portrait-heroine-current','assets/battle/portraits/heroine-p11-4-current.svg');this.load.image('portrait-heroine-timeline','assets/battle/portraits/heroine-p11-4-timeline.svg');this.load.image('portrait-redleaf-current','assets/battle/generated/characters/redleaf/production/redleaf-portrait-current.png');this.load.image('portrait-redleaf-timeline','assets/battle/generated/characters/redleaf/production/redleaf-portrait-timeline.png');for(const name of ['chikage','oboro']){this.load.image(`${name}-ready`,`assets/battle/generated/characters/${name}/${name}-sd-ready-runtime-v1.png`);this.load.image(`${name}-attack-a`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v1.png`);this.load.image(`${name}-attack-b`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v2.png`);this.load.image(`${name}-hit-a`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v1.png`);this.load.image(`${name}-hit-b`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v2.png`);this.load.image(`${name}-down`,`assets/battle/generated/characters/${name}/${name}-sd-down-runtime-v2.png`)};// 第一區怪物母版：已交付母版的走 PNG runtime；rain-warrior/rain-boss 尚未生圖，
 // 暫時 fallback 到 SVG 剪影 placeholder（不 tint、不美觀，等使用者核准後補生）。
 for(const name of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior'])this.load.image(`monster-${name}`,`assets/battle/generated/monsters/rainfall-ridgeline/${name}-master-runtime-v1.png`);
@@ -105,7 +121,7 @@ private rebuild(){
   if(this.busy)return;
   this.world.each((x:any)=>{if(x instanceof Phaser.GameObjects.Container&&x.getData('actor'))x.destroy()});this.players.clear();this.enemies.clear();
   const encounter=storyEncounter(this.journeyNodeId);const enemyRoles:EnemyArchetype[]=encounter?.enemies??['wet-corpse','lantern-child'];this.ec=enemyRoles.length;
-  const ps:Fighter[]=Array.from({length:this.pc},(_,i)=>({id:`P${String.fromCharCode(65+i)}`,team:'player',actorIndex:i,speed:Phaser.Math.Between(4,9),alive:true}));
+  const ps:Fighter[]=playerRoster.slice(0,this.pc).map((character,i)=>({id:character.id,team:'player',actorIndex:i,speed:Phaser.Math.Between(4,9),alive:true}));
   const roleSpeed=(role:EnemyArchetype)=>role==='lantern-child'||role==='mountain-hound'?Phaser.Math.Between(7,9):role==='wayfarer-umbrella'||role==='rain-warrior'||role==='rain-boss'?Phaser.Math.Between(3,5):Phaser.Math.Between(5,7);
   const es:Fighter[]=enemyRoles.map((role,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,archetype:role,speed:roleSpeed(role),alive:true}));const roundSkills=dealEnemySkillsForArchetypes(enemyRoles);
   const skills=new Map(es.map((e,i)=>{const skill=roundSkills[i]!,target=Phaser.Math.RND.pick(ps);return[e.id,{id:`${e.id}-skill`,...skill,targetId:target.id}]}));
@@ -116,14 +132,14 @@ private addActor(f:Fighter){
     const p=standbyPosition(f.team,f.team==='player'?this.pc:this.ec,f.actorIndex);
     const accent=f.team==='player'?0x65e7ff:0xff7087;
     const glow=this.add.ellipse(0,43,90,24,accent,.5).setVisible(false);
-    const heroine=f.team==='player',pa=heroine&&f.id==='PA',chikage=heroine&&f.id==='PB',oboro=heroine&&f.id==='PC',redleaf=heroine&&f.id==='PD',poseLocked=pa||chikage||oboro||redleaf,playerTexture=chikage?'chikage-idle-a':oboro?'oboro-idle-a':redleaf?'redleaf-idle-a':'heroine-idle-a',
+    const heroine=f.team==='player',character=heroine?playerRosterEntry(f.id):undefined,oboro=f.id==='oboro',poseLocked=Boolean(character),playerTexture=character?`${character.assetPrefix}-idle-a`:'rin-idle-a',
       rainfallArchetypes=['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior','rain-boss'],
       rainfallMonster=rainfallArchetypes.includes(f.archetype??''),
       // 若母版 PNG 已載入，切到 `monster-<id>`；否則 fallback 到 yokai/enemy 舊剪影，保留 tint 差異化。
       monsterKey=f.archetype?`monster-${f.archetype}`:'',
       hasMasterTexture=rainfallMonster&&Boolean(monsterKey)&&this.textures.exists(monsterKey),
       enemyTexture=hasMasterTexture?monsterKey:f.archetype==='crusher'?'enemy':'yokai',
-      sprite=this.add.sprite(0,-8,heroine?playerTexture:enemyTexture).setFlipX(heroine&&!poseLocked).setData('heroine',heroine).setData('poseLocked',poseLocked).setData('poseAssetPrefix',chikage?'chikage':oboro?'oboro':redleaf?'redleaf':'heroine').setData('heroBaseY',-8).setData('darkSilhouette',oboro);
+      sprite=this.add.sprite(0,-8,heroine?playerTexture:enemyTexture).setFlipX(heroine&&!poseLocked).setData('heroine',heroine).setData('poseLocked',poseLocked).setData('poseAssetPrefix',character?.assetPrefix).setData('heroBaseY',-8).setData('darkSilhouette',oboro);
     if(heroine){sprite.setData('heroHeight',heroineDisplayHeight(this.pc));playHeroinePose(sprite,'idle')}
     else if(hasMasterTexture){
       // 母版原圖 ~2000px，需按顯示高度縮放；一律限制在最高 100px 以免頭部逼近上方時序條。
@@ -379,16 +395,16 @@ private drawCoverPreview(actorId:string,targetId:string,valid:boolean,direct:boo
   }
 private drawMonsterRuleRead(actor:Actor,card:BattleCard){const read=readMonsterRule(actor.archetype,card,actor);if(read.state==='neutral'||!read.label)return;const safe=read.state==='counter',color=safe?0x83e9c0:0xff7185,g=this.add.circle(actor.x,actor.y-72,17,color,.16).setStrokeStyle(2,color,.95),label=this.add.text(actor.x,actor.y-72,read.label,{fontFamily:'serif',fontSize:'12px',fontStyle:'bold',color:safe?'#bfffe6':'#ffd3d9',backgroundColor:'#0b111bdd',padding:{x:6,y:3}}).setOrigin(.5);this.intentLayer.add([g,label])}
 private actorDisplayName(team:'player'|'enemy',actorId:string,archetype?:EnemyArchetype){
-    if(team==='player')return actorId==='PB'?'千景':actorId==='PC'?'朧':actorId==='PD'?'紅葉':'女主';
+    if(team==='player')return playerRosterEntry(actorId)?.name??actorId;
     const names:Partial<Record<EnemyArchetype,string>>={swift:'迅影',crusher:'重鎧',hexer:'咒徒','wet-corpse':'濡骸','lantern-child':'提燈童','mountain-hound':'山犬','wayfarer-umbrella':'辻傘','noose-ghost':'縊鬼','lost-monk':'迷途僧','rain-warrior':'雨夜武者','rain-boss':'站守'};
     return(archetype&&names[archetype])||actorId
   }
 private portraitBaseForNode(n:ActionNode){
     const actor=(n.team==='player'?this.players:this.enemies).get(n.actorId);
-    if(n.team==='player')return n.actorId==='PB'?'chikage':n.actorId==='PC'?'oboro':n.actorId==='PD'?'redleaf':'heroine';
+    if(n.team==='player')return playerRosterEntry(n.actorId)?.assetPrefix??'rin';
     return actor?.archetype??''
   }
-private playerPortraitBase(actorId:string){return actorId==='PB'?'chikage':actorId==='PC'?'oboro':actorId==='PD'?'redleaf':'heroine'}
+private playerPortraitBase(actorId:string){return playerRosterEntry(actorId)?.assetPrefix??'rin'}
 
 private renderTimeline(){
     this.timelineLayer.removeAll(true);

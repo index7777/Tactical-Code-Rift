@@ -6,11 +6,11 @@ const enemy=(id:string,targetId:string,speed:number,tempo=0):ActionNode=>({id:`$
 
 describe('cover selection',()=>{
   it('requires an explicit enemy when multiple intents share a target',()=>{
-    const result=selectCoverIntent({timeline:[enemy('EA','PA',5),enemy('EB','PA',4)],commands:new Map(),actorId:'PB',actorSpeed:9,cardTempo:2,selectedActorId:'PA'});
+    const result=selectCoverIntent({timeline:[enemy('EA','rin',5),enemy('EB','rin',4)],commands:new Map(),actorId:'chikage',actorSpeed:9,cardTempo:2,selectedActorId:'rin'});
     expect(result).toEqual({ok:false,reason:'multiple'})
   });
   it('includes enemy skill tempo in the speed check',()=>{
-    const result=selectCoverIntent({timeline:[enemy('EA','PA',8,3)],commands:new Map(),actorId:'PB',actorSpeed:9,cardTempo:2,selectedActorId:'PA',selectedEnemyId:'EA'});
+    const result=selectCoverIntent({timeline:[enemy('EA','rin',8,3)],commands:new Map(),actorId:'chikage',actorSpeed:9,cardTempo:2,selectedActorId:'rin',selectedEnemyId:'EA'});
     expect(result).toEqual({ok:false,reason:'slow'})
   });
 });

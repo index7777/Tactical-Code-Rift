@@ -37,6 +37,18 @@ Project-authored journey prototype: `public/assets/journey/world01/train-token-t
 
 ## Usage notes
 
+### 2026-08-20 named player runtime integration
+
+| Runtime files | Work | Author | License | Source |
+|---|---|---|---|---|
+| `characters/rin/runtime/*.png`, `characters/rin/portraits/*.png`, `characters/rin/fx/*.png` | Amamiya Rin 8-pose side-view runtime, portraits and FX | User-provided project asset | Provenance/license pending; prototype runtime only | `chikage_oboro_rin_split_assets_v1/amamiya-rin/` for the corrected side-view runtime; `momiji_rin_single_assets_v1/amamiya-rin/` for portraits and FX |
+| `characters/chikage/**` | Chikage 8-pose side-view runtime, portraits and FX | User-provided project asset | Provenance/license pending; prototype runtime only | `chikage_oboro_rin_split_assets_v1/chikage/` |
+| `characters/oboro/**` | Oboro 8-pose side-view runtime, portraits and FX | User-provided project asset | Provenance/license pending; prototype runtime only | `chikage_oboro_rin_split_assets_v1/oboro/` |
+| `characters/mo/**` | Momiji 8-pose side-view runtime, portraits and FX | User-provided project asset | Provenance/license pending; prototype runtime only | `momiji_rin_single_assets_v1/momiji/` |
+
+- Runtime identity keys are now `rin`, `chikage`, `oboro`, and `mo`. Formation order remains separate in `actorIndex`; A-D are not character identities.
+- These files are integrated as prototype runtime trials. Their presence under `public/` is not release approval.
+
 - No Canva output is used. The PA slot now intentionally uses one project-generated heroine candidate for browser scale/composite evaluation; it is not release-approved final art and does not establish provenance for the user's external style references.
 - No emoji is used as runtime art.
 - The selected sounds are recorded weapon swishes, not synthesized electronic UI sounds.

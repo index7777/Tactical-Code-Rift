@@ -1,0 +1,497 @@
+{
+  "version": "v1",
+  "characters": {
+    "amamiya-rin": {
+      "runtime": {
+        "sheet": "天藍月影武士小_rin_動作圖集.png",
+        "count": 8,
+        "files": [
+          "amamiya-rin-idle-a.png",
+          "amamiya-rin-idle-b.png",
+          "amamiya-rin-ready.png",
+          "amamiya-rin-attack-a.png",
+          "amamiya-rin-attack-b.png",
+          "amamiya-rin-hit-a.png",
+          "amamiya-rin-hit-b.png",
+          "amamiya-rin-down.png"
+        ],
+        "mapping": [
+          {
+            "name": "idle-a",
+            "box": [
+              12,
+              64,
+              311,
+              448
+            ]
+          },
+          {
+            "name": "idle-b",
+            "box": [
+              369,
+              64,
+              302,
+              451
+            ]
+          },
+          {
+            "name": "ready",
+            "box": [
+              701,
+              137,
+              325,
+              376
+            ]
+          },
+          {
+            "name": "attack-a",
+            "box": [
+              1048,
+              152,
+              391,
+              361
+            ]
+          },
+          {
+            "name": "attack-b",
+            "box": [
+              12,
+              619,
+              406,
+              371
+            ]
+          },
+          {
+            "name": "hit-a",
+            "box": [
+              431,
+              593,
+              290,
+              401
+            ]
+          },
+          {
+            "name": "hit-b",
+            "box": [
+              738,
+              733,
+              323,
+              263
+            ]
+          },
+          {
+            "name": "down",
+            "box": [
+              1066,
+              849,
+              371,
+              162
+            ]
+          }
+        ]
+      }
+    },
+    "chikage": {
+      "runtime": {
+        "sheet": "巫女戰士八連擊姿態圖.png",
+        "count": 8,
+        "files": [
+          "chikage-idle-a.png",
+          "chikage-idle-b.png",
+          "chikage-ready.png",
+          "chikage-attack-a.png",
+          "chikage-attack-b.png",
+          "chikage-hit-a.png",
+          "chikage-hit-b.png",
+          "chikage-down.png"
+        ],
+        "mapping": [
+          {
+            "name": "idle-a",
+            "box": [
+              8,
+              64,
+              389,
+              439
+            ]
+          },
+          {
+            "name": "idle-b",
+            "box": [
+              329,
+              82,
+              373,
+              422
+            ]
+          },
+          {
+            "name": "ready",
+            "box": [
+              655,
+              172,
+              406,
+              331
+            ]
+          },
+          {
+            "name": "attack-a",
+            "box": [
+              1018,
+              180,
+              425,
+              321
+            ]
+          },
+          {
+            "name": "attack-b",
+            "box": [
+              23,
+              524,
+              365,
+              480
+            ]
+          },
+          {
+            "name": "hit-a",
+            "box": [
+              405,
+              640,
+              287,
+              359
+            ]
+          },
+          {
+            "name": "hit-b",
+            "box": [
+              692,
+              628,
+              353,
+              373
+            ]
+          },
+          {
+            "name": "down",
+            "box": [
+              1043,
+              865,
+              401,
+              170
+            ]
+          }
+        ]
+      },
+      "portraits": {
+        "sheet": "千影_巫女武士角色立绘集.png",
+        "count": 2,
+        "files": [
+          "chikage-portrait-normal.png",
+          "chikage-portrait-combat.png"
+        ],
+        "mapping": [
+          {
+            "name": "normal",
+            "box": [
+              5,
+              0,
+              1443,
+              1073
+            ]
+          },
+          {
+            "name": "combat",
+            "box": [
+              1001,
+              630,
+              384,
+              403
+            ]
+          }
+        ]
+      },
+      "fx": {
+        "sheet": "千影退魔薙刀特效素材集.png",
+        "count": 6,
+        "files": [
+          "chikage-fx-slash-light.png",
+          "chikage-fx-slash-heavy.png",
+          "chikage-fx-ring.png",
+          "chikage-fx-dash-wave.png",
+          "chikage-fx-vertical-slash.png",
+          "chikage-fx-impact.png"
+        ],
+        "mapping": [
+          {
+            "name": "slash-light",
+            "box": [
+              14,
+              20,
+              556,
+              356
+            ]
+          },
+          {
+            "name": "slash-heavy",
+            "box": [
+              669,
+              7,
+              768,
+              423
+            ]
+          },
+          {
+            "name": "ring",
+            "box": [
+              218,
+              342,
+              669,
+              384
+            ]
+          },
+          {
+            "name": "dash-wave",
+            "box": [
+              831,
+              464,
+              605,
+              248
+            ]
+          },
+          {
+            "name": "vertical-slash",
+            "box": [
+              33,
+              584,
+              477,
+              490
+            ]
+          },
+          {
+            "name": "impact",
+            "box": [
+              641,
+              654,
+              767,
+              419
+            ]
+          }
+        ]
+      }
+    },
+    "oboro": {
+      "runtime": {
+        "sheet": "忍者少女八格動作精靈表.png",
+        "count": 8,
+        "files": [
+          "oboro-idle-a.png",
+          "oboro-idle-b.png",
+          "oboro-ready.png",
+          "oboro-attack-a.png",
+          "oboro-attack-b.png",
+          "oboro-hit-a.png",
+          "oboro-hit-b.png",
+          "oboro-down.png"
+        ],
+        "mapping": [
+          {
+            "name": "idle-a",
+            "box": [
+              21,
+              103,
+              299,
+              409
+            ]
+          },
+          {
+            "name": "idle-b",
+            "box": [
+              381,
+              117,
+              303,
+              394
+            ]
+          },
+          {
+            "name": "ready",
+            "box": [
+              720,
+              150,
+              369,
+              360
+            ]
+          },
+          {
+            "name": "attack-a",
+            "box": [
+              1102,
+              173,
+              318,
+              329
+            ]
+          },
+          {
+            "name": "attack-b",
+            "box": [
+              23,
+              605,
+              401,
+              350
+            ]
+          },
+          {
+            "name": "hit-a",
+            "box": [
+              424,
+              613,
+              301,
+              355
+            ]
+          },
+          {
+            "name": "hit-b",
+            "box": [
+              745,
+              727,
+              313,
+              239
+            ]
+          },
+          {
+            "name": "down",
+            "box": [
+              1069,
+              814,
+              370,
+              147
+            ]
+          }
+        ]
+      },
+      "portraits": {
+        "sheet": "朧的忍者表情貼圖組.png",
+        "count": 5,
+        "files": [
+          "oboro-portrait-normal.png",
+          "oboro-portrait-combat.png",
+          "oboro-portrait-hurt.png",
+          "oboro-portrait-current.png",
+          "oboro-portrait-timeline.png"
+        ],
+        "mapping": [
+          {
+            "name": "normal",
+            "box": [
+              13,
+              10,
+              524,
+              652
+            ]
+          },
+          {
+            "name": "combat",
+            "box": [
+              532,
+              8,
+              535,
+              670
+            ]
+          },
+          {
+            "name": "hurt",
+            "box": [
+              1021,
+              23,
+              418,
+              660
+            ]
+          },
+          {
+            "name": "current",
+            "box": [
+              340,
+              601,
+              434,
+              476
+            ]
+          },
+          {
+            "name": "timeline",
+            "box": [
+              830,
+              721,
+              302,
+              326
+            ]
+          }
+        ]
+      },
+      "fx": {
+        "sheet": "忍者暗殺者六式斬擊特效圖集.png",
+        "count": 6,
+        "files": [
+          "oboro-fx-slash-light.png",
+          "oboro-fx-slash-heavy.png",
+          "oboro-fx-ring.png",
+          "oboro-fx-dash-wave.png",
+          "oboro-fx-vertical-slash.png",
+          "oboro-fx-impact.png"
+        ],
+        "mapping": [
+          {
+            "name": "slash-light",
+            "box": [
+              16,
+              122,
+              474,
+              312
+            ]
+          },
+          {
+            "name": "slash-heavy",
+            "box": [
+              507,
+              31,
+              489,
+              503
+            ]
+          },
+          {
+            "name": "ring",
+            "box": [
+              975,
+              87,
+              447,
+              472
+            ]
+          },
+          {
+            "name": "dash-wave",
+            "box": [
+              16,
+              679,
+              671,
+              219
+            ]
+          },
+          {
+            "name": "vertical-slash",
+            "box": [
+              617,
+              531,
+              320,
+              520
+            ]
+          },
+          {
+            "name": "impact",
+            "box": [
+              1000,
+              575,
+              431,
+              456
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "version": "single-assets-v1",
+  "split_sheets": {
+    "momiji-runtime-sheet": [
+      "momiji/runtime/singles-from-sheet/momiji-runtime-01.png",
+      "momiji/runtime/singles-from-sheet/momiji-runtime-02.png",
+      "momiji/runtime/singles-from-sheet/momiji-runtime-03.png",
+      "momiji/runtime/singles-from-sheet/momiji-runtime-04.png",
+      "momiji/runtime/singles-from-sheet/momiji-runtime-05.png",
+      "momiji/runtime/singles-from-sheet/momiji-runtime-06.png",
+      "momiji/runtime/singles-from-sheet/momiji-runtime-07.png",
+      "momiji/runtime/singles-from-sheet/momiji-runtime-08.png"
+    ],
+    "momiji-attack-sheet": [
+      "momiji/attack/singles-from-sheet/momiji-attack-01.png",
+      "momiji/attack/singles-from-sheet/momiji-attack-02.png",
+      "momiji/attack/singles-from-sheet/momiji-attack-03.png",
+      "momiji/attack/singles-from-sheet/momiji-attack-04.png",
+      "momiji/attack/singles-from-sheet/momiji-attack-05.png",
+      "momiji/attack/singles-from-sheet/momiji-attack-06.png"
+    ],
+    "rin-runtime-sheet": [
+      "amamiya-rin/runtime/singles-from-sheet/amamiya-rin-runtime-01.png",
+      "amamiya-rin/runtime/singles-from-sheet/amamiya-rin-runtime-02.png",
+      "amamiya-rin/runtime/singles-from-sheet/amamiya-rin-runtime-03.png",
+      "amamiya-rin/runtime/singles-from-sheet/amamiya-rin-runtime-04.png",
+      "amamiya-rin/runtime/singles-from-sheet/amamiya-rin-runtime-05.png",
+      "amamiya-rin/runtime/singles-from-sheet/amamiya-rin-runtime-06.png",
+      "amamiya-rin/runtime/singles-from-sheet/amamiya-rin-runtime-07.png",
+      "amamiya-rin/runtime/singles-from-sheet/amamiya-rin-runtime-08.png"
+    ],
+    "rin-attack-sheet": [
+      "amamiya-rin/attack/singles-from-sheet/amamiya-rin-attack-01.png",
+      "amamiya-rin/attack/singles-from-sheet/amamiya-rin-attack-02.png",
+      "amamiya-rin/attack/singles-from-sheet/amamiya-rin-attack-03.png",
+      "amamiya-rin/attack/singles-from-sheet/amamiya-rin-attack-04.png",
+      "amamiya-rin/attack/singles-from-sheet/amamiya-rin-attack-05.png",
+      "amamiya-rin/attack/singles-from-sheet/amamiya-rin-attack-06.png"
+    ],
+    "rin-fx-sheet": [
+      "amamiya-rin/fx/singles-from-sheet/amamiya-rin-fx-01.png",
+      "amamiya-rin/fx/singles-from-sheet/amamiya-rin-fx-02.png",
+      "amamiya-rin/fx/singles-from-sheet/amamiya-rin-fx-03.png",
+      "amamiya-rin/fx/singles-from-sheet/amamiya-rin-fx-04.png",
+      "amamiya-rin/fx/singles-from-sheet/amamiya-rin-fx-05.png",
+      "amamiya-rin/fx/singles-from-sheet/amamiya-rin-fx-06.png",
+      "amamiya-rin/fx/singles-from-sheet/amamiya-rin-fx-07.png"
+    ],
+    "amamiya-rin-reference-amamiya-rin-fx-sheet-source-v2.png": [
+      "amamiya-rin/reference/singles/amamiya-rin-fx-sheet-source-v2-01.png",
+      "amamiya-rin/reference/singles/amamiya-rin-fx-sheet-source-v2-02.png",
+      "amamiya-rin/reference/singles/amamiya-rin-fx-sheet-source-v2-03.png",
+      "amamiya-rin/reference/singles/amamiya-rin-fx-sheet-source-v2-04.png",
+      "amamiya-rin/reference/singles/amamiya-rin-fx-sheet-source-v2-05.png",
+      "amamiya-rin/reference/singles/amamiya-rin-fx-sheet-source-v2-06.png"
+    ],
+    "amamiya-rin-reference-amamiya-rin-attack-sheet-source-v2.png": [
+      "amamiya-rin/reference/singles/amamiya-rin-attack-sheet-source-v2-01.png",
+      "amamiya-rin/reference/singles/amamiya-rin-attack-sheet-source-v2-02.png",
+      "amamiya-rin/reference/singles/amamiya-rin-attack-sheet-source-v2-03.png",
+      "amamiya-rin/reference/singles/amamiya-rin-attack-sheet-source-v2-04.png",
+      "amamiya-rin/reference/singles/amamiya-rin-attack-sheet-source-v2-05.png",
+      "amamiya-rin/reference/singles/amamiya-rin-attack-sheet-source-v2-06.png"
+    ]
+  }
+}

@@ -48,9 +48,9 @@ export class ActionPresenter {
   }
 
   private techniquePalette(actorId:string){
-    if(actorId==='PB')return{main:0xe6c56f,edge:0xfff0b0,trail:0x7d5db7};
-    if(actorId==='PC')return{main:0x9f8cff,edge:0xe9e3ff,trail:0x4b3b7e};
-    if(actorId==='PD')return{main:0xe53646,edge:0xfff1cf,trail:0x7d1829};
+    if(actorId==='chikage')return{main:0xe6c56f,edge:0xfff0b0,trail:0x7d5db7};
+    if(actorId==='oboro')return{main:0x9f8cff,edge:0xe9e3ff,trail:0x4b3b7e};
+    if(actorId==='mo')return{main:0xe53646,edge:0xfff1cf,trail:0x7d1829};
     return{main:0x9fe8ff,edge:0xffffff,trail:0x4b9ab5};
   }
 
@@ -63,13 +63,13 @@ export class ActionPresenter {
   }
 
   private techniqueWindup(actorId:string,actor:VisualActor,direction:number,cardId?:string){
-    if(!actor.sprite||!['PB','PC','PD'].includes(actorId))return;
+    if(!actor.sprite||!['chikage','oboro','mo'].includes(actorId))return;
     const palette=this.techniquePalette(actorId);
-    if(actorId==='PD'){
+    if(actorId==='mo'){
       this.spawnAfterimage(actor,direction,palette.main,18,.34);this.spawnAfterimage(actor,direction,palette.trail,36,.2);
-      const arc=this.spawnFxImage('fx-redleaf-slash-arc',actor.root.x+direction*46,actor.root.y-8,86,{scale:.22,alpha:.34,flipX:direction<0,blendMode:Phaser.BlendModes.ADD});
+      const arc=this.spawnFxImage('fx-mo-slash-arc',actor.root.x+direction*46,actor.root.y-8,86,{scale:.22,alpha:.34,flipX:direction<0,blendMode:Phaser.BlendModes.ADD});
       if(arc)this.scene.tweens.add({targets:arc,alpha:0,scale:.28,duration:150,ease:'Quad.easeOut',onComplete:()=>arc.destroy()});
-    }else if(actorId==='PC'){
+    }else if(actorId==='oboro'){
       this.spawnAfterimage(actor,direction,palette.main,16,.34);this.spawnAfterimage(actor,direction,palette.trail,32,.22);this.spawnAfterimage(actor,direction,palette.edge,48,.12);
       const streak=this.scene.add.rectangle(actor.root.x-direction*34,actor.root.y-5,94,2,palette.edge,.72).setDepth(85);this.combatLayer.add(streak);
       this.scene.tweens.add({targets:streak,x:streak.x+direction*70,scaleX:1.7,alpha:0,duration:120,ease:'Cubic.easeIn',onComplete:()=>streak.destroy()});
@@ -81,15 +81,15 @@ export class ActionPresenter {
   }
 
   private techniqueImpact(actorId:string,x:number,y:number,direction:number,cardId?:string){
-    if(!['PB','PC','PD'].includes(actorId))return;
+    if(!['chikage','oboro','mo'].includes(actorId))return;
     const p=this.techniquePalette(actorId);
-    if(actorId==='PD'){
-      const arc=this.spawnFxImage('fx-redleaf-slash-arc',x,y-8,112,{scale:cardId==='heavy'?.72:.56,alpha:.94,flipX:direction<0,blendMode:Phaser.BlendModes.ADD});
-      const impact=this.spawnFxImage('fx-redleaf-slash-impact',x+direction*8,y+18,116,{scale:cardId==='break'?.55:.42,alpha:.86,flipX:direction<0,blendMode:Phaser.BlendModes.ADD});
+    if(actorId==='mo'){
+      const arc=this.spawnFxImage('fx-mo-slash-arc',x,y-8,112,{scale:cardId==='heavy'?.72:.56,alpha:.94,flipX:direction<0,blendMode:Phaser.BlendModes.ADD});
+      const impact=this.spawnFxImage('fx-mo-slash-impact',x+direction*8,y+18,116,{scale:cardId==='break'?.55:.42,alpha:.86,flipX:direction<0,blendMode:Phaser.BlendModes.ADD});
       if(arc)this.scene.tweens.add({targets:arc,scale:(arc.scaleX||1)*1.15,alpha:0,duration:190,ease:'Expo.easeOut',onComplete:()=>arc.destroy()});
       if(impact)this.scene.tweens.add({targets:impact,scale:(impact.scaleX||1)*1.25,alpha:0,duration:210,ease:'Cubic.easeOut',onComplete:()=>impact.destroy()});
       this.debrisBurst(x,y,p.main,direction,cardId==='heavy'?12:8,76);
-    }else if(actorId==='PB'){
+    }else if(actorId==='chikage'){
       const scale=cardId==='heavy'?1.32:cardId==='break'?1.18:1.05;this.lineSlash(x,y,direction<0,scale,p.main);const sweep=this.scene.add.rectangle(x-direction*20,y+28,190*scale,6,p.edge,.76).setRotation(direction>0?-.28:.28).setDepth(107);this.combatLayer.add(sweep);this.scene.tweens.add({targets:sweep,scaleX:1.3,alpha:0,duration:180,onComplete:()=>sweep.destroy()});
     }else{
       const flip=direction<0,primary=cardId==='heavy'?1.28:1.08,secondary=cardId==='heavy'?1.12:.96;
@@ -232,7 +232,7 @@ export class ActionPresenter {
     this.focusCamera(actionFocusX,actionFocusY,1.1,150);
     // 卡片資訊往上抬到 -132 避免蓋到怪物母版尺寸的頭部；若 y 太靠近上邊界則吸回 40。
     const badgeY = Math.max(40, attacker.root.y - 132);
-    const isChikage=!enemy&&actorId==='PB',isOboro=!enemy&&actorId==='PC';
+    const isChikage=!enemy&&actorId==='chikage',isOboro=!enemy&&actorId==='oboro';
     const techniqueColor=isChikage?'#5b4520':isOboro?'#33245c':enemy?'#713142':'#155268';
     const badge = this.scene.add.text(attacker.root.x, badgeY, `${card.name}\n威力 ${card.clashPower}`, { fontFamily: (isChikage||isOboro)?'serif':'sans-serif', fontSize: (isChikage||isOboro)?'18px':'16px', fontStyle: 'bold', align: 'center', color: '#fff', stroke:(isChikage||isOboro)?'#0a0810':undefined,strokeThickness:(isChikage||isOboro)?4:0, backgroundColor: techniqueColor, padding: { x: 14, y: 8 } }).setOrigin(.5).setDepth(70).setAlpha((isChikage||isOboro) ? .15 : 1);
     if(isChikage||isOboro)this.scene.tweens.add({targets:badge,alpha:1,y:badgeY-8,duration:120,ease:'Back.easeOut'});

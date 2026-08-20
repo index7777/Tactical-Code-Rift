@@ -1,0 +1,58 @@
+{
+  "version": "v3",
+  "package": "momiji_rin_sd_runtime_rebuild_v1",
+  "characters": {
+    "momiji": {
+      "runtime_sheet": "momiji/runtime/momiji-runtime-sprite-sheet.png",
+      "attack_sheet": "momiji/attack/momiji-attack-sequence.png",
+      "runtime_size": [
+        128,
+        128
+      ],
+      "attack_size": [
+        192,
+        160
+      ]
+    },
+    "amamiya-rin": {
+      "runtime_sheet": "amamiya-rin/runtime/amamiya-rin-runtime-sprite-sheet.png",
+      "attack_sheet": "amamiya-rin/attack/amamiya-rin-attack-sequence.png",
+      "runtime_size": [
+        128,
+        128
+      ],
+      "attack_size": [
+        192,
+        160
+      ]
+    }
+  },
+  "changes": {
+    "amamiya-rin": {
+      "attack_sequence": "rebuilt with corrected sword alignment and separate character-only frames",
+      "runtime_updates": [
+        "attack-a",
+        "attack-b"
+      ],
+      "fx": [
+        "slash-light",
+        "slash-heavy",
+        "ring",
+        "dash-trail",
+        "vertical-slash",
+        "impact"
+      ]
+    },
+    "amamiya-rin-v3": {
+      "fx_replaced": "clean effect-only overlays, no baked accessories",
+      "fx_files": [
+        "amamiya-rin-fx-slash-light.png",
+        "amamiya-rin-fx-slash-heavy.png",
+        "amamiya-rin-fx-ring.png",
+        "amamiya-rin-fx-dash-trail.png",
+        "amamiya-rin-fx-vertical-slash.png",
+        "amamiya-rin-fx-impact.png"
+      ]
+    }
+  }
+}

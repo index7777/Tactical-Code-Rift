@@ -1,105 +1,96 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul
-
 set "REPO_URL=https://github.com/index7777/Tactical-Code-Rift.git"
-set "REPO_DIR=%~dp0"
 set "SITE=%~1"
 if /I "%SITE%"=="--help" goto :help
 if "%SITE%"=="" set "SITE=local"
-
-cd /d "%REPO_DIR%" || goto :cd_error
+cd /d "%~dp0" || goto :failed
 where git >nul 2>nul || goto :no_git
-
-if not exist ".git" (
-  echo [INFO] 尚未初始化 Git，正在建立 main 分支...
-  git init -b main || goto :failed
-)
-
+if not exist ".git" goto :not_repo
 for /f "delims=" %%R in ('git remote get-url origin 2^>nul') do set "ORIGIN=%%R"
-if not defined ORIGIN (
-  git remote add origin "%REPO_URL%" || goto :failed
-) else if /I not "!ORIGIN!"=="%REPO_URL%" (
-  echo [ERROR] origin 指向其他位置：!ORIGIN!
-  echo 預期位置：%REPO_URL%
-  echo 為避免推錯 Repository，已停止。
-  goto :failed
-)
-
+if not defined ORIGIN goto :no_origin
+if /I not "!ORIGIN!"=="%REPO_URL%" goto :wrong_origin
 for /f "delims=" %%B in ('git branch --show-current 2^>nul') do set "BRANCH=%%B"
-if not defined BRANCH (
-  git switch -c main 2>nul || git checkout -b main || goto :failed
-  set "BRANCH=main"
-)
-
-if /I not "!BRANCH!"=="main" (
-  echo [ERROR] 目前位於 !BRANCH!，同步腳本只允許 main 分支。
-  goto :failed
-)
-
-echo [INFO] 檢查 GitHub 是否有較新的內容...
+if not defined BRANCH goto :detached
+echo [INFO] Fetching origin before upload...
 git fetch origin --prune || goto :network_error
-
-if exist ".git\refs\remotes\origin\main" goto :check_remote
-for /f "delims=" %%H in ('git rev-parse --verify refs/remotes/origin/main 2^>nul') do set "REMOTE_HEAD=%%H"
-if not defined REMOTE_HEAD goto :prepare_commit
-
-:check_remote
-for /f "tokens=1,2" %%A in ('git rev-list --left-right --count HEAD...origin/main 2^>nul') do (
-  set "AHEAD=%%A"
-  set "BEHIND=%%B"
-)
-if defined BEHIND if not "!BEHIND!"=="0" (
-  echo [STOP] GitHub 比本機新 !BEHIND! 個提交。
-  echo 請先執行 sync-download.bat，確認內容後再上傳。
-  goto :failed
-)
-
-:prepare_commit
-git add -A || goto :failed
+git rev-parse --verify "refs/remotes/origin/!BRANCH!" >nul 2>nul
+if errorlevel 1 goto :preview
+for /f "tokens=1,2" %%A in ('git rev-list --left-right --count "HEAD...origin/!BRANCH!" 2^>nul') do (set "AHEAD=%%A"& set "BEHIND=%%B")
+if defined BEHIND if not "!BEHIND!"=="0" goto :behind
+:preview
+echo.
+echo [REVIEW] Current branch: !BRANCH!
+echo [REVIEW] Tracked and untracked files that will be included:
+echo ----------------------------------------------------------------
+git status --short
+echo ----------------------------------------------------------------
 for /f "delims=" %%S in ('git status --porcelain') do set "HAS_CHANGES=1"
-if defined HAS_CHANGES (
-  for /f "tokens=1-3 delims=/ " %%a in ("%date%") do set "DATESTAMP=%%a-%%b-%%c"
-  for /f "tokens=1-2 delims=:., " %%a in ("%time%") do set "TIMESTAMP=%%a%%b"
-  git commit -m "sync(!SITE!): !DATESTAMP! !TIMESTAMP!" || goto :commit_error
-) else (
-  echo [INFO] 沒有未提交的檔案變更。
-)
-
+if not defined HAS_CHANGES goto :push_existing
+set "CONFIRM="
+set /p "CONFIRM=Type YES to stage all files shown above: "
+if /I not "!CONFIRM!"=="YES" goto :cancelled_before_stage
+git add -A || goto :failed
+echo [REVIEW] Staged changes:
+git status --short
+set "CONFIRM_COMMIT="
+set /p "CONFIRM_COMMIT=Type COMMIT to create the sync commit: "
+if /I not "!CONFIRM_COMMIT!"=="COMMIT" goto :unstage_cancel
+for /f %%D in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HHmm"') do set "STAMP=%%D"
+git commit -m "sync(!SITE!): !STAMP!" || goto :commit_error
+:push_existing
 git rev-parse --verify HEAD >nul 2>nul || goto :nothing_to_push
-echo [INFO] 上傳 main 到 GitHub...
-git push -u origin main || goto :push_error
-
-echo.
-echo [OK] 上傳完成。位置標記：!SITE!
+echo [INFO] Ready to push !BRANCH! to origin/!BRANCH!.
+set "CONFIRM_PUSH="
+set /p "CONFIRM_PUSH=Type PUSH to continue: "
+if /I not "!CONFIRM_PUSH!"=="PUSH" goto :push_cancelled
+git push -u origin "!BRANCH!" || goto :push_error
+echo [OK] !BRANCH! was uploaded successfully. Source: !SITE!
 goto :end
-
 :help
-echo 用法：sync-upload.bat [位置標記]
-echo 範例：sync-upload.bat A
-echo       sync-upload.bat B
-echo.
-echo 功能：加入所有變更、建立同步提交並推送 main。
-echo 安全：若 GitHub 較新、遠端錯誤或分支不是 main，腳本會停止。
+echo Usage: sync-upload.bat [source-label]
+echo Reviews, stages, commits, and pushes the current branch.
 goto :end
-
 :no_git
-echo [ERROR] 找不到 Git。請先安裝 Git for Windows。
+echo [ERROR] Git for Windows was not found.
 goto :failed
-:cd_error
-echo [ERROR] 無法進入腳本所在資料夾。
+:not_repo
+echo [ERROR] This folder is not a Git repository. Use sync-first-clone.bat first.
+goto :failed
+:no_origin
+echo [ERROR] Remote origin is not configured.
+goto :failed
+:wrong_origin
+echo [ERROR] origin does not match %REPO_URL%. Actual: !ORIGIN!
+goto :failed
+:detached
+echo [ERROR] Detached HEAD is not supported.
 goto :failed
 :network_error
-echo [ERROR] 無法連線 GitHub。請檢查網路與登入狀態。
+echo [ERROR] Could not fetch from GitHub.
+goto :failed
+:behind
+echo [STOP] origin/!BRANCH! is !BEHIND! commit(s) ahead. Download first.
+goto :failed
+:cancelled_before_stage
+echo [CANCELLED] No commit or push was performed.
+goto :failed
+:push_cancelled
+echo [CANCELLED] Nothing was pushed. Any commit created above remains local.
+goto :failed
+:unstage_cancel
+git reset >nul 2>nul
+echo [CANCELLED] Staging was reverted. Working files were not changed.
 goto :failed
 :commit_error
-echo [ERROR] 無法建立提交。請檢查 git user.name 與 user.email。
+echo [ERROR] Commit failed. Check git user.name and user.email.
 goto :failed
 :nothing_to_push
-echo [STOP] 目前沒有可上傳的提交。
+echo [STOP] There is no commit to push.
 goto :failed
 :push_error
-echo [ERROR] 推送失敗。首次使用時可能需要完成 GitHub 登入。
+echo [ERROR] Push failed. Check authentication and branch permissions.
 goto :failed
 :failed
 exit /b 1

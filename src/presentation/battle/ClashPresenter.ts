@@ -153,9 +153,9 @@ export class ClashPresenter {
     for(let i=0;i<10;i++){const shard=this.scene.add.rectangle(x,y,26,3,i%2?0xffffff:color,.92).setDepth(114).setRotation((i-5)*.34);this.combatLayer.add(shard);this.scene.tweens.add({targets:shard,x:x+dir*(28+i*9),y:y+(i%2?1:-1)*(26+i*4),alpha:0,duration:180+i*4,onComplete:()=>shard.destroy()})}
   }
   private playerTechniqueAccent(actorId:string,x:number,y:number,flip:boolean){
-    if(actorId==='PB'){
+    if(actorId==='chikage'){
       this.lineSlash(x,y,flip,1.22,0xe6c56f);
-    }else if(actorId==='PC'){
+    }else if(actorId==='oboro'){
       for(let i=0;i<2;i++){const cut=this.scene.add.rectangle(x,y-8,132-i*22,i?3:8,i?0xffffff:0x9f8cff,.92).setRotation((i?-.78:.72)*(flip?-1:1)).setDepth(116+i);this.combatLayer.add(cut);this.scene.tweens.add({targets:cut,scaleX:1.3,alpha:0,duration:150+i*35,onComplete:()=>cut.destroy()})}
     }
   }
@@ -268,7 +268,7 @@ export class ClashPresenter {
     if(enemy.sprite)enemy.sprite.setAngle(0);
     const playerFlip=player.root.x>enemy.root.x;
     this.playerTechniqueAccent(clash.player.actorId,clashX,clashY-13,playerFlip);
-    if(!['PB','PC'].includes(clash.player.actorId))this.bladeCut(clashX,clashY-13,playerFlip,0xfff3c4,false);
+    if(!['chikage','oboro'].includes(clash.player.actorId))this.bladeCut(clashX,clashY-13,playerFlip,0xfff3c4,false);
     this.enemySignatureSlash(enemy,clashX,clashY-13,!playerFlip,1.05);
     this.bladeCut(clashX,clashY-13,!playerFlip,0xff91b1,true);
     this.impactCross(clashX,clashY-13);

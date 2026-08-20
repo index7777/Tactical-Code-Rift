@@ -794,3 +794,20 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - 原因：平手交鋒呼叫 `focusCamera(clashX, clashY, 1.32, 160)`，但函式僅宣告三個參數，TypeScript 在 Vercel 建置時回報 TS2554。
 - 修正：`focusCamera` 新增可選 `duration` 參數，預設維持 190ms；平手交鋒保留原設計的 160ms 鏡頭壓進，其餘呼叫行為不變。
 - 驗證：`npm run test` 27 files／115 tests 全通過；`npm run build` 通過；`git diff --check` 通過。Vite bundle size warning 不阻擋部署。
+
+## 2026-08-20 — Named player assets and identity separation
+
+- Adopted stable player character IDs: `rin`, `chikage`, `oboro`, and `mo`; removed PA/PB/PC/PD from authoritative source and tests.
+- Kept current DEMO placement in `actorIndex`, explicitly separate from character identity so future party formation can reorder the roster.
+- Integrated the 8-pose runtime contract for all four characters. Rin uses the corrected horizontal set from `chikage_oboro_rin_split_assets_v1`; Chikage and Oboro use the same package; Mo uses `momiji_rin_single_assets_v1`.
+- Integrated current/timeline portraits for all four and Mo attack FX. Assets remain runtime trials with user-supplied provenance/license pending.
+- Verification: production build passed; full suite passed (29 files, 117 tests). Deterministic PNG checks passed for all Rin, Chikage and Oboro runtime frames; all Mo frames report `foot-baseline-margin` at 6 px and remain a runtime-trial QA issue rather than approved final assets.
+- Runtime screenshots at 1280×720 and 844×390 show all four named characters facing right with readable silhouettes, grounded pivots, consistent scale, and no actor/HUD overlap. The mobile landscape layout remains readable. Existing unrelated legacy SVG loader errors were still present in the console.
+
+## 2026-08-20 — Safe branch-aware sync scripts
+
+- Added `sync.bat` as the interactive entry point for status, download, and upload.
+- Download now fast-forwards the current named branch and refuses dirty, detached, missing-remote, or diverged states.
+- Upload now supports the current named branch, fetches before acting, refuses when its remote is ahead, previews tracked and untracked files, and requires explicit `YES`, `COMMIT`, and `PUSH` confirmations.
+- Cancelling after staging performs a non-destructive mixed reset; working files remain intact.
+- Replaced corrupted sync messages with ASCII-safe text so Windows consoles display the safety prompts reliably.
