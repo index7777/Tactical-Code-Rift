@@ -1,0 +1,73 @@
+name: Redleaf Runtime Finalize
+
+on:
+  push:
+    branches: [feat/redleaf-production-runtime]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/redleaf-production-runtime
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Expand approved Redleaf assets
+        run: |
+          tar -xzf .asset-staging/redleaf-assets.tar.gz
+          rm -rf .asset-staging
+      - name: Wire PD Redleaf runtime and FX
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          boot=Path('src/presentation/scenes/BootScene.ts')
+          s=boot.read_text(encoding='utf-8')
+          old="for(const pose of ['idle-a','idle-b','ready','attack-a','attack-b','hit-a','hit-b','down'])this.load.image(`redleaf-${pose}`,`assets/battle/generated/characters/redleaf/redleaf-${pose}.svg`);"
+          new="for(const pose of ['idle-a','idle-b','ready','attack-a','attack-b','hit-a','hit-b','down'])this.load.image(`redleaf-${pose}`,`assets/battle/generated/characters/redleaf/production/redleaf-${pose}.png`);this.load.image('fx-redleaf-crescent','assets/battle/fx/redleaf/slash-crescent.png');this.load.image('fx-redleaf-line','assets/battle/fx/redleaf/slash-line.png');this.load.image('fx-redleaf-impact','assets/battle/fx/redleaf/impact.png');"
+          if old not in s: raise SystemExit('BootScene Redleaf pose preload marker missing')
+          s=s.replace(old,new,1)
+          old2="for(const name of ['heroine','redleaf']){this.load.image(`portrait-${name}-current`,`assets/battle/portraits/${name}-p11-4-current.svg`);this.load.image(`portrait-${name}-timeline`,`assets/battle/portraits/${name}-p11-4-timeline.svg`)};"
+          new2="this.load.image('portrait-heroine-current','assets/battle/portraits/heroine-p11-4-current.svg');this.load.image('portrait-heroine-timeline','assets/battle/portraits/heroine-p11-4-timeline.svg');this.load.image('portrait-redleaf-current','assets/battle/portraits/redleaf-current.png');this.load.image('portrait-redleaf-timeline','assets/battle/portraits/redleaf-timeline.png');"
+          if old2 not in s: raise SystemExit('BootScene portrait preload marker missing')
+          s=s.replace(old2,new2,1)
+          boot.write_text(s,encoding='utf-8')
+
+          action=Path('src/presentation/battle/ActionPresenter.ts')
+          a=action.read_text(encoding='utf-8')
+          old="    if(actorId==='PC')return{main:0x9f8cff,edge:0xe9e3ff,trail:0x4b3b7e};\n    return{main:0x9fe8ff,edge:0xffffff,trail:0x4b9ab5};"
+          new="    if(actorId==='PC')return{main:0x9f8cff,edge:0xe9e3ff,trail:0x4b3b7e};\n    if(actorId==='PD')return{main:0xff4058,edge:0xffe2b0,trail:0x8f172b};\n    return{main:0x9fe8ff,edge:0xffffff,trail:0x4b9ab5};"
+          if old not in a: raise SystemExit('ActionPresenter palette marker missing')
+          a=a.replace(old,new,1)
+          a=a.replace("if(!actor.sprite||!['PB','PC'].includes(actorId))return;","if(!actor.sprite||!['PB','PC','PD'].includes(actorId))return;",1)
+          a=a.replace("if(!['PB','PC'].includes(actorId))return;","if(!['PB','PC','PD'].includes(actorId))return;",1)
+          marker="    const p=this.techniquePalette(actorId);\n    if(actorId==='PB'){"
+          insert="    const p=this.techniquePalette(actorId);\n    if(actorId==='PD'){\n      const flip=direction<0,heavy=cardId==='heavy'||cardId==='break';\n      const crescent=this.spawnFxImage('fx-redleaf-crescent',x-direction*(heavy?8:2),y-5,116,{scale:heavy?.48:.38,alpha:.96,flipX:flip,blendMode:Phaser.BlendModes.ADD});\n      if(crescent)this.scene.tweens.add({targets:crescent,scale:(crescent.scaleX||1)*1.16,alpha:0,duration:heavy?250:205,ease:'Expo.easeOut',onComplete:()=>crescent.destroy()});\n      const line=this.spawnFxImage('fx-redleaf-line',x-direction*15,y+4,117,{scale:heavy?.42:.34,alpha:.82,flipX:flip,blendMode:Phaser.BlendModes.ADD});\n      if(line)this.scene.tweens.add({targets:line,scaleX:(line.scaleX||1)*1.2,alpha:0,duration:180,ease:'Expo.easeOut',onComplete:()=>line.destroy()});\n      if(heavy){const impact=this.spawnFxImage('fx-redleaf-impact',x,y+30,118,{scale:.34,alpha:.85,flipX:flip,blendMode:Phaser.BlendModes.ADD});if(impact)this.scene.tweens.add({targets:impact,scale:(impact.scaleX||1)*1.14,alpha:0,duration:230,ease:'Cubic.easeOut',onComplete:()=>impact.destroy()})}\n      return;\n    }\n    if(actorId==='PB'){"
+          if marker not in a: raise SystemExit('ActionPresenter impact marker missing')
+          a=a.replace(marker,insert,1)
+          action.write_text(a,encoding='utf-8')
+
+          doc=Path('docs/characters/redleaf.md')
+          d=doc.read_text(encoding='utf-8')
+          block='''\n\n## Production master hookup\n\n- Visual authority: `public/assets/battle/masters/redleaf-master-reference.jpg` (user-approved master reference).\n- PD runtime frames: `public/assets/battle/generated/characters/redleaf/production/`.\n- Runtime sprite sheet: `redleaf-runtime-spritesheet.png`, 320×240 cells, 4×2 layout.\n- UI portraits: `public/assets/battle/portraits/redleaf-current.png` and `redleaf-timeline.png`.\n- Signature attack FX: `public/assets/battle/fx/redleaf/`.\n- PD remains the combat slot id; player-facing display name is 紅葉.\n'''
+          if '## Production master hookup' not in d:d+=block
+          doc.write_text(d,encoding='utf-8')
+          PY
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - name: Commit production Redleaf runtime
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public src docs .asset-staging || true
+          git commit -m "feat: wire approved Redleaf master into PD runtime"
+          git push origin HEAD:feat/redleaf-production-runtime
