@@ -5,6 +5,8 @@ import{JOURNEY_MUSIC_FADE_IN_MS,JOURNEY_MUSIC_FADE_OUT_MS,journeyLoopFadeDelayMs
 
 const labels:Record<StoryNodeType,string>={departure:'出發',battle:'迎擊',event:'事件',exploration:'探索',companion:'伙伴',elite:'精英',boss:'王'};
 const colors:Record<StoryNodeType,number>={departure:0x477889,battle:0x496f7c,event:0x74578c,exploration:0x367360,companion:0x3b7896,elite:0xa87139,boss:0x8e263c};
+const routeAssetRoot='assets/journey/route-map-ui-v1';
+const nodeIcons:Record<StoryNodeType,string>={departure:'start',battle:'encounter',event:'event',exploration:'rest',companion:'shop',elite:'elite',boss:'boss'};
 const enemyNames:Record<string,string>={
   'wet-corpse':'濡骸','lantern-child':'提燈童','mountain-hound':'山犬','wayfarer-umbrella':'辻傘','noose-ghost':'縊鬼','lost-monk':'迷途僧','rain-warrior':'雨夜武者','rain-boss':'站守',
 };
@@ -22,14 +24,25 @@ export class JourneyScene extends Phaser.Scene{
   private journeyMusic?:Phaser.Sound.BaseSound;private loopTimer?:Phaser.Time.TimerEvent;private leavingMap=false;
   private previewTitle?:Phaser.GameObjects.Text;private previewBody?:Phaser.GameObjects.Text;private previewAccent?:Phaser.GameObjects.Rectangle;
   constructor(){super('JourneyScene')}
-  preload(){this.load.audio('journey-world-01','assets/music/world-01/zone1-train-bgm.mp3');this.load.image('journey-bg-world01','assets/journey/world01/route-bg-rainfall-ridgeline.svg');this.load.image('journey-train-token','assets/journey/world01/train-token-topdown.svg')}
+  preload(){
+    this.load.audio('journey-world-01','assets/music/world-01/zone1-train-bgm.mp3');
+    this.load.image('journey-bg-world01',`${routeAssetRoot}/backgrounds/route-scene-bg-base.png`);
+    this.load.image('journey-train-token','assets/journey/world01/train-token-topdown.svg');
+    for(const name of ['normal','selected','completed','locked','boss'])this.load.image(`route-node-${name}`,`${routeAssetRoot}/nodes/node-base-${name}.png`);
+    for(const name of ['highlight-glow','pulse-overlay','ring'])this.load.image(`route-node-${name}`,`${routeAssetRoot}/nodes/node-${name}.png`);
+    for(const name of ['start','encounter','elite','event','rest','shop','boss'])this.load.image(`route-icon-${name}`,`${routeAssetRoot}/icons/icon-${name}.png`);
+    for(const name of ['idle','active','completed'])this.load.image(`route-path-${name}`,`${routeAssetRoot}/paths/path-line-${name}.png`);
+    for(const name of ['section-panel-frame-medium','section-panel-frame-wide','header-divider-line','info-accent-bar','corner-accent'])this.load.image(`route-frame-${name}`,`${routeAssetRoot}/frames/${name}.png`);
+  }
   create(){
     this.startJourneyMusic();
     const state=(this.registry.get('journey-state')as JourneyState|undefined)??createJourneyState();this.registry.set('journey-state',state);
-    this.add.image(640,360,'journey-bg-world01').setDisplaySize(1280,720).setAlpha(.9);
-    this.add.rectangle(640,360,1280,720,0x03080f,.34);
+    this.add.image(640,360,'journey-bg-world01').setDisplaySize(1280,720);
+    this.add.rectangle(640,360,1280,720,0x03080f,.2);
     this.add.rectangle(640,55,1280,110,0x03080d,.82).setStrokeStyle(1,0x8aa5ad,.15);
     this.add.rectangle(640,655,1280,130,0x02070b,.88).setStrokeStyle(1,0x7c969f,.2);
+    this.add.image(640,107,'route-frame-header-divider-line').setDisplaySize(1092,12).setAlpha(.72);
+    this.add.image(22,22,'route-frame-corner-accent').setDisplaySize(44,46).setOrigin(0).setAlpha(.72);
     this.add.text(48,28,'第一區・雨暮山線',{fontFamily:'serif',fontSize:'28px',fontStyle:'bold',color:'#f3e2c4'});
     this.add.text(50,66,'黃泉列車｜雨夜山道',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#8fb7bf'});
     this.add.text(1232,35,'路線進行',{fontFamily:'sans-serif',fontSize:'11px',fontStyle:'bold',color:'#c8d9dc'}).setOrigin(1,0);
@@ -39,8 +52,8 @@ export class JourneyScene extends Phaser.Scene{
     const pos=(column:number,lane:number)=>({x:135+column*205,y:220+lane*122});
     for(const node of state.route.nodes)for(const nextId of node.nextIds){
       const next=state.route.nodes.find(n=>n.id===nextId)!;const a=pos(node.column,node.lane),b=pos(next.column,next.lane),travelled=visited.has(node.id)&&visited.has(next.id),open=available.has(next.id);
-      this.add.line(0,0,a.x,a.y,b.x,b.y,travelled?0x83b6bd:open?0x496f7c:0x172a32,travelled?0.34:open?0.22:.46).setOrigin(0).setLineWidth(travelled?9:open?7:5);
-      this.add.line(0,0,a.x,a.y,b.x,b.y,travelled?0xc6edf0:open?0x80c2cc:0x38505a,travelled?.9:open?.72:.34).setOrigin(0).setLineWidth(travelled?2.2:1.5);
+      const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy),pathState=travelled?'completed':open?'active':'idle';
+      this.add.image((a.x+b.x)/2,(a.y+b.y)/2,`route-path-${pathState}`).setDisplaySize(length+10,open?16:12).setRotation(Math.atan2(dy,dx)).setAlpha(travelled?.92:open?.86:.62);
     }
 
     this.buildPreviewPanel();
@@ -49,11 +62,13 @@ export class JourneyScene extends Phaser.Scene{
     for(const node of state.route.nodes){
       const p=pos(node.column,node.lane),active=available.has(node.id),done=visited.has(node.id),color=colors[node.type];
       const c=this.add.container(p.x,p.y);
-      const halo=this.add.circle(0,0,active?31:25,color,active?.13:.06).setStrokeStyle(active?2:1,color,active?.66:.24);
-      const diamond=this.add.polygon(0,0,[0,-18,18,0,0,18,-18,0],done?0x173037:active?0x10232b:0x091218,1).setStrokeStyle(active?3:1.5,active?0xffdda0:done?0x78b4bc:0x54636a,active?1:.54);
+      const halo=this.add.image(0,0,'route-node-highlight-glow').setDisplaySize(active?76:62,active?76:62).setAlpha(active?.68:.16).setTint(color);
+      const baseKey=node.type==='boss'?'boss':active?'selected':done?'completed':'locked';
+      const diamond=this.add.image(0,0,`route-node-${baseKey}`).setDisplaySize(active?58:48,active?58:48);
       const glyph=this.add.text(0,0,node.type==='boss'?'終':node.type==='elite'?'武':node.type==='departure'?'始':'斬',{fontFamily:'serif',fontSize:active?'12px':'10px',fontStyle:'bold',color:active?'#fff0cf':done?'#c6e6e9':'#82949b'}).setOrigin(.5);
       const caption=this.add.text(0,29,labels[node.type],{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:active?'#fff0d3':done?'#bcd3d6':'#71848b'}).setOrigin(.5);
-      c.add([halo,diamond,glyph,caption]);
+      const icon=this.add.image(0,0,`route-icon-${nodeIcons[node.type]}`).setDisplaySize(active?27:22,active?27:22).setAlpha(active?1:done?.9:.48);
+      glyph.setVisible(false);c.add([halo,diamond,icon,glyph,caption]);
       if(active){
         this.tweens.add({targets:halo,scale:1.22,alpha:.18,duration:1200,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
         const hit=this.add.circle(0,0,34,0xffffff,.001).setInteractive({useHandCursor:true});c.add(hit);
@@ -67,7 +82,7 @@ export class JourneyScene extends Phaser.Scene{
     this.add.text(48,648,available.size?'選擇下一段軌道；滑過節點可查看敵群。':'本區路線已抵達終點。',{fontFamily:'sans-serif',fontSize:'11px',color:'#92acb3'});
   }
   private buildPreviewPanel(){
-    const x=860,y=600,w=370,h=92;this.add.rectangle(x+w/2,y+h/2,w,h,0x071018,.96).setStrokeStyle(1,0x8ea5ad,.3);
+    const x=860,y=600,w=370,h=92;this.add.image(x+w/2,y+h/2,'route-frame-section-panel-frame-medium').setDisplaySize(w,h).setAlpha(.96);
     this.previewAccent=this.add.rectangle(x+4,y+h/2,4,h-12,0x77b9c4,.9);
     this.previewTitle=this.add.text(x+18,y+12,'',{fontFamily:'serif',fontSize:'14px',fontStyle:'bold',color:'#f3e4c8'});
     this.previewBody=this.add.text(x+18,y+38,'',{fontFamily:'sans-serif',fontSize:'10px',color:'#b9cdd1',lineSpacing:4,wordWrap:{width:w-36}});

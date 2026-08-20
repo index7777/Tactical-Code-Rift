@@ -1,0 +1,430 @@
+{
+  "version": "v1",
+  "source_policy": "Assets split from generated master sheets. Text is not baked into runtime UI assets.",
+  "assets": {
+    "backgrounds/route-scene-bg-base.png": {
+      "source": "深藍霧谷與幽暗山影.png",
+      "size": [
+        1672,
+        941
+      ],
+      "type": "full-screen background"
+    },
+    "frames/section-panel-frame-wide.png": {
+      "source": "賽博奇幻科幻介面素材表.png",
+      "box": [
+        35,
+        30,
+        1410,
+        560
+      ],
+      "size": [
+        1363,
+        512
+      ]
+    },
+    "frames/section-panel-frame-medium.png": {
+      "source": "賽博奇幻科幻介面素材表.png",
+      "box": [
+        35,
+        595,
+        830,
+        1015
+      ],
+      "size": [
+        782,
+        399
+      ]
+    },
+    "frames/header-divider-line.png": {
+      "source": "賽博奇幻科幻介面素材表.png",
+      "box": [
+        840,
+        590,
+        1415,
+        680
+      ],
+      "size": [
+        546,
+        52
+      ]
+    },
+    "frames/info-accent-bar.png": {
+      "source": "賽博奇幻科幻介面素材表.png",
+      "box": [
+        945,
+        690,
+        1035,
+        1020
+      ],
+      "size": [
+        41,
+        300
+      ]
+    },
+    "frames/corner-accent.png": {
+      "source": "賽博奇幻科幻介面素材表.png",
+      "box": [
+        1160,
+        770,
+        1405,
+        1015
+      ],
+      "size": [
+        176,
+        182
+      ]
+    },
+    "nodes/node-base-normal.png": {
+      "source": "霓虹科幻節點_hud_素材表.png",
+      "box": [
+        0,
+        175,
+        285,
+        500
+      ],
+      "size": [
+        243,
+        246
+      ]
+    },
+    "nodes/node-base-selected.png": {
+      "source": "霓虹科幻節點_hud_素材表.png",
+      "box": [
+        280,
+        165,
+        590,
+        505
+      ],
+      "size": [
+        293,
+        307
+      ]
+    },
+    "nodes/node-base-completed.png": {
+      "source": "霓虹科幻節點_hud_素材表.png",
+      "box": [
+        585,
+        190,
+        860,
+        490
+      ],
+      "size": [
+        250,
+        222
+      ]
+    },
+    "nodes/node-base-locked.png": {
+      "source": "霓虹科幻節點_hud_素材表.png",
+      "box": [
+        850,
+        185,
+        1140,
+        500
+      ],
+      "size": [
+        225,
+        229
+      ]
+    },
+    "nodes/node-base-boss.png": {
+      "source": "霓虹科幻節點_hud_素材表.png",
+      "box": [
+        1120,
+        165,
+        1448,
+        505
+      ],
+      "size": [
+        286,
+        301
+      ]
+    },
+    "nodes/node-ring.png": {
+      "source": "霓虹科幻節點_hud_素材表.png",
+      "box": [
+        45,
+        530,
+        495,
+        965
+      ],
+      "size": [
+        363,
+        359
+      ]
+    },
+    "nodes/node-highlight-glow.png": {
+      "source": "霓虹科幻節點_hud_素材表.png",
+      "box": [
+        500,
+        520,
+        930,
+        965
+      ],
+      "size": [
+        384,
+        392
+      ]
+    },
+    "nodes/node-pulse-overlay.png": {
+      "source": "霓虹科幻節點_hud_素材表.png",
+      "box": [
+        930,
+        520,
+        1415,
+        975
+      ],
+      "size": [
+        391,
+        398
+      ]
+    },
+    "paths/path-line-idle.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        90,
+        65,
+        1350,
+        145
+      ],
+      "size": [
+        1191,
+        41
+      ]
+    },
+    "paths/path-line-active.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        90,
+        150,
+        1350,
+        260
+      ],
+      "size": [
+        1205,
+        73
+      ]
+    },
+    "paths/path-line-completed.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        90,
+        255,
+        1350,
+        350
+      ],
+      "size": [
+        1192,
+        39
+      ]
+    },
+    "paths/path-diagonal-up-idle.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        110,
+        375,
+        510,
+        610
+      ],
+      "size": [
+        332,
+        191
+      ]
+    },
+    "paths/path-diagonal-up-active.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        500,
+        365,
+        925,
+        615
+      ],
+      "size": [
+        365,
+        222
+      ]
+    },
+    "paths/path-diagonal-up-completed.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        925,
+        375,
+        1360,
+        615
+      ],
+      "size": [
+        339,
+        195
+      ]
+    },
+    "paths/path-diagonal-down-idle.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        110,
+        610,
+        510,
+        840
+      ],
+      "size": [
+        330,
+        178
+      ]
+    },
+    "paths/path-diagonal-down-active.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        500,
+        600,
+        925,
+        850
+      ],
+      "size": [
+        364,
+        241
+      ]
+    },
+    "paths/path-diagonal-down-completed.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        925,
+        610,
+        1360,
+        850
+      ],
+      "size": [
+        339,
+        183
+      ]
+    },
+    "paths/path-joint-dot.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        215,
+        850,
+        395,
+        1030
+      ],
+      "size": [
+        108,
+        108
+      ]
+    },
+    "paths/path-joint-glow.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        600,
+        835,
+        855,
+        1040
+      ],
+      "size": [
+        175,
+        171
+      ]
+    },
+    "paths/path-joint-star.png": {
+      "source": "科幻霓虹連接器資產表.png",
+      "box": [
+        1015,
+        840,
+        1280,
+        1040
+      ],
+      "size": [
+        169,
+        165
+      ]
+    },
+    "icons/icon-start.png": {
+      "source": "霓虹科幻冒險節點圖示集.png",
+      "box": [
+        45,
+        145,
+        340,
+        470
+      ],
+      "size": [
+        239,
+        242
+      ]
+    },
+    "icons/icon-encounter.png": {
+      "source": "霓虹科幻冒險節點圖示集.png",
+      "box": [
+        365,
+        140,
+        700,
+        475
+      ],
+      "size": [
+        258,
+        249
+      ]
+    },
+    "icons/icon-elite.png": {
+      "source": "霓虹科幻冒險節點圖示集.png",
+      "box": [
+        700,
+        125,
+        1060,
+        480
+      ],
+      "size": [
+        281,
+        281
+      ]
+    },
+    "icons/icon-event.png": {
+      "source": "霓虹科幻冒險節點圖示集.png",
+      "box": [
+        1050,
+        140,
+        1435,
+        480
+      ],
+      "size": [
+        240,
+        240
+      ]
+    },
+    "icons/icon-rest.png": {
+      "source": "霓虹科幻冒險節點圖示集.png",
+      "box": [
+        150,
+        535,
+        465,
+        930
+      ],
+      "size": [
+        216,
+        310
+      ]
+    },
+    "icons/icon-shop.png": {
+      "source": "霓虹科幻冒險節點圖示集.png",
+      "box": [
+        540,
+        535,
+        875,
+        930
+      ],
+      "size": [
+        233,
+        291
+      ]
+    },
+    "icons/icon-boss.png": {
+      "source": "霓虹科幻冒險節點圖示集.png",
+      "box": [
+        875,
+        500,
+        1395,
+        965
+      ],
+      "size": [
+        384,
+        378
+      ]
+    }
+  }
+}

@@ -828,3 +828,8 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Audited all eight Chikage runtime poses after the action screenshot exposed a horizontally flipped blade fragment.
 - Added deterministic primary-layer cleanup, preserved the original reference crops, wrote a versioned candidate set, synchronized the package/runtime copies, and rebuilt the 4x2 runtime sheet.
 - Cleanup is restricted to disconnected neighboring-frame fragments; the character silhouette, intended weapon, pose, scale, and pivot remain unchanged.
+
+## 2026-08-20 — Integrate and archive route-map UI assets v1
+
+- Integrated the user-provided route selection background, path states, node states, type icons, header accents and preview frame into `JourneyScene` without changing route generation or node-selection behavior.
+- Runtime assets live under `public/assets/journey/route-map-ui-v1/`; the complete package, manifest, README and reference sheets are archived under `assets/candidates/ui/route-map-ui-assets-v1/` for cross-machine retrieval and provenance review.

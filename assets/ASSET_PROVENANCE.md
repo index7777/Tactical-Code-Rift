@@ -4,6 +4,8 @@ All assets listed below are approved for the current attack showcase runtime. Ca
 
 Project-authored journey prototype: `public/assets/journey/world01/train-token-topdown.svg` is original in-repository SVG geometry for the route-map train token. It is not derived from the generated train candidates.
 
+User-provided route-map UI source package is archived at `assets/candidates/ui/route-map-ui-assets-v1/`. Runtime copies exclude the `reference/` sheets and live under `public/assets/journey/route-map-ui-v1/`. Provenance/license remains pending; integration approval is for the project prototype and does not by itself clear release rights.
+
 | Runtime files | Work | Author | License | Source |
 |---|---|---|---|---|
 | `hero-knight.png` | Knight spritesheet / Slash Knight assets | marqueeplier | CC0 1.0 | https://opengameart.org/content/knight-spritesheet |
@@ -16,6 +18,7 @@ Project-authored journey prototype: `public/assets/journey/world01/train-token-t
 | `battle-music.ogg` | Chiptune Battle Music | pmiller | CC0 1.0 | https://opengameart.org/content/chiptune-battle-music |
 | `../music/world-01/zone1-train-bgm.mp3` | World 01 train-route BGM | User-provided project asset | Provenance/license pending; prototype runtime only | Supplied directly to the project on 2026-08-15 |
 | `../music/world-01/zone1-boss-bgm.mp3` | World 01 boss-battle BGM | User-provided project asset | Provenance/license pending; prototype runtime only | Supplied directly to the project on 2026-08-15 |
+| `../journey/route-map-ui-v1/**` | Route selection background, frames, node states, paths and icons | User-provided project asset package | Provenance/license pending; prototype runtime only | Archived source: `assets/candidates/ui/route-map-ui-assets-v1/`; reference sheets are not copied to runtime |
 | `heroine-sd-idle-v1.png`, `heroine-sd-ready-v1.png`, `heroine-sd-down-v1.png` | Original heroine SD side-view minimum pose set | Built-in ImageGen + project chroma cleanup／cell extraction scripts | Project-generated candidates; release approval pending | `assets/candidates/characters/heroine/` |
 | `heroine-sd-down-v2.png` | Deterministic alpha-cropped heroine down pose for PD death runtime | Project crop script; no repainting | Runtime trial; visual approval pending | Derived from `heroine-sd-down-v1.png`; 598×295 RGBA; 9 px baseline gap |
 | `world01-rooftop-composite-candidate-v3.png` | World 01 moving-train rooftop battle composition candidate | Built-in ImageGen using the project visual-target candidate as style／layout reference only | Project-generated runtime trial; not release-approved and not yet layered | Source at `assets/candidates/backgrounds/world01/`; v1／v2 retained for comparison; no characters, UI, text, lines or attack FX baked in |
