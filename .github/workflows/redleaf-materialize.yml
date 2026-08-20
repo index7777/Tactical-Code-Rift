@@ -1,0 +1,63 @@
+name: Redleaf materialize
+
+on:
+  push:
+    branches: [feat/redleaf-production-assets]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.ref == 'refs/heads/feat/redleaf-production-assets'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/redleaf-production-assets
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Materialize approved Redleaf production assets
+        run: node scripts/materialize-redleaf.mjs
+      - name: Verify required outputs
+        run: |
+          test -f public/assets/battle/generated/characters/redleaf/redleaf-idle-a.svg
+          test -f public/assets/battle/generated/characters/redleaf/redleaf-ready.svg
+          test -f public/assets/battle/generated/characters/redleaf/redleaf-attack-a.svg
+          test -f public/assets/battle/generated/characters/redleaf/redleaf-attack-b.svg
+          test -f public/assets/battle/generated/characters/redleaf/redleaf-hit-a.svg
+          test -f public/assets/battle/generated/characters/redleaf/redleaf-down.svg
+          test -f public/assets/battle/generated/characters/redleaf/production/redleaf-runtime-sprite-sheet.svg
+          test -f public/assets/battle/generated/characters/redleaf/production/redleaf-attack-sequence.svg
+          test -f public/assets/battle/generated/characters/redleaf/production/redleaf-slash-arc.svg
+          test -f public/assets/battle/generated/characters/redleaf/production/redleaf-slash-impact.svg
+          test -f public/assets/battle/portraits/redleaf-p11-4-current.svg
+          test -f public/assets/battle/portraits/redleaf-p11-4-timeline.svg
+      - name: Commit materialized assets
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- public/assets/battle/generated/characters/redleaf/redleaf-idle-a.svg
+          git add -- public/assets/battle/generated/characters/redleaf/redleaf-idle-b.svg
+          git add -- public/assets/battle/generated/characters/redleaf/redleaf-ready.svg
+          git add -- public/assets/battle/generated/characters/redleaf/redleaf-attack-a.svg
+          git add -- public/assets/battle/generated/characters/redleaf/redleaf-attack-b.svg
+          git add -- public/assets/battle/generated/characters/redleaf/redleaf-hit-a.svg
+          git add -- public/assets/battle/generated/characters/redleaf/redleaf-hit-b.svg
+          git add -- public/assets/battle/generated/characters/redleaf/redleaf-down.svg
+          git add -- public/assets/battle/generated/characters/redleaf/production/redleaf-runtime-sprite-sheet.svg
+          git add -- public/assets/battle/generated/characters/redleaf/production/redleaf-attack-sequence.svg
+          git add -- public/assets/battle/generated/characters/redleaf/production/redleaf-slash-arc.svg
+          git add -- public/assets/battle/generated/characters/redleaf/production/redleaf-slash-impact.svg
+          git add -- public/assets/battle/generated/characters/redleaf/production/redleaf-master-approved-v1.svg
+          git add -- public/assets/battle/portraits/redleaf-p11-4-current.svg
+          git add -- public/assets/battle/portraits/redleaf-p11-4-timeline.svg
+          if git diff --cached --quiet; then
+            echo 'Redleaf assets already materialized.'
+            exit 0
+          fi
+          git commit -m 'feat: check in approved Redleaf runtime assets'
+          git push origin HEAD:feat/redleaf-production-assets
