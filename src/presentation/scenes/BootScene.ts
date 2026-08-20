@@ -26,14 +26,13 @@ private visibleHandCount=5;
 private battlefieldMode:BattlefieldMode='rooftop';private battlefieldPresenter!:BattlefieldPresenter;
 private requestedBattlefield?:BattlefieldMode;private journeyNodeId?:string;private selectedBattleMusicKey='battle-music';
 init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){
-  this.loadNamedPlayerAssets();
   this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId;this.pc=4;
   const encounter=storyEncounter(this.journeyNodeId);this.ec=encounter?.enemies.length??4;if(encounter&&!data?.battlefield)this.requestedBattlefield=encounter.battlefield;
   this.selectedBattleMusicKey=battleMusicKey(battleMusicKind(this.journeyNodeId))
 }
 private nextBattlefield():BattlefieldMode{return this.battlefieldMode==='rooftop'?'wayside':this.battlefieldMode==='wayside'?'exploration':'rooftop'}
 private currentPlanner(){return applyPlannedInitiative(this.timeline,this.commands).find(n=>n.team==='player'&&!this.commands.has(n.id))}
-private loadNamedPlayerAssets(){
+loadNamedPlayerAssets(){
   const poses=['idle-a','idle-b','ready','attack-a','attack-b','hit-a','hit-b','down'];
   for(const id of ['rin','chikage','oboro','mo'])for(const pose of poses)this.load.image(`${id}-${pose}`,`assets/battle/characters/${id}/runtime/${id}-${pose}.png`);
   this.load.image('portrait-rin-current','assets/battle/characters/rin/portraits/amamiya-rin-portrait-current.png');
@@ -713,3 +712,11 @@ private async resolve(){
   this.handLayer.setVisible(true);this.timelineLayer.setAlpha(1).setVisible(true);const beginNextRound=()=>{this.setStatus('');this.busy=false;this.nextRound(true)};this.time.delayedCall(140,beginNextRound);
 }
 }
+
+// Phaser asset queues belong to preload. Keeping this wrapper outside the
+// compressed scene body also prevents dev/prod lifecycle timing differences.
+const bootScenePreload=BootScene.prototype.preload;
+BootScene.prototype.preload=function(){
+  this.loadNamedPlayerAssets();
+  bootScenePreload.call(this);
+};

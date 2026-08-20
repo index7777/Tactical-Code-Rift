@@ -811,3 +811,9 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Upload now supports the current named branch, fetches before acting, refuses when its remote is ahead, previews tracked and untracked files, and requires explicit `YES`, `COMMIT`, and `PUSH` confirmations.
 - Cancelling after staging performs a non-destructive mixed reset; working files remain intact.
 - Replaced corrupted sync messages with ASCII-safe text so Windows consoles display the safety prompts reliably.
+
+## 2026-08-20 — Fix Rin/Mo black textures in production lifecycle
+
+- Root cause: named player assets were queued from `BootScene.init()`. Chikage and Oboro were also loaded by legacy `preload()` entries, masking the lifecycle bug for those two characters, while Rin and Mo became missing black textures in the Vercel production build.
+- Moved the named-player asset queue into the actual Phaser `preload` lifecycle for all four characters.
+- Verification: clean alternate production output completed successfully; Rin and Mo runtime files were present under the generated Vercel-style output; full suite passed (29 files, 117 tests).
