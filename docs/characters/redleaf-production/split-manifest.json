@@ -1,0 +1,348 @@
+{
+  "policy": "User-provided pixels only; no generation/redraw/inpainting.",
+  "extraction": "semantic window -> alpha connected components -> keep largest target object for actor/attack frames -> normalize canvas",
+  "runtime": {
+    "canvas": [
+      360,
+      240
+    ],
+    "anchor": "bottom-center",
+    "required": [
+      "idle-a",
+      "idle-b",
+      "ready",
+      "attack-a",
+      "attack-b",
+      "hit-a",
+      "hit-b",
+      "down"
+    ],
+    "optional": [
+      "move-a",
+      "move-b"
+    ],
+    "objects": {
+      "idle-a": {
+        "region": [
+          20,
+          0,
+          260,
+          215
+        ],
+        "trimmed_size": [
+          211,
+          215
+        ]
+      },
+      "idle-b": {
+        "region": [
+          285,
+          0,
+          515,
+          215
+        ],
+        "trimmed_size": [
+          174,
+          215
+        ]
+      },
+      "ready": {
+        "region": [
+          525,
+          0,
+          765,
+          215
+        ],
+        "trimmed_size": [
+          221,
+          215
+        ]
+      },
+      "move-a": {
+        "region": [
+          10,
+          210,
+          270,
+          395
+        ],
+        "trimmed_size": [
+          226,
+          180
+        ]
+      },
+      "move-b": {
+        "region": [
+          285,
+          210,
+          535,
+          395
+        ],
+        "trimmed_size": [
+          223,
+          176
+        ]
+      },
+      "attack-a": {
+        "region": [
+          10,
+          385,
+          305,
+          595
+        ],
+        "trimmed_size": [
+          289,
+          195
+        ]
+      },
+      "attack-b": {
+        "region": [
+          295,
+          385,
+          625,
+          595
+        ],
+        "trimmed_size": [
+          316,
+          192
+        ]
+      },
+      "hit-a": {
+        "region": [
+          35,
+          805,
+          235,
+          975
+        ],
+        "trimmed_size": [
+          178,
+          155
+        ]
+      },
+      "hit-b": {
+        "region": [
+          265,
+          810,
+          505,
+          985
+        ],
+        "trimmed_size": [
+          179,
+          141
+        ]
+      },
+      "down": {
+        "region": [
+          180,
+          965,
+          575,
+          1086
+        ],
+        "trimmed_size": [
+          376,
+          74
+        ]
+      }
+    }
+  },
+  "attack": {
+    "canvas": [
+      512,
+      320
+    ],
+    "objects": {
+      "01-windup": {
+        "region": [
+          10,
+          385,
+          305,
+          595
+        ],
+        "trimmed_size": [
+          289,
+          195
+        ]
+      },
+      "02-thrust": {
+        "region": [
+          295,
+          385,
+          625,
+          595
+        ],
+        "trimmed_size": [
+          316,
+          192
+        ]
+      },
+      "03-slash-a": {
+        "region": [
+          625,
+          370,
+          965,
+          605
+        ],
+        "trimmed_size": [
+          313,
+          205
+        ]
+      },
+      "04-slash-b": {
+        "region": [
+          955,
+          365,
+          1448,
+          610
+        ],
+        "trimmed_size": [
+          445,
+          190
+        ]
+      },
+      "05-slash-c": {
+        "region": [
+          325,
+          590,
+          770,
+          825
+        ],
+        "trimmed_size": [
+          417,
+          212
+        ]
+      },
+      "06-slash-d": {
+        "region": [
+          720,
+          585,
+          1120,
+          830
+        ],
+        "trimmed_size": [
+          354,
+          208
+        ]
+      },
+      "07-impact": {
+        "region": [
+          1050,
+          570,
+          1448,
+          835
+        ],
+        "trimmed_size": [
+          340,
+          221
+        ]
+      }
+    }
+  },
+  "portraits": {
+    "regions": {
+      "normal": [
+        0,
+        0,
+        482,
+        655
+      ],
+      "shout": [
+        483,
+        0,
+        965,
+        655
+      ],
+      "hit": [
+        966,
+        0,
+        1448,
+        655
+      ],
+      "current": [
+        290,
+        620,
+        670,
+        1086
+      ],
+      "timeline": [
+        680,
+        620,
+        1090,
+        1086
+      ]
+    },
+    "targets": {
+      "normal": [
+        512,
+        512
+      ],
+      "shout": [
+        512,
+        512
+      ],
+      "hit": [
+        512,
+        512
+      ],
+      "current": [
+        256,
+        256
+      ],
+      "timeline": [
+        128,
+        128
+      ]
+    }
+  },
+  "fx": {
+    "regions": {
+      "slash-arc": [
+        500,
+        0,
+        1040,
+        360
+      ],
+      "slash-vertical": [
+        980,
+        0,
+        1448,
+        380
+      ],
+      "impact-left": [
+        0,
+        210,
+        520,
+        620
+      ],
+      "ring": [
+        360,
+        310,
+        990,
+        700
+      ],
+      "cross": [
+        870,
+        230,
+        1448,
+        720
+      ],
+      "impact-heavy": [
+        0,
+        540,
+        560,
+        1086
+      ],
+      "wave": [
+        400,
+        560,
+        1010,
+        1086
+      ],
+      "impact-final": [
+        840,
+        540,
+        1448,
+        1086
+      ]
+    },
+    "note": "FX keeps disconnected leaves/sparks intentionally."
+  }
+}

@@ -50,6 +50,7 @@ export class ActionPresenter {
   private techniquePalette(actorId:string){
     if(actorId==='PB')return{main:0xe6c56f,edge:0xfff0b0,trail:0x7d5db7};
     if(actorId==='PC')return{main:0x9f8cff,edge:0xe9e3ff,trail:0x4b3b7e};
+    if(actorId==='PD')return{main:0xe53646,edge:0xfff1cf,trail:0x7d1829};
     return{main:0x9fe8ff,edge:0xffffff,trail:0x4b9ab5};
   }
 
@@ -62,9 +63,13 @@ export class ActionPresenter {
   }
 
   private techniqueWindup(actorId:string,actor:VisualActor,direction:number,cardId?:string){
-    if(!actor.sprite||!['PB','PC'].includes(actorId))return;
+    if(!actor.sprite||!['PB','PC','PD'].includes(actorId))return;
     const palette=this.techniquePalette(actorId);
-    if(actorId==='PC'){
+    if(actorId==='PD'){
+      this.spawnAfterimage(actor,direction,palette.main,18,.34);this.spawnAfterimage(actor,direction,palette.trail,36,.2);
+      const arc=this.spawnFxImage('fx-redleaf-slash-arc',actor.root.x+direction*46,actor.root.y-8,86,{scale:.22,alpha:.34,flipX:direction<0,blendMode:Phaser.BlendModes.ADD});
+      if(arc)this.scene.tweens.add({targets:arc,alpha:0,scale:.28,duration:150,ease:'Quad.easeOut',onComplete:()=>arc.destroy()});
+    }else if(actorId==='PC'){
       this.spawnAfterimage(actor,direction,palette.main,16,.34);this.spawnAfterimage(actor,direction,palette.trail,32,.22);this.spawnAfterimage(actor,direction,palette.edge,48,.12);
       const streak=this.scene.add.rectangle(actor.root.x-direction*34,actor.root.y-5,94,2,palette.edge,.72).setDepth(85);this.combatLayer.add(streak);
       this.scene.tweens.add({targets:streak,x:streak.x+direction*70,scaleX:1.7,alpha:0,duration:120,ease:'Cubic.easeIn',onComplete:()=>streak.destroy()});
@@ -76,9 +81,15 @@ export class ActionPresenter {
   }
 
   private techniqueImpact(actorId:string,x:number,y:number,direction:number,cardId?:string){
-    if(!['PB','PC'].includes(actorId))return;
+    if(!['PB','PC','PD'].includes(actorId))return;
     const p=this.techniquePalette(actorId);
-    if(actorId==='PB'){
+    if(actorId==='PD'){
+      const arc=this.spawnFxImage('fx-redleaf-slash-arc',x,y-8,112,{scale:cardId==='heavy'?.72:.56,alpha:.94,flipX:direction<0,blendMode:Phaser.BlendModes.ADD});
+      const impact=this.spawnFxImage('fx-redleaf-slash-impact',x+direction*8,y+18,116,{scale:cardId==='break'?.55:.42,alpha:.86,flipX:direction<0,blendMode:Phaser.BlendModes.ADD});
+      if(arc)this.scene.tweens.add({targets:arc,scale:(arc.scaleX||1)*1.15,alpha:0,duration:190,ease:'Expo.easeOut',onComplete:()=>arc.destroy()});
+      if(impact)this.scene.tweens.add({targets:impact,scale:(impact.scaleX||1)*1.25,alpha:0,duration:210,ease:'Cubic.easeOut',onComplete:()=>impact.destroy()});
+      this.debrisBurst(x,y,p.main,direction,cardId==='heavy'?12:8,76);
+    }else if(actorId==='PB'){
       const scale=cardId==='heavy'?1.32:cardId==='break'?1.18:1.05;this.lineSlash(x,y,direction<0,scale,p.main);const sweep=this.scene.add.rectangle(x-direction*20,y+28,190*scale,6,p.edge,.76).setRotation(direction>0?-.28:.28).setDepth(107);this.combatLayer.add(sweep);this.scene.tweens.add({targets:sweep,scaleX:1.3,alpha:0,duration:180,onComplete:()=>sweep.destroy()});
     }else{
       const flip=direction<0,primary=cardId==='heavy'?1.28:1.08,secondary=cardId==='heavy'?1.12:.96;

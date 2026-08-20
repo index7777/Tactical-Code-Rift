@@ -49,3 +49,12 @@
 3. Current Actor 菱形與 timeline 頭像使用同一母版臉型。
 4. 攻擊段必須可看見紅葉專屬紅楓斬擊視覺。
 5. build／Vercel 必須先成功執行 `prepare:redleaf`，缺少 bundle 時直接 fail，不可靜默 fallback。
+
+## Physical production assets
+
+- Runtime no longer depends on `.artifacts/redleaf-runtime-bundle.zip`.
+- `prepare:redleaf` / `scripts/materialize-redleaf.mjs` have been retired.
+- Approved user-provided art is checked in physically under `public/assets/battle/generated/characters/redleaf/production/`.
+- Runtime contract: idle-a / idle-b / ready / attack-a / attack-b / hit-a / hit-b / down.
+- `redleaf-runtime-sprite-sheet.png` and `redleaf-attack-sequence.png` are preserved as production references.
+- Current Actor / timeline portraits and Redleaf slash / impact FX are loaded from the same physical production directory.
