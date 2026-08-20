@@ -4,9 +4,10 @@ import{storyEncounter}from'../../core/route/EncounterCatalog';
 import{JOURNEY_MUSIC_FADE_IN_MS,JOURNEY_MUSIC_FADE_OUT_MS,journeyLoopFadeDelayMs}from'../../core/audio/JourneyMusicPolicy';
 
 const labels:Record<StoryNodeType,string>={departure:'出發',battle:'迎擊',event:'事件',exploration:'探索',companion:'伙伴',elite:'精英',boss:'王'};
-const colors:Record<StoryNodeType,number>={departure:0x477889,battle:0x496f7c,event:0x74578c,exploration:0x367360,companion:0x3b7896,elite:0xa87139,boss:0x8e263c};
 const routeAssetRoot='assets/journey/route-map-ui-v1';
-const nodeIcons:Record<StoryNodeType,string>={departure:'start',battle:'encounter',event:'event',exploration:'rest',companion:'shop',elite:'elite',boss:'boss'};
+const splitAssetRoot='assets/journey/route-map-runtime-v1';
+const routeBackground='assets/journey/world01/area01-route-bg-runtime-trial-v2.png';
+const nodeIcons:Record<StoryNodeType,string>={departure:'start',battle:'battle',event:'event',exploration:'rest',companion:'reward',elite:'elite',boss:'boss'};
 const enemyNames:Record<string,string>={
   'wet-corpse':'濡骸','lantern-child':'提燈童','mountain-hound':'山犬','wayfarer-umbrella':'辻傘','noose-ghost':'縊鬼','lost-monk':'迷途僧','rain-warrior':'雨夜武者','rain-boss':'站守',
 };
@@ -26,12 +27,12 @@ export class JourneyScene extends Phaser.Scene{
   constructor(){super('JourneyScene')}
   preload(){
     this.load.audio('journey-world-01','assets/music/world-01/zone1-train-bgm.mp3');
-    this.load.image('journey-bg-world01',`${routeAssetRoot}/backgrounds/route-scene-bg-base.png`);
+    this.load.image('journey-bg-world01',routeBackground);
     this.load.image('journey-train-token','assets/journey/world01/train-token-topdown.svg');
-    for(const name of ['normal','selected','completed','locked','boss'])this.load.image(`route-node-${name}`,`${routeAssetRoot}/nodes/node-base-${name}.png`);
-    for(const name of ['highlight-glow','pulse-overlay','ring'])this.load.image(`route-node-${name}`,`${routeAssetRoot}/nodes/node-${name}.png`);
-    for(const name of ['start','encounter','elite','event','rest','shop','boss'])this.load.image(`route-icon-${name}`,`${routeAssetRoot}/icons/icon-${name}.png`);
-    for(const name of ['idle','active','completed'])this.load.image(`route-path-${name}`,`${routeAssetRoot}/paths/path-line-${name}.png`);
+    for(const name of ['normal','current','cleared','locked','elite','boss'])this.load.image(`route-node-frame-${name}`,`${splitAssetRoot}/node-frame/node-frame-${name}.png`);
+    for(const name of ['start','battle','elite','boss','event','rest','reward'])this.load.image(`route-icon-${name}`,`${splitAssetRoot}/node-icon/icon-${name}.png`);
+    for(const name of ['current-halo','available-pulse','cleared-ring','elite-aura','boss-aura'])this.load.image(`route-node-fx-${name}`,`${splitAssetRoot}/node-fx/fx-${name}.png`);
+    for(const name of ['texture','glow','dot-normal','dot-current','dot-danger','particles-light','particles-danger'])this.load.image(`route-conn-${name}`,`${splitAssetRoot}/connection-primitives/conn-${name}.png`);
     for(const name of ['section-panel-frame-medium','section-panel-frame-wide','header-divider-line','info-accent-bar','corner-accent'])this.load.image(`route-frame-${name}`,`${routeAssetRoot}/frames/${name}.png`);
   }
   create(){
@@ -52,25 +53,33 @@ export class JourneyScene extends Phaser.Scene{
     const pos=(column:number,lane:number)=>({x:135+column*205,y:220+lane*122});
     for(const node of state.route.nodes)for(const nextId of node.nextIds){
       const next=state.route.nodes.find(n=>n.id===nextId)!;const a=pos(node.column,node.lane),b=pos(next.column,next.lane),travelled=visited.has(node.id)&&visited.has(next.id),open=available.has(next.id);
-      const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy),pathState=travelled?'completed':open?'active':'idle';
-      this.add.image((a.x+b.x)/2,(a.y+b.y)/2,`route-path-${pathState}`).setDisplaySize(length+10,open?16:12).setRotation(Math.atan2(dy,dx)).setAlpha(travelled?.92:open?.86:.62);
+      const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy),rotation=Math.atan2(dy,dx),danger=next.type==='elite'||next.type==='boss';
+      const tint=danger?0xd6525d:travelled?0xd7e4e7:open?0xe8c571:0x527482;
+      this.add.image((a.x+b.x)/2,(a.y+b.y)/2,'route-conn-glow').setDisplaySize(length+12,open?12:8).setRotation(rotation).setTint(tint).setAlpha(open?.72:travelled?.48:.24);
+      this.add.image((a.x+b.x)/2,(a.y+b.y)/2,'route-conn-texture').setDisplaySize(length+8,4).setRotation(rotation).setTint(tint).setAlpha(travelled?.9:open?.84:.52);
+      const dotKey=danger?'danger':open?'current':'normal';
+      this.add.image((a.x+b.x)/2,(a.y+b.y)/2,`route-conn-dot-${dotKey}`).setDisplaySize(open?12:8,open?12:8).setAlpha(open?.8:.4);
+      if(open)this.add.image((a.x+b.x)/2,(a.y+b.y)/2,`route-conn-particles-${danger?'danger':'light'}`).setDisplaySize(Math.min(92,length*.42),32).setRotation(rotation).setAlpha(.46);
     }
 
     this.buildPreviewPanel();
     const current=state.route.nodes.find(n=>n.id===state.currentNodeId)!;
     this.showNodePreview(current);
     for(const node of state.route.nodes){
-      const p=pos(node.column,node.lane),active=available.has(node.id),done=visited.has(node.id),color=colors[node.type];
+      const p=pos(node.column,node.lane),active=available.has(node.id),done=visited.has(node.id),isCurrent=node.id===state.currentNodeId;
       const c=this.add.container(p.x,p.y);
-      const halo=this.add.image(0,0,'route-node-highlight-glow').setDisplaySize(active?76:62,active?76:62).setAlpha(active?.68:.16).setTint(color);
-      const baseKey=node.type==='boss'?'boss':active?'selected':done?'completed':'locked';
-      const diamond=this.add.image(0,0,`route-node-${baseKey}`).setDisplaySize(active?58:48,active?58:48);
+      const frameKey=node.type==='boss'?'boss':node.type==='elite'?'elite':isCurrent?'current':done?'cleared':active?'normal':'locked';
+      const stateFx=isCurrent?'current-halo':active?'available-pulse':done?'cleared-ring':undefined;
+      const auraFx=node.type==='boss'?'boss-aura':node.type==='elite'?'elite-aura':undefined;
+      const aura=auraFx?this.add.image(0,0,`route-node-fx-${auraFx}`).setDisplaySize(active||isCurrent?82:68,active||isCurrent?82:68).setAlpha(active||isCurrent?.72:.34):undefined;
+      const halo=stateFx?this.add.image(0,0,`route-node-fx-${stateFx}`).setDisplaySize(active||isCurrent?74:62,active||isCurrent?74:62).setAlpha(active||isCurrent?.82:.5):undefined;
+      const diamond=this.add.image(0,0,`route-node-frame-${frameKey}`).setDisplaySize(active||isCurrent?58:50,active||isCurrent?58:50);
       const glyph=this.add.text(0,0,node.type==='boss'?'終':node.type==='elite'?'武':node.type==='departure'?'始':'斬',{fontFamily:'serif',fontSize:active?'12px':'10px',fontStyle:'bold',color:active?'#fff0cf':done?'#c6e6e9':'#82949b'}).setOrigin(.5);
       const caption=this.add.text(0,29,labels[node.type],{fontFamily:'sans-serif',fontSize:'10px',fontStyle:'bold',color:active?'#fff0d3':done?'#bcd3d6':'#71848b'}).setOrigin(.5);
       const icon=this.add.image(0,0,`route-icon-${nodeIcons[node.type]}`).setDisplaySize(active?27:22,active?27:22).setAlpha(active?1:done?.9:.48);
-      glyph.setVisible(false);c.add([halo,diamond,icon,glyph,caption]);
+      glyph.setVisible(false);c.add([...(aura?[aura]:[]),...(halo?[halo]:[]),diamond,icon,glyph,caption]);
       if(active){
-        this.tweens.add({targets:halo,scale:1.22,alpha:.18,duration:1200,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+        if(halo)this.tweens.add({targets:halo,scale:1.18,alpha:.24,duration:1200,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
         const hit=this.add.circle(0,0,34,0xffffff,.001).setInteractive({useHandCursor:true});c.add(hit);
         hit.on('pointerover',()=>{c.setScale(1.08);this.showNodePreview(node)}).on('pointerout',()=>c.setScale(1)).on('pointerdown',()=>this.selectNode(state,node.id,p.x,p.y));
       }else{

@@ -833,3 +833,39 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 
 - Integrated the user-provided route selection background, path states, node states, type icons, header accents and preview frame into `JourneyScene` without changing route generation or node-selection behavior.
 - Runtime assets live under `public/assets/journey/route-map-ui-v1/`; the complete package, manifest, README and reference sheets are archived under `assets/candidates/ui/route-map-ui-assets-v1/` for cross-machine retrieval and provenance review.
+
+## 2026-08-20 — Integrate route map runtime split assets v1
+
+- Adopted the user-provided split package as a reversible prototype runtime trial; preserved the complete package under `assets/candidates/ui/route-map-runtime-assets-split-v1/` and excluded its QA reference sheet from Phaser runtime loading.
+- Replaced JourneyScene node rendering with independent frame, icon and FX layers. Connection geometry remains code-driven while the new texture/glow primitives provide the visual overlay; route generation and selection behavior are unchanged.
+- Added restrained Area 01 battle foreground puddles, wet shadows, mist/fog, rain splashes, debris and an edge lantern through `BattlefieldPresenter`, keeping the central clash safe zone clear. Fog and rail debris are selected by battlefield mode instead of stacking every layer at once.
+- Runtime license/provenance and final Art Director approval remain pending.
+- Verification: all 37 manifest PNGs match declared dimensions and are true RGBA; `npm run test` passes 30 files / 118 tests; `npm run build` and `git diff --check` pass (only the existing Vite large-chunk warning remains). In-app Browser viewport QA is pending because the Browser plugin failed its trusted runtime bootstrap before navigation; no game-side browser error was observed or inferred from that infrastructure failure.
+
+## 2026-08-20 — Area 01 BG document master
+
+- Adopted `docs/areas/area-01-bg-master.md` as the authoritative background master shared by the Area 01 journey route and battle surfaces.
+- The master inherits the Area 01 Art Bible and adds exact palette, route-map HUD/node safe zones, battle formation/clash zones, BG-versus-atmosphere/foreground boundaries, four surface briefs, naming/provenance rules and runtime screenshot gates.
+- Explicitly rejects neon sci-fi route treatment, baked route geometry, wooden-looking train roofs, scene-inappropriate rail debris/lanterns and any BG that competes with actors, killing-intent lines or HUD.
+- Documentation-only batch: no image was generated, integrated, approved or rejected; build/test state is unchanged.
+
+## 2026-08-20 — Generate Area 01 Route BG master candidate v1
+
+- Generated one Route BG candidate from the authoritative Area 01 BG Master using built-in ImageGen, without using an existing runtime-trial as a style reference.
+- Saved `assets/candidates/backgrounds/world01/area01-route-bg-candidate-v1.png`; the image contains only the opaque rainy mountain-valley background and no route geometry, nodes, train, UI, text, actors or dynamic foreground layers.
+- Deterministic background validation passed: 1672×941 RGB, 16:9, minimum runtime size, central density 0.0103 versus outer density 0.0125.
+- Manual review: palette, broad central negative space and edge framing match the master. The upper-left moon and upper-right shrine remain named runtime-composite review points. Candidate is not integrated or approved.
+
+## 2026-08-20 — Route BG detail candidate v2 and 2K source gate
+
+- Re-rendered v1 as a single v2 candidate with higher native painted detail while locking the route safe-zone composition.
+- Built-in ImageGen again returned 1672×941 despite the explicit 3840×2160 request. Deterministic checks passed (central density 0.0148, outer 0.0174), but this does not satisfy the user's 2K working environment.
+- Adopted a stricter BG contract: native 3840×2160 production source, 2560×1440 2K derivative and 1280×720 compatibility derivative. Interpolated enlargement of a sub-2K generation cannot be labeled a native 4K master.
+- v2 remains a non-runtime detail candidate. A true 4K attempt requires an explicitly selected generation path that supports exact 3840×2160 output.
+
+## 2026-08-20 — Assign Route BG v2 to Journey runtime trial
+
+- Copied the v2 candidate byte-for-byte to `public/assets/journey/world01/area01-route-bg-runtime-trial-v2.png` and switched `JourneyScene` to load it as the route background.
+- Preserved the previous `route-scene-bg-base.png` and the source candidate for immediate rollback; no route rules, node positions, connection logic or UI copy changed.
+- Assignment is runtime-trial only. Remaining gates are desktop/mobile composite screenshots, 2K high-DPI rendering review, source-resolution replacement and Art Director approval.
+- Verification: candidate/runtime SHA-256 values are identical; `npm run test` passes 30 files / 118 tests; `npm run build` and `git diff --check` pass, with only the existing Vite large-chunk warning.

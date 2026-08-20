@@ -6,6 +6,14 @@ Project-authored journey prototype: `public/assets/journey/world01/train-token-t
 
 User-provided route-map UI source package is archived at `assets/candidates/ui/route-map-ui-assets-v1/`. Runtime copies exclude the `reference/` sheets and live under `public/assets/journey/route-map-ui-v1/`. Provenance/license remains pending; integration approval is for the project prototype and does not by itself clear release rights.
 
+User-provided `route_map_runtime_assets_split_v1` is archived intact at `assets/candidates/ui/route-map-runtime-assets-split-v1/`. Its node frames, icons, node FX and connection primitives are runtime trials under `public/assets/journey/route-map-runtime-v1/`; its battle foreground layers are runtime trials under `public/assets/battle/foreground/world01/`. The reference sheet is QA-only and is not loaded by Phaser. Provenance/license remains pending; this integration does not clear release rights or grant final Art Director approval.
+
+`assets/candidates/backgrounds/world01/area01-route-bg-candidate-v1.png` is a project-generated Route BG master candidate created with built-in ImageGen from `docs/areas/area-01-bg-master.md` and `docs/areas/area-01-rainfall-ridgeline.md`. It contains no route geometry, nodes, train token, UI, text, actors or runtime foreground layers. Deterministic background validation passed at 1672×941 with central density below outer density. Status remains candidate pending real JourneyScene viewport QA and Art Director approval; it is not release-approved or assigned to runtime.
+
+`assets/candidates/backgrounds/world01/area01-route-bg-candidate-v2.png` is a built-in ImageGen re-render of v1 intended to improve native painted detail while preserving the route safe zone. The image passes the deterministic background checks at 1672×941 (central density 0.0148 versus outer 0.0174), but the built-in generator did not honor the requested 3840×2160 output. It remains a detail candidate blocked by the 2K/4K production-source requirement and must not be relabeled as native 4K through interpolation.
+
+`public/assets/journey/world01/area01-route-bg-runtime-trial-v2.png` is a byte-identical runtime-trial copy of the v2 candidate assigned to `JourneyScene`. This assignment is authorized for prototype composite review only; it does not satisfy the native 4K production-source gate and does not grant Art Director approval.
+
 | Runtime files | Work | Author | License | Source |
 |---|---|---|---|---|
 | `hero-knight.png` | Knight spritesheet / Slash Knight assets | marqueeplier | CC0 1.0 | https://opengameart.org/content/knight-spritesheet |

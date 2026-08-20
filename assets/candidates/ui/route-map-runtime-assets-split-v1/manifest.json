@@ -1,0 +1,523 @@
+{
+  "source": "a_clean_asset_sheet_game_ui_sprite_sheet_on_a_tr.png",
+  "assets": {
+    "battle-foreground/fg-wet-ground-shadow.png": {
+      "source_box": [
+        355,
+        35,
+        690,
+        104
+      ],
+      "output_size": [
+        335,
+        69
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 22933
+    },
+    "battle-foreground/fg-wet-ground-shadow-wide.png": {
+      "source_box": [
+        600,
+        34,
+        907,
+        108
+      ],
+      "output_size": [
+        278,
+        74
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 19626
+    },
+    "battle-foreground/fg-rain-splash-small.png": {
+      "source_box": [
+        10,
+        132,
+        192,
+        218
+      ],
+      "output_size": [
+        180,
+        86
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 14614
+    },
+    "battle-foreground/fg-rain-splash-medium.png": {
+      "source_box": [
+        205,
+        130,
+        430,
+        218
+      ],
+      "output_size": [
+        225,
+        88
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 19719
+    },
+    "battle-foreground/fg-ground-mist-low.png": {
+      "source_box": [
+        445,
+        125,
+        690,
+        221
+      ],
+      "output_size": [
+        245,
+        96
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 22535
+    },
+    "battle-foreground/fg-fog-strip.png": {
+      "source_box": [
+        685,
+        125,
+        916,
+        225
+      ],
+      "output_size": [
+        231,
+        100
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 22587
+    },
+    "battle-foreground/fg-puddle-reflection-soft.png": {
+      "source_box": [
+        20,
+        265,
+        214,
+        339
+      ],
+      "output_size": [
+        194,
+        62
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 11929
+    },
+    "battle-foreground/fg-puddle-reflection-strong.png": {
+      "source_box": [
+        214,
+        264,
+        490,
+        340
+      ],
+      "output_size": [
+        276,
+        72
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 19214
+    },
+    "battle-foreground/fg-stone-debris-a.png": {
+      "source_box": [
+        15,
+        382,
+        181,
+        467
+      ],
+      "output_size": [
+        166,
+        85
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 10433
+    },
+    "battle-foreground/fg-stone-debris-b.png": {
+      "source_box": [
+        186,
+        375,
+        390,
+        470
+      ],
+      "output_size": [
+        204,
+        95
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 14838
+    },
+    "battle-foreground/fg-rail-debris.png": {
+      "source_box": [
+        397,
+        354,
+        675,
+        470
+      ],
+      "output_size": [
+        278,
+        116
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 22767
+    },
+    "battle-foreground/fg-lantern-foreground.png": {
+      "source_box": [
+        672,
+        266,
+        918,
+        471
+      ],
+      "output_size": [
+        241,
+        205
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 33162
+    },
+    "node-frame/node-frame-normal.png": {
+      "source_box": [
+        942,
+        39,
+        1139,
+        233
+      ],
+      "output_size": [
+        256,
+        256
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 26650
+    },
+    "node-frame/node-frame-current.png": {
+      "source_box": [
+        1128,
+        34,
+        1323,
+        235
+      ],
+      "output_size": [
+        256,
+        256
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 30021
+    },
+    "node-frame/node-frame-cleared.png": {
+      "source_box": [
+        1312,
+        39,
+        1519,
+        235
+      ],
+      "output_size": [
+        256,
+        256
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 25538
+    },
+    "node-frame/node-frame-locked.png": {
+      "source_box": [
+        942,
+        271,
+        1132,
+        472
+      ],
+      "output_size": [
+        256,
+        256
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 30928
+    },
+    "node-frame/node-frame-elite.png": {
+      "source_box": [
+        1129,
+        270,
+        1320,
+        474
+      ],
+      "output_size": [
+        256,
+        256
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 29726
+    },
+    "node-frame/node-frame-boss.png": {
+      "source_box": [
+        1311,
+        266,
+        1530,
+        480
+      ],
+      "output_size": [
+        256,
+        256
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 36410
+    },
+    "node-icon/icon-start.png": {
+      "source_box": [
+        23,
+        556,
+        132,
+        686
+      ],
+      "output_size": [
+        160,
+        160
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 14154
+    },
+    "node-icon/icon-battle.png": {
+      "source_box": [
+        143,
+        550,
+        284,
+        693
+      ],
+      "output_size": [
+        160,
+        160
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 19667
+    },
+    "node-icon/icon-elite.png": {
+      "source_box": [
+        292,
+        546,
+        396,
+        697
+      ],
+      "output_size": [
+        160,
+        160
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 14138
+    },
+    "node-icon/icon-boss.png": {
+      "source_box": [
+        401,
+        534,
+        530,
+        701
+      ],
+      "output_size": [
+        160,
+        160
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 16731
+    },
+    "node-icon/icon-event.png": {
+      "source_box": [
+        543,
+        539,
+        655,
+        699
+      ],
+      "output_size": [
+        160,
+        160
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 15032
+    },
+    "node-icon/icon-rest.png": {
+      "source_box": [
+        660,
+        534,
+        793,
+        702
+      ],
+      "output_size": [
+        160,
+        160
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 17020
+    },
+    "node-icon/icon-reward.png": {
+      "source_box": [
+        794,
+        541,
+        914,
+        702
+      ],
+      "output_size": [
+        160,
+        160
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 14625
+    },
+    "node-fx/fx-current-halo.png": {
+      "source_box": [
+        949,
+        550,
+        1134,
+        705
+      ],
+      "output_size": [
+        320,
+        320
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 28038
+    },
+    "node-fx/fx-available-pulse.png": {
+      "source_box": [
+        1134,
+        546,
+        1321,
+        707
+      ],
+      "output_size": [
+        320,
+        320
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 25688
+    },
+    "node-fx/fx-cleared-ring.png": {
+      "source_box": [
+        1321,
+        544,
+        1520,
+        710
+      ],
+      "output_size": [
+        320,
+        320
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 28145
+    },
+    "node-fx/fx-elite-aura.png": {
+      "source_box": [
+        948,
+        735,
+        1216,
+        986
+      ],
+      "output_size": [
+        320,
+        320
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 55660
+    },
+    "node-fx/fx-boss-aura.png": {
+      "source_box": [
+        1207,
+        730,
+        1523,
+        991
+      ],
+      "output_size": [
+        320,
+        320
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 72453
+    },
+    "connection-primitives/conn-texture.png": {
+      "source_box": [
+        30,
+        806,
+        462,
+        845
+      ],
+      "output_size": [
+        512,
+        64
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 16784
+    },
+    "connection-primitives/conn-glow.png": {
+      "source_box": [
+        520,
+        806,
+        938,
+        845
+      ],
+      "output_size": [
+        512,
+        64
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 16302
+    },
+    "connection-primitives/conn-dot-normal.png": {
+      "source_box": [
+        40,
+        894,
+        119,
+        972
+      ],
+      "output_size": [
+        96,
+        96
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 5875
+    },
+    "connection-primitives/conn-dot-current.png": {
+      "source_box": [
+        166,
+        895,
+        254,
+        976
+      ],
+      "output_size": [
+        96,
+        96
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 4978
+    },
+    "connection-primitives/conn-dot-danger.png": {
+      "source_box": [
+        356,
+        895,
+        448,
+        976
+      ],
+      "output_size": [
+        96,
+        96
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 6506
+    },
+    "connection-primitives/conn-particles-light.png": {
+      "source_box": [
+        477,
+        886,
+        688,
+        984
+      ],
+      "output_size": [
+        256,
+        128
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 19336
+    },
+    "connection-primitives/conn-particles-danger.png": {
+      "source_box": [
+        711,
+        885,
+        930,
+        985
+      ],
+      "output_size": [
+        256,
+        128
+      ],
+      "has_transparency": true,
+      "nonzero_alpha_pixels": 21327
+    }
+  }
+}
