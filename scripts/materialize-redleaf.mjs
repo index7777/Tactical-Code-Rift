@@ -28,27 +28,29 @@ function findEocd() {
   throw new Error('EOCD not found');
 }
 
+function findCentralOffsets(eocd, expectedCount) {
+  const offsets = [];
+  for (let p = 0; p + 46 <= eocd; p += 1) {
+    if (u32(p) === ZIP_CENTRAL) offsets.push(p);
+  }
+  if (offsets.length < expectedCount) {
+    throw new Error(`Expected ${expectedCount} central entries, found ${offsets.length}`);
+  }
+  return offsets.slice(-expectedCount);
+}
+
 function readCentralDirectory() {
   const eocd = findEocd();
   const count = u16(eocd + 10);
-  const centralOffset = u32(eocd + 16);
-  if (centralOffset >= zip.length) throw new Error(`Central directory offset out of range: ${centralOffset}/${zip.length}`);
-
-  const entries = [];
-  let p = centralOffset;
-  for (let i = 0; i < count; i += 1) {
-    if (u32(p) !== ZIP_CENTRAL) throw new Error(`Bad central directory entry at ${p}`);
+  const offsets = findCentralOffsets(eocd, count);
+  const entries = offsets.map((p) => {
     const method = u16(p + 10);
     const compSize = u32(p + 20);
     const nameLen = u16(p + 28);
-    const extraLen = u16(p + 30);
-    const commentLen = u16(p + 32);
-    const recordedLocalOffset = u32(p + 42);
     const name = zip.subarray(p + 46, p + 46 + nameLen).toString('utf8');
-    entries.push({ name, method, compSize, recordedLocalOffset });
-    p += 46 + nameLen + extraLen + commentLen;
-  }
-  return { entries, centralOffset };
+    return { name, method, compSize };
+  });
+  return { entries, centralStart: offsets[0] };
 }
 
 function findLocalHeader(name, start, end) {
@@ -60,24 +62,21 @@ function findLocalHeader(name, start, end) {
     const nameEnd = nameStart + nameLen;
     if (nameEnd > end) continue;
     if (zip.subarray(nameStart, nameEnd).toString('utf8') !== name) continue;
-    return { offset: p, dataOffset: nameEnd + extraLen };
+    return { dataOffset: nameEnd + extraLen };
   }
   throw new Error(`Local ZIP entry not found for ${name}`);
 }
 
 function readEntries() {
-  const { entries: centralEntries, centralOffset } = readCentralDirectory();
+  const { entries: centralEntries, centralStart } = readCentralDirectory();
   const out = new Map();
   let scanFrom = 0;
 
   for (const entry of centralEntries) {
-    // The checked-in bundle has valid local records but corrupt central-directory
-    // local offsets. Resolve entries from their real local headers instead of
-    // trusting recordedLocalOffset.
-    const local = findLocalHeader(entry.name, scanFrom, centralOffset);
+    const local = findLocalHeader(entry.name, scanFrom, centralStart);
     const dataEnd = local.dataOffset + entry.compSize;
-    if (dataEnd > centralOffset) {
-      throw new Error(`Compressed data out of range for ${entry.name}: ${dataEnd}/${centralOffset}`);
+    if (dataEnd > centralStart) {
+      throw new Error(`Compressed data out of range for ${entry.name}: ${dataEnd}/${centralStart}`);
     }
 
     const compressed = zip.subarray(local.dataOffset, dataEnd);
