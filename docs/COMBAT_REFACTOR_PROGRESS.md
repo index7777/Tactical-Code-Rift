@@ -72,13 +72,6 @@ CI：run 125 通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE5_PREVIEW.md`
 
-新增：
-
-- `src/core/preview/BattlePreviewResolver.ts`
-- `src/core/preview/BattlePreviewResolver.test.ts`
-
-已完成：
-
 - 普通傷害 / HP / lethal preview。
 - armor-break + heavy：+50% base damage preview。
 - imbalance + disruption：忽略 1 韌性 preview。
@@ -87,13 +80,9 @@ CI：run 125 通過。
 - lethal preview：從 predicted Timeline 刪除目標、Intent change = deleted。
 - active actor 自身 future Timeline 位置。
 - source snapshot deep immutability。
-- Phase 6 前置：Preview 現在也回傳 `targetResilienceAfter`，讓 commit 不必重算控制公式。
+- Preview 回傳 `targetResilienceAfter`，供 commit 直接採用。
 
-CI 記錄：
-
-- run 130：TypeScript build 失敗，因完整 `RefactorCardCategory` 不能直接傳給 `BreakWindowConsumer`。
-- 以明確 `breakWindowConsumer()` adapter 修正，只允許 `heavy / disruption`。
-- run 132：build / test 全數通過，因此 Phase 5 升為 VERIFIED。
+CI：run 130 曾因 `RefactorCardCategory` / `BreakWindowConsumer` 型別邊界失敗；加入明確 adapter 後，run 132 build / test 全數通過。
 
 ## Phase 5b — Controller Preview Wiring
 
@@ -101,27 +90,16 @@ CI 記錄：
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE5B_CONTROLLER_PREVIEW.md`
 
-已更新：
+- Controller 目標選擇直接呼叫 `resolveBattlePreview()`。
+- `preview()` 對外只回 defensive clone。
+- stale preview 在換卡、取消、確認、調度與 resolution boundary 清除。
+- targeted card 沒有成功 preview 不可 confirm。
 
-- `src/application/battle/BattleTurnController.ts`
-- `src/application/battle/BattleTurnController.test.ts`
-
-已實作：
-
-- Controller 可持有 `BattlePreviewContextState` snapshot：vitals / Intent / resilience / break windows。
-- `previewPlayerTarget()` 進入 `TARGET_PREVIEW` 後直接呼叫 `resolveBattlePreview()`。
-- `preview()` 只回傳 deep-cloned `BattlePreviewResult`，供未來 presentation 讀取。
-- `setPreviewContext()` 可在真正 resolution 後更新 application snapshot。
-- 換卡、取消、確認、調度、開始／完成結算都清除 stale preview。
-- 需要目標的牌沒有成功 resolver preview 時不可 confirm。
-- confirm 只提交 card / Delay，不把 preview prediction 當成真正 HP / Intent / Timeline mutation。
-- 測試新增 delay preview、lethal deletion preview、defensive clone、stale preview cleanup、context refresh。
-
-CI：run 137 build / test 全數通過，因此 Phase 5b 升為 VERIFIED。
+CI：run 137 build / test 全數通過。
 
 ## Phase 6 — Battle Resolution / Commit
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE6_RESOLUTION.md`
 
@@ -130,26 +108,45 @@ CI：run 137 build / test 全數通過，因此 Phase 5b 升為 VERIFIED。
 - `src/core/resolution/BattleResolutionResolver.ts`
 - `src/core/resolution/BattleResolutionResolver.test.ts`
 
-已實作：
+已完成：
 
 - `BattleResolutionState` 集中 authoritative timeline / vitals / Intent / resilience / break windows snapshot。
 - `resolveBattleAction()` 強制 active actor 必須是 Timeline front。
-- Resolution 先呼叫 `resolveBattlePreview()`，再提交同一份 damage / lethal / Delay / Intent / Break Window 結果，不建立第二套戰鬥公式。
-- 普通傷害真正寫回 HP。
-- active actor 依卡牌 Delay 真正排回 Timeline；commit 時 `timeline.currentTime` 推進到 actedAt。
-- Delay 真正移動目標 Timeline 節點，並直接採用 Preview 回傳的 post-control resilience。
-- Interrupt 真正替換 Intent 為 hard-stagger，不額外移動目標節點。
-- armor-break / imbalance 真正被消耗。
-- 建立破勢卡用 deterministic `bw:<sequence>:<kind>:<targetId>` id。
-- lethal 真正將 HP 設 0、移除 Timeline actor / Intent / 該 target Break Window。
-- vitals 在死亡後保留 HP=0，供死亡演出／結果讀取。
+- Resolution 先呼叫 `resolveBattlePreview()`，再提交同一份 damage / lethal / Delay / Intent / Break Window 結果。
+- HP、Delay、temporary resilience、Interrupt、破勢消耗／建立與 lethal cleanup 都已有真正 commit path。
+- deterministic break-window id：`bw:<sequence>:<kind>:<targetId>`。
 - resolver 對輸入 state 保持 immutable。
 - 測試包含 Preview / Resolution parity。
 
+CI：run 143 build / test 全數通過，因此 Phase 6 升為 VERIFIED。
+
+## Phase 6b — Controller / Authoritative Resolution Wiring
+
+狀態：`IMPLEMENTED_PENDING_CI`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE6B_CONTROLLER_RESOLUTION.md`
+
+已更新：
+
+- `src/application/battle/BattleTurnController.ts`
+- `src/application/battle/BattleTurnController.test.ts`
+
+已實作：
+
+- Controller 直接持有 `BattleResolutionState`，不再各自持有 `timelineState` 與 `BattlePreviewContextState`。
+- `battle()` 提供完整 authoritative snapshot 的 defensive clone。
+- Preview 直接讀 authoritative battle state；移除 `setPreviewContext()` 過渡 API。
+- confirm 時提交共享手牌並保存 committed card / target，但不提前修改 HP 或 enemy Timeline。
+- 玩家 `completeResolution()` 正式呼叫 `resolveBattleAction()`，一次提交 HP / Intent / resilience / break windows / Timeline。
+- 玩家一般卡牌不再走 controller-local `pendingActionDelay`。
+- 調度保留唯一 player-side schedule-only 路徑：Delay 3，其他 combat state 不變。
+- Enemy 尚未有完整 action resolver，暫時仍以 explicit enemy delay 更新同一份 authoritative Timeline。
+- 新測試覆蓋普通傷害 commit、Delay + temporary resilience、lethal deletion、break-window creation、defensive clone、dispatch 與 enemy transition path。
+
 刻意尚未完成：
 
-- Phase 6 尚未接入 `BattleTurnController` 的真正 resolution path。
-- enemy successful action 的 resilience reset / next Intent generation。
+- Enemy successful-action resolver / 下一 Intent 生成。
+- 成功敵方行動後 temporary resilience reset / break-window expiry wiring。
 - guard / redirect。
 - 四角色專精 runtime bonus。
 - Phaser / BootScene / HUD。
@@ -157,4 +154,4 @@ CI：run 137 build / test 全數通過，因此 Phase 5b 升為 VERIFIED。
 
 ## 下一批
 
-先讓 Phase 6 build/test 驗證。通過後做 Phase 6b：由 `BattleTurnController` 持有 authoritative `BattleResolutionState`，玩家 confirm 後在 resolution 階段透過 `resolveBattleAction()` 真正提交 Preview 同款結果，移除目前 controller 只靠 card Delay 排程、再由外部 `setPreviewContext()` 手動同步的過渡流程。
+先讓 Phase 6b CI 通過。之後進 Phase 7：Enemy Action Resolver，正式移除 `completeResolution(enemyDelay)` 的過渡參數，讓敵方成功行動負責 Intent 結算、臨時韌性重置、Break Window expiry、下一 Intent 公開與重新排程。
