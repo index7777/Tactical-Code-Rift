@@ -696,5 +696,6 @@ private async resolve(){
 const bootScenePreload=BootScene.prototype.preload;
 BootScene.prototype.preload=function(){
   queuePlayerAssets(this.load);
+  this.load.image('bg-world01-rail-halt-trial','assets/battle/area01-rail-halt-bg-runtime-trial-v1.png');
   bootScenePreload.call(this);
 };

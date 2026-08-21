@@ -1,5 +1,5 @@
-export type BattlefieldMode='rooftop'|'wayside'|'exploration';
+export type BattlefieldMode='rail-halt'|'rooftop'|'wayside'|'exploration';
 
 export function normalizeBattlefieldMode(value:string|null|undefined):BattlefieldMode{
-  return value==='wayside'||value==='exploration'?value:'rooftop';
+  return value==='rail-halt'||value==='wayside'||value==='exploration'||value==='rooftop'?value:'rail-halt';
 }

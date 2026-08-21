@@ -1,6 +1,6 @@
 import type { EnemyArchetype } from '../battle/BattleTypes';
 
-export type EncounterBattlefield = 'rooftop' | 'wayside' | 'exploration';
+export type EncounterBattlefield = 'rail-halt' | 'rooftop' | 'wayside' | 'exploration';
 
 export interface StoryEncounter {
   nodeId: string;
@@ -14,7 +14,7 @@ export const storyEncounters: Record<string, StoryEncounter> = {
     nodeId: 'battle-1',
     title: '雨暮山麓・初遭遇',
     enemies: ['wet-corpse', 'lantern-child'],
-    battlefield: 'rooftop',
+    battlefield: 'rail-halt',
   },
   'battle-2-upper': {
     nodeId: 'battle-2-upper',
@@ -26,7 +26,7 @@ export const storyEncounters: Record<string, StoryEncounter> = {
     nodeId: 'battle-2-lower',
     title: '下線・辻傘伏道',
     enemies: ['wayfarer-umbrella', 'wet-corpse', 'noose-ghost'],
-    battlefield: 'wayside',
+    battlefield: 'rail-halt',
   },
   'battle-3-upper': {
     nodeId: 'battle-3-upper',
@@ -44,7 +44,7 @@ export const storyEncounters: Record<string, StoryEncounter> = {
     nodeId: 'elite-1',
     title: '精英・雨夜武者',
     enemies: ['rain-warrior', 'mountain-hound', 'wet-corpse'],
-    battlefield: 'wayside',
+    battlefield: 'rail-halt',
   },
   'boss-1': {
     nodeId: 'boss-1',

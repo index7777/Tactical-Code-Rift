@@ -48,6 +48,15 @@ User-provided `route_map_runtime_assets_split_v1` is archived intact at `assets/
 
 ## Usage notes
 
+### 2026-08-21 F1 rail-halt background candidate
+
+| Runtime file | Work | Author | License | Source |
+|---|---|---|---|---|
+| `public/assets/battle/area01-rail-halt-bg-runtime-trial-v1.png` | Area 01 F1 雨夜沿線月台 BG；取代普通車頂戰鬥方向 | Built-in ImageGen, directed by the Area 01 Art Bible and encounter BG plan | Project-generated candidate; release approval pending | `assets/candidates/backgrounds/world01/area01-rail-halt-bg-candidate-v1.png`; 1672×941 RGB |
+
+- Deterministic background validation passed 16:9, minimum runtime size and central-density advisory (`center=0.0204`, `outer=0.0251`).
+- This is a reversible runtime trial for `battle-1`, `battle-2-lower`, and `elite-1`, not an approved production master. It remains below the required 3840×2160 production-source gate.
+
 ### 2026-08-20 named player runtime integration
 
 | Runtime files | Work | Author | License | Source |

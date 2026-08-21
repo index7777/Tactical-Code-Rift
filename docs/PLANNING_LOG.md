@@ -903,3 +903,8 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Retired rooftop combat as the formal direction because its perspective and curved surface conflict with the shared horizontal actor baseline; the current rooftop remains a historical runtime trial until replacement.
 - Defined node-to-family mapping, reusable runtime dressing, fixed safe zones, production order, and art-pipeline rejection gates in `docs/areas/area-01-encounter-bg-plan.md`.
 - This batch changes design documentation only. No candidate was generated, approved, or assigned to runtime.
+## 2026-08-21 — F1 rail-halt candidate v1
+
+- Generated one F1 rail-halt candidate from `docs/areas/area-01-encounter-bg-plan.md`; no characters, UI, text, weather particles or combat FX are baked into it.
+- Deterministic background gate passed at 1672×941 with central density 0.0204 versus outer density 0.0251; production-resolution gate remains open.
+- Integrated it non-destructively as a runtime trial for `battle-1`, `battle-2-lower`, and `elite-1`. The existing rooftop candidate remains available for historical comparison and the unfinished F2 nodes.
