@@ -3,7 +3,7 @@
 BRANCH = combat-refactor-v1
 DATE = 2026-08-22
 
-本文件只記錄 `COMBAT_REFACTOR_V1.md` 與 `COMBAT_REFACTOR_IMPLEMENTATION_PLAN.md` 的實作進度，不取代規格。
+本文件只記錄 `COMBAT_REFACTOR_V1.md`、`COMBAT_REFACTOR_IMPLEMENTATION_PLAN.md` 與各 Phase domain contract 的實作進度，不取代規格。
 
 ## Phase 1 — Single Timeline Domain
 
@@ -82,20 +82,51 @@ CI：GitHub Actions run 104 通過。
 - Enemy resolution 不操作共享手牌，仍由 enemy skill / intent 明確提供其 action Delay。
 - controller 對外提供 clone 後的 deck snapshot，避免 presentation 直接修改 domain state。
 
-新增／更新測試鎖定：
+CI 記錄：
 
-- 非手牌中的 instance 不可選。
-- 單次只消耗一張已選牌並補回 5 張。
-- 其他隊友不需要先提交行動。
-- 調度保留未選牌，且 0 張交換仍消耗 Delay 3 行動。
-- Enemy action 不改 shared hand。
+- run 114：build 通過、test 失敗 2 項。
+- 原因不是 runtime 排序錯誤，而是 controller 測試把「出牌後下一個一定是 ghost-fire」硬編碼；當抽到 Delay 3 的快斬時，`rin@3` 正確地仍排在 `ghost-fire@4` 前。
+- 測試已修正為直接以 `sortTimelineActors()` 的實際絕對時間排序判定下一 actor，不再假設固定角色。
+- Phase 3/3b 仍需等待修正後最新 CI 通過才能標成 VERIFIED。
+
+## Phase 4 — Intent / Control Resilience / Break Window
+
+狀態：`IMPLEMENTED_PENDING_CI`
+
+先行文件：
+
+- `docs/COMBAT_REFACTOR_PHASE4_DOMAIN.md`
+
+新增：
+
+- `src/core/intents/IntentState.ts`
+- `src/core/intents/IntentResolver.ts`
+- `src/core/intents/IntentResolver.test.ts`
+- `src/core/status/ControlResilience.ts`
+- `src/core/status/ControlResilience.test.ts`
+- `src/core/status/BreakWindow.ts`
+- `src/core/status/BreakWindow.test.ts`
+
+已實作：
+
+- Intent 為已公開的下一敵方事件，與 persistent status 分離。
+- Delay 保留原 Intent，只回傳 requested / effective resilience / ignored resilience / actual delay。
+- `canDelay=false` 時 actual delay 為 0，且不累積 temporary resilience。
+- 韌性 = base + temporary；成功延後後 temporary +1；敵人成功行動後只清 temporary。
+- `ignoredResilience` 是 resolver 顯式輸入，不修改 base/temporary source state。
+- Interrupt 與 Delay 分離；可打斷 Intent 轉成 `hard-stagger`，敵人仍存在、Timeline 當前節點不由此 module 移動。
+- v1 hard-stagger 保留原 Intent action Delay，避免打斷隱含產生額外時序獎勵。
+- armor-break 只可被 heavy 消耗；imbalance 只可被 disruption 消耗。
+- 未消耗 break window 在目標下一次成功行動時失效；單純 delay / interrupt 不會直接令其失效。
+- 提供死亡目標的 break-window cleanup。
 
 尚未完成：
 
-- 尚未建立正式 20 張新卡池資料；目前測試 definitions 只驗證 deck / controller lifecycle。
-- 尚未建立 Intent / 韌性 / 破勢 domain。
-- 尚未做 Phaser / HUD。
+- Phase 4 尚未接 `BattleTurnController`；應先由純 domain CI 驗證。
+- 尚未生成敵人的下一個 AI Intent sequence。
+- 尚未做 damage / guard / redirect resolver。
+- 尚未做 Preview Resolver / Phaser HUD。
 
 ## 下一批
 
-Phase 4：建立 `IntentState`、`ControlResilience`、`BreakWindow` 與其純 domain tests。這一批仍不接 Phaser；先把「公開 Intent、延後抗性、破勢窗口在目標成功行動後失效」鎖成 source of truth，再進 Preview Resolver。
+先讓目前 head 通過 CI。若 Phase 3/3b + Phase 4 domain 全部通過，下一批進 Phase 5 Preview Resolver：把 Card + actor specialization + Intent + Resilience + BreakWindow + Timeline 組成單一 immutable prediction，presentation 只讀結果，不自行重算規則。
