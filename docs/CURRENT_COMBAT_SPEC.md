@@ -18,10 +18,12 @@ STATUS = AUTHORITATIVE
 
 ## 主要規則
 
-- HP 與 Balance 分開；Balance 歸零會進入破招狀態。
+- HP 與 Balance 分開；Balance 首次降至 0 時進入崩勢：追加 4 HP 內傷、Balance 重置為 8，`broken` 維持到本輪結束。同一輪不重複觸發崩勢追加傷害。
 - 掩護會重定向指定敵方行動。
 - 接力允許隊友延續同一攻擊目標。
 - 敵人 archetype 與怪物規則由 `EnemySkills.ts`、`MonsterRules.ts` 決定。
+- 站守 Boss 固定 96 HP／12 Balance，奇數回合使用「雨斬・終」、偶數回合使用「山影連刃」；優先攻擊最低 HP 存活玩家。兩名隨從死亡後進入「孤站」，招式威力 +1、傷害 +2。
+- `?discard-proof=1` 固定手牌為快斬、破甲、堅守、掩護、整備；棄牌後本輪不補牌，供正式自證。
 - 角色、敵人、卡牌與戰場演出不改變 `core` 的計算結果。
 
 ## 驗收

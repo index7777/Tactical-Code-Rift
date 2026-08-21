@@ -93,7 +93,9 @@ export class JourneyScene extends Phaser.Scene{
     const cp=pos(current.column,current.lane);this.createTrainToken(cp.x,cp.y+58).setData('train',true).setDepth(20);
     this.add.text(48,624,'黃泉列車',{fontFamily:'serif',fontSize:this.compact?'18px':'15px',fontStyle:'bold',color:'#ead9bb'});
     this.add.text(48,650,available.size?'選擇下一段軌道；滑過節點可查看敵群。':'本區路線已抵達終點。',{fontFamily:'sans-serif',fontSize:this.compact?'14px':'12px',color:'#a9c1c7'});
+    if(state.currentNodeId==='boss-1'&&this.registry.get('journey-area01-cleared'))this.showAreaClear();
   }
+  private showAreaClear(){const veil=this.add.rectangle(640,360,1280,720,0x03070b,.78).setDepth(300),panel=this.add.rectangle(640,350,520,190,0x101c23,.97).setStrokeStyle(2,0xc8a45d,.9).setDepth(301),kicker=this.add.text(640,302,'第一區踏破',{fontFamily:'sans-serif',fontSize:'14px',fontStyle:'bold',color:'#e4c877'}).setOrigin(.5).setDepth(302),title=this.add.text(640,346,'雨暮山線・終',{fontFamily:'serif',fontSize:'34px',fontStyle:'bold',color:'#fff0d5'}).setOrigin(.5).setDepth(302),body=this.add.text(640,394,'站守已散，黃泉列車完成本區行程。',{fontFamily:'sans-serif',fontSize:'14px',color:'#bad3d7'}).setOrigin(.5).setDepth(302);void veil;void panel;void kicker;void title;void body}
   private createTrainToken(x:number,y:number){
     const token=this.add.container(x,y),shadow=this.add.ellipse(0,8,104,16,0x020507,.55),body=this.add.rectangle(-12,0,72,24,0x14242b,.98).setStrokeStyle(2,0xc29a55,.95),engine=this.add.rectangle(36,0,34,22,0x1b3036,.98).setStrokeStyle(2,0xc29a55,.95),nose=this.add.triangle(61,0,-12,-11,-12,11,13,0,0x16252b,.98).setStrokeStyle(2,0xc29a55,.9),lamp=this.add.circle(72,0,3,0xe2b467,1);
     token.add([shadow,body,engine,nose]);for(const offset of [-38,-22,-6,10])token.add(this.add.circle(offset,0,2.5,0xe2b467,.9));token.add(lamp);return token;

@@ -5,13 +5,13 @@ APPLIES_TO = 所有戰鬥規則、UI、鏡頭與演出功能
 
 ## 待處理規則衝突（Batch 1 目標）
 
-以下項目為 PLANNING_LOG 8/17 與 Batch 0 靜態稽核發現、尚未通過驗收的規則衝突。在對應項目完成之前，任何「規則完成」宣稱都不成立。
+以下項目為 PLANNING_LOG 8/17 與 Batch 0 靜態稽核發現的規則衝突；Batch 1 已逐項對齊程式、規格與固定情境。
 
-- [ ] **崩勢公式對齊**：`VitalResolver.resolveDamage` 目前只把 `balance` 停在 0、掛 `broken` flag，不追加 HP 也不重置 balance。`CombatSimulation.hurt` 追加 4 HP 且 balance 重置為 8。權威定義以 `CURRENT_COMBAT_SPEC.md` 崩勢段為準；規格未定案前，`VitalResolver` 與 sim 兩份實作視為衝突。修正範圍：`src/core/battle/VitalResolver.ts`、`docs/CURRENT_COMBAT_SPEC.md`。（A1）
-- [ ] **crusher 破甲不消耗厚甲**：`MonsterRules.resolveMonsterHit` crusher 分支在破甲牌命中時 `consumeTrait=true`，同輪後續非破甲攻擊反而不再減傷，與規格「非破甲攻擊時消耗厚甲」相反。修正範圍：`src/core/battle/MonsterRules.ts`、`src/core/battle/MonsterRules.test.ts`。（A2）
-- [ ] **crusher 非破甲 clashPower −1 未在規格**：`MonsterRules.resolveMonsterClashPower` 對非破甲卡對 crusher 施加 clashPower −1，`CURRENT_COMBAT_SPEC.md` crusher 段落未提。決策：移除該罰則，或補入規格。修正範圍：`src/core/battle/MonsterRules.ts` 或 `docs/CURRENT_COMBAT_SPEC.md` 二擇一。（A3）
-- [ ] **掩護卡面護符 9 vs 截刀 runtime 未加護符**：`cardDefinitions.cover.shield=9`，但 `ClashResolver` 截刀交鋒後只依威力判定勝負，未在 runtime 觸發護符或吸收機制。修正範圍：`src/presentation/battle/ClashPresenter.ts` 或戰鬥結算層擇一補實作，並補寫測試。（PLANNING_LOG 8/17 conflict #2）
-- [ ] **`?discard-proof=1` 正式棄牌情境**：Line 64 已列為 acceptance 但目前未見專屬 proof URL；補入固定情境或標記為 pending demo。
+- [x] **崩勢公式對齊**：定案為首次歸零追加 4 HP、Balance 重置 8；`VitalResolver`、模擬與測試一致。（A1）
+- [x] **crusher 厚甲**：破甲命中不消耗厚甲並增加架勢傷害；第一次非破甲命中才消耗厚甲。（A2）
+- [x] **crusher clashPower**：移除未列入規格的非破甲威力 −1。（A3）
+- [x] **掩護護符 9**：截刀成立時 runtime 立即加入 9 點臨時護符。
+- [x] **`?discard-proof=1` 正式棄牌情境**：固定五張手牌，DOM QA 狀態公開 hand／discard／discardUsed，棄牌後不立即補牌。
 
 ## 完成狀態用語
 
