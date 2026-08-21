@@ -29,6 +29,10 @@ private visibleHandCount=5;
 private battlefieldMode:BattlefieldMode='rooftop';private battlefieldPresenter!:BattlefieldPresenter;
 private requestedBattlefield?:BattlefieldMode;private journeyNodeId?:string;private selectedBattleMusicKey='battle-music';
 private loadingLayer?:Phaser.GameObjects.Container;
+private publishQaState(){
+  const host=document.getElementById('game');if(!host)return;
+  host.dataset.qaBattle=this.journeyNodeId??'demo';host.dataset.qaPlayers=String(this.players.size);host.dataset.qaEnemies=String(this.enemies.size);host.dataset.qaRound=String(this.round);host.dataset.qaBusy=String(this.busy);host.dataset.qaAssets=String(['player-rin-idle-a','player-chikage-idle-a','player-oboro-idle-a','player-mo-idle-a'].every(key=>this.textures.exists(key)))
+}
 init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){
   const qaJourneyNodeId=new URLSearchParams(window.location.search).get('qa-battle')??undefined;
   this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId??qaJourneyNodeId;this.pc=4;
@@ -99,7 +103,7 @@ private rebuild(){
   const es:Fighter[]=enemyRoles.map((role,i)=>({id:`E${String.fromCharCode(65+i)}`,team:'enemy',actorIndex:i,archetype:role,speed:roleSpeed(role),alive:true}));const roundSkills=dealEnemySkillsForArchetypes(enemyRoles);
   const skills=new Map(es.map((e,i)=>{const skill=roundSkills[i]!,target=Phaser.Math.RND.pick(ps);return[e.id,{id:`${e.id}-skill`,...skill,targetId:target.id}]}));
   this.timeline=buildRoundTimeline(ps,es,skills);ps.forEach(f=>this.addActor(f));es.forEach(f=>this.addActor(f));this.deck=refillHand(this.deck,5);
-  this.commands.clear();this.planning=this.timeline.filter(n=>n.team==='player').sort((a,b)=>b.speed-a.speed);this.planIndex=0;this.selected=undefined;this.discardMode=false;this.discardUsedThisRound=false;this.updateUndoVisibility();this.renderTimeline();this.renderHand();this.focus();this.renderEnemyIntents()
+  this.commands.clear();this.planning=this.timeline.filter(n=>n.team==='player').sort((a,b)=>b.speed-a.speed);this.planIndex=0;this.selected=undefined;this.discardMode=false;this.discardUsedThisRound=false;this.updateUndoVisibility();this.renderTimeline();this.renderHand();this.focus();this.renderEnemyIntents();this.publishQaState()
 }
 private addActor(f:Fighter){
     const p=standbyPosition(f.team,f.team==='player'?this.pc:this.ec,f.actorIndex);
@@ -560,7 +564,7 @@ private nextRound(automatic=false){
       return
     }
     if(!automatic)return;
-    this.round++;
+    this.round++;this.publishQaState();
     clearEndOfRoundStatuses([...this.players.values(),...this.enemies.values()]);[...this.players.values(),...this.enemies.values()].forEach(a=>{a.traitReady=true;this.refreshActor(a)});
     this.timeline=this.timeline.filter(n=>(n.team==='player'?this.players:this.enemies).get(n.actorId)?.alive);
     const targets=[...this.players.entries()].filter(([,a])=>a.alive).map(([id])=>id),enemyNodes=this.timeline.filter(n=>n.team==='enemy'),roundRoles=enemyNodes.map(n=>(this.enemies.get(n.actorId)?.archetype??n.enemySkill?.archetype??'wet-corpse') as EnemyArchetype),roundSkills=dealEnemySkillsForArchetypes(roundRoles,Math.random,enemyNodes.map(n=>n.enemySkill?.name));
@@ -683,7 +687,7 @@ private async resolve(){
   const played=this.resolutionController.committedCards(this.commands);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();
   const outcome=this.resolutionController.outcome(this.players.values(),this.enemies.values());
   if(outcome){this.handLayer.setVisible(false);this.battleAudio?.fadeTo(.05,900);await this.outcomePresenter.show(outcome,{onRetry:()=>this.scene.restart({battlefield:this.battlefieldMode,journeyNodeId:this.journeyNodeId}),onContinue:outcome==='victory'?(this.journeyNodeId?()=>this.returnToJourney():()=>this.scene.restart({battlefield:this.nextBattlefield()})):undefined});return}
-  this.handLayer.setVisible(true);this.timelineLayer.setAlpha(1).setVisible(true);const beginNextRound=()=>{this.setStatus('');this.busy=false;this.nextRound(true)};this.time.delayedCall(140,beginNextRound);
+  this.handLayer.setVisible(true);this.timelineLayer.setAlpha(1).setVisible(true);const beginNextRound=()=>{this.setStatus('');this.busy=false;this.nextRound(true);this.publishQaState()};this.time.delayedCall(140,beginNextRound);
 }
 }
 
