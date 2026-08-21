@@ -28,6 +28,22 @@ const delayCards = copies('牽制', 'disruption', 4, { delayTarget: 2 });
 const heavyCards = copies('重斬', 'heavy', 7, { damage: 18 });
 const breakCards = copies('破甲', 'break', 4, { damage: 5, createBreakWindow: 'armor-break' });
 
+function ghostFireNextIntent(delay = 4) {
+  return createIntentState({
+    id: 'ghost-fire-charge',
+    enemyId: 'ghost-fire',
+    kind: 'normal',
+    name: '聚火',
+    targetIds: [],
+    delay,
+    canDelay: true,
+    canInterrupt: false,
+    canGuard: false,
+    canRedirect: false,
+    statusEffects: [],
+  });
+}
+
 function battleState(ghostFireHp = 39): BattleResolutionState {
   return {
     timeline: createBattleTimeline([
@@ -231,22 +247,30 @@ describe('BattleTurnController authoritative resolution wiring', () => {
     );
   });
 
-  it('keeps enemy resolution on the same authoritative timeline during the transition phase', () => {
+  it('resolves the revealed enemy intent, reveals the next intent, and uses its Delay', () => {
     const enemyBattle = battleState();
     enemyBattle.timeline = createBattleTimeline([
       { actorId: 'ghost-fire', team: 'enemy', nextActionAt: 2, tieBreaker: 10 },
       { actorId: 'rin', team: 'player', nextActionAt: 5, tieBreaker: 0 },
     ]);
+    enemyBattle.resilienceByEnemyId['ghost-fire'] = createControlResilience(1, 2);
+    enemyBattle.breakWindows = [
+      { id: 'bw:1:armor-break:ghost-fire', targetId: 'ghost-fire', kind: 'armor-break', consumed: false },
+    ];
     const controller = makeController(quickCards, enemyBattle);
     const handBefore = controller.deck().hand.map((card) => card.instanceId);
 
     expect(controller.startNextActor().phase).toBe('ENEMY_EXECUTING');
     controller.beginResolution();
-    expect(() => controller.completeResolution()).toThrow('enemy resolution requires an action delay');
-    const after = controller.completeResolution(4);
+    expect(() => controller.completeResolution()).toThrow('enemy resolution requires the next revealed intent');
+    const after = controller.completeResolution(ghostFireNextIntent(4));
 
     expect(after.timeline.currentTime).toBe(2);
+    expect(after.vitalsByActorId.rin?.hp).toBe(12);
     expect(after.timeline.entries.find((entry) => entry.actorId === 'ghost-fire')?.nextActionAt).toBe(6);
+    expect(after.intentByEnemyId['ghost-fire']?.id).toBe('ghost-fire-charge');
+    expect(after.resilienceByEnemyId['ghost-fire']).toEqual({ base: 1, temporary: 0 });
+    expect(after.breakWindows.some((window) => window.targetId === 'ghost-fire')).toBe(false);
     expect(controller.deck().hand.map((card) => card.instanceId)).toEqual(handBefore);
   });
 });
