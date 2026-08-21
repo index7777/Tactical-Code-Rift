@@ -36,6 +36,10 @@ private publishQaState(){
   host.dataset.qaBattle=this.journeyNodeId??'demo';host.dataset.qaPlayers=String(this.players.size);host.dataset.qaEnemies=String(this.enemies.size);host.dataset.qaRound=String(this.round);host.dataset.qaBusy=String(this.busy);host.dataset.qaAssets=String(['player-rin-idle-a','player-chikage-idle-a','player-oboro-idle-a','player-mo-idle-a'].every(key=>this.textures.exists(key)));host.dataset.qaHand=String(this.deck.hand.length);host.dataset.qaDiscard=String(this.deck.discardPile.length);host.dataset.qaDiscardUsed=String(this.discardUsedThisRound)
 }
 init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){
+  // Phaser reuses the same Scene instance after returning from the route map.
+  // A finished battle leaves `busy=true`; reset all per-battle state before the
+  // next node so rebuild() cannot exit with only the battlefield background.
+  this.busy=false;this.round=1;this.deck=createTeamDeckState();this.timeline=[];this.skipBonusNext.clear();this.players.clear();this.enemies.clear();this.commands.clear();this.planning=[];this.planIndex=0;this.selected=undefined;this.discardMode=false;this.discardUsedThisRound=false;this.intentFocus=undefined;this.previewTargetId=undefined;this.visibleHandCount=5;
   const params=new URLSearchParams(window.location.search),qaJourneyNodeId=params.get('qa-battle')??undefined;this.discardProof=params.has('discard-proof');
   this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId??qaJourneyNodeId;this.pc=4;
   const setup=encounterSetup(this.journeyNodeId,this.requestedBattlefield);this.ec=setup.enemyCount;this.requestedBattlefield=setup.battlefield;this.selectedBattleMusicKey=setup.musicKey

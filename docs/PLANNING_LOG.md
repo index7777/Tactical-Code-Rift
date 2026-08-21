@@ -954,3 +954,10 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - 新增 `?discard-proof=1` 固定五張手牌及 DOM QA 計數，棄牌後同輪不立即補牌。
 - 站守採 96 HP／12 Balance、奇偶回合兩招循環、最低 HP 目標優先；隨從全滅後進入「孤站」並提高威力／傷害。Boss 勝利會寫入 Area 01 clear flag，返回路線後顯示正式終幕。
 - 自動驗證：32 個 Vitest 檔、124 項測試全過；production build 成功。瀏覽器門檻仍未通過：內建 Browser 因 trusted-path 設定拒絕服務，本機 Chrome headless 又在 GPU process 以 `-1073741790` 崩潰，因此未產出本批 1280×720／844×390 截圖；不得把此批標記為「固定情境自證全部通過」。
+
+## 2026-08-21 — 連續戰鬥節點空場修正
+
+- 使用者提供的 runtime 截圖顯示第二個戰鬥節點只剩背景，沒有角色、敵人與戰鬥 UI。
+- 根因是 Phaser 返回路線後重用同一個 `BootScene` instance；上一場勝利路徑保留 `busy=true`，下一節點 `rebuild()` 因此提前返回。
+- `BootScene.init()` 現在會重置所有 per-battle 狀態，再依新節點建立 encounter。此修正不更動、核准或升級任何背景／怪物素材。
+- 正式站逐節點實打仍是 open gate；必須部署此修正後重新從 `battle-1` 走到 `boss-1` 才能關閉。
