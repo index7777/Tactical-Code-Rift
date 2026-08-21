@@ -186,6 +186,84 @@ interface RefactorBattleCard {
 
 調度不是 free action。
 
+## Phase 3b：把 Shared Hand 接入 Turn Controller
+
+此批次把 Phase 2 與 Phase 3 串成第一條完整 application loop，但仍不接 UI。
+
+### Controller ownership
+
+`BattleTurnController` 同時持有：
+
+```text
+BattleTimelineState
+BattleTurnState
+RefactorDeckState
+```
+
+Presentation 只能讀 clone/snapshot，不直接改三者。
+
+### 選牌
+
+- `PLAYER_IDLE` 時只允許選取目前 shared hand 中存在的 `instanceId`。
+- 不再接受任意字串作為合法玩家 action。
+- 選牌本身不消耗卡；確認執行才 commit。
+- `enemy / ally / any-ally` target rule 必須先有 target preview 才可確認。
+- `self / none` 不要求額外 target。
+
+### 確認與卡牌消耗
+
+玩家確認卡牌後，同一個 transaction 內：
+
+```text
+CARD_SELECTED / TARGET_PREVIEW
+→ 驗證 card instance 仍在 hand
+→ playOneCard()
+→ 該 card 進 discard
+→ 補牌回 5
+→ 記錄 pendingActionDelay = card.definition.delay
+→ EXECUTING
+```
+
+從 `EXECUTING` 起不可取消，也不可再替換卡牌。
+
+### 結算與 Delay
+
+玩家完成 resolution 時，不再由 scene / presentation 傳入任意 Delay：
+
+```text
+player delay = committed card.definition.delay
+```
+
+Enemy 尚未接 IntentResolver 前，其 resolution 暫時仍由 enemy action 明確傳入 Delay；且 enemy action 不接觸 shared hand。
+
+### 調度
+
+`dispatch(selectedIds)` 只允許在 `PLAYER_IDLE`：
+
+```text
+選 0～2 張
+→ dispatchCards()
+→ shared hand 補回 5
+→ pendingActionDelay = 3
+→ EXECUTING
+```
+
+即使選 0 張，仍視為完整行動並支付 Delay 3。
+
+### 驗收
+
+必測：
+
+- draw pile 中但不在 hand 的牌不能選。
+- 需要目標的卡不能無 target 直接 confirm。
+- 一次 confirm 只消耗一張牌。
+- 未使用的其他四張牌保留。
+- confirm 後取消無效。
+- 玩家 Timeline 重排使用卡牌本身 Delay。
+- 調度交換 0／1／2 張都合法，3 張以上拒絕。
+- 調度保留未選牌。
+- Enemy action 不修改 shared hand。
+
 ## Phase 4：Intent / 韌性 / 破勢
 
 ### IntentState
@@ -407,14 +485,14 @@ REACTION
 - 舊常駐 killing-intent planning layer。
 - 舊 skip bonus / next-round interaction。
 
-## 第一個實作批次
+## 當前實作批次
 
-下一個 code batch 僅做 Phase 1：
+Phase 1、Phase 2 已通過 CI。Phase 3 與 Phase 3b 已實作，等待最新 branch CI 驗證。
+
+下一個 code batch 在通過後只做 Phase 4 domain：
 
 ```text
-BattleTimeline domain + tests
+IntentState + ControlResilience + BreakWindow + tests
 ```
 
-不碰 UI，不碰素材，不碰 Boss，不碰現行 BootScene。
-
-原因：Timeline 是新系統唯一真正的 scheduling source of truth。先把這層穩定，再往上接 Turn Controller 與 HUD。
+仍不碰 UI，不碰素材，不碰現行 BootScene。
