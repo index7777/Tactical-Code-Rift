@@ -2,6 +2,8 @@
 
 STATUS = AUTHORITATIVE_INDEX
 
+Current operational handoff: `PROJECT_STATUS.md`. Release asset gates: `RELEASE_ASSET_AUDIT.md`. The older `HANDOFF.md` is retained as historical context and is not the current identity/runtime source.
+
 所有設計、實作與驗收工作必須先從本文件進入。未列入「現行權威文件」的內容，不得作為功能決策依據。
 
 ## 現行權威文件

@@ -2,6 +2,8 @@
 
 STATUS = AUTHORITATIVE_HANDOFF
 
+> SUPERSEDED 2026-08-21: current operational state is `docs/PROJECT_STATUS.md`. This file is retained only for historical implementation context and its PA/PB/PC/PD identity notes are obsolete.
+
 更新時間：2026-08-18（Asia/Taipei）
 基準 commit：`745cd65`，但目前工作樹包含大量尚未 commit 的有效實作與資產，**不得 reset、checkout 或清除 untracked files**。
 

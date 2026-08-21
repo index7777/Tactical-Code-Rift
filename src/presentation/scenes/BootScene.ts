@@ -7,7 +7,6 @@ import{BattlefieldPresenter}from'../battle/BattlefieldPresenter';import type{Bat
 import{CombatResultFxPresenter}from'../battle/CombatResultFxPresenter';
 import{CombatResolutionController}from'../../application/battle/CombatResolutionController';
 import{readMonsterRule,resolveMonsterHit}from'../../core/battle/MonsterRules';
-import{battleMusicKey,battleMusicKind}from'../../core/audio/BattleMusicPolicy';
 import{shouldStartJourney}from'../../core/route/EntryMode';
 import{storyEncounter}from'../../core/route/EncounterCatalog';
 import{canTargetActor}from'../../core/battle/Targeting';
@@ -16,6 +15,8 @@ import{isCardSelected}from'../../core/cards/CardSelection';
 import{brokenClashAction}from'../../core/battle/BrokenActionPolicy';
 import{heroineDisplayHeight,playHeroinePose}from'../battle/HeroinePose';
 import{playerRoster,playerRosterEntry}from'../../core/battle/PlayerRoster';
+import{queueNamedPlayerAssets}from'../assets/NamedPlayerAssetLoader';
+import{encounterSetup}from'../battle/EncounterSetup';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;maxHp:number;shield:number;tempShield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean;archetype?:EnemyArchetype;traitReady:boolean}
 export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private discardMode=false;private discardUsedThisRound=false;private intentFocus?:string;private previewTargetId?:string;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private undoButton!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;private cardTooltip?:Phaser.GameObjects.Container;
 constructor(){super('BootScene')}
@@ -28,8 +29,7 @@ private requestedBattlefield?:BattlefieldMode;private journeyNodeId?:string;priv
 private loadingLayer?:Phaser.GameObjects.Container;
 init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){
   this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId;this.pc=4;
-  const encounter=storyEncounter(this.journeyNodeId);this.ec=encounter?.enemies.length??4;if(encounter&&!data?.battlefield)this.requestedBattlefield=encounter.battlefield;
-  this.selectedBattleMusicKey=battleMusicKey(battleMusicKind(this.journeyNodeId))
+  const setup=encounterSetup(this.journeyNodeId,this.requestedBattlefield);this.ec=setup.enemyCount;this.requestedBattlefield=setup.battlefield;this.selectedBattleMusicKey=setup.musicKey
 }
 private nextBattlefield():BattlefieldMode{return this.battlefieldMode==='rooftop'?'wayside':this.battlefieldMode==='wayside'?'exploration':'rooftop'}
 private currentPlanner(){return applyPlannedInitiative(this.timeline,this.commands).find(n=>n.team==='player'&&!this.commands.has(n.id))}
@@ -729,6 +729,6 @@ private async resolve(){
 // compressed scene body also prevents dev/prod lifecycle timing differences.
 const bootScenePreload=BootScene.prototype.preload;
 BootScene.prototype.preload=function(){
-  this.loadNamedPlayerAssets();
+  queueNamedPlayerAssets(this.load);
   bootScenePreload.call(this);
 };

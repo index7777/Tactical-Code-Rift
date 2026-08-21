@@ -40,7 +40,7 @@ GENERATED_BUILD_VENDOR_ROOTS = dist, node_modules
 
 ```text
 ASSET_PIPELINE_APPLICABLE = YES
-ASSET_PIPELINE_SPEC_READY = READY_PLACEHOLDER_CLEARED_PENDING_RECIPE_VALIDATOR
+ASSET_PIPELINE_SPEC_READY = READY_WITH_RECIPE_VALIDATOR
 ASSET_PIPELINE_RUNTIME_READY = YES_FOR_COMBAT_SHOWCASE
 ```
 
@@ -52,7 +52,7 @@ Specification evidence:
 - 四份資產規格檔存在於專案根目錄；要求的 `optional-assets/` 目錄不存在。
 - `asset_manifest.schema.json` 可解析並通過 Draft 2020-12 meta-schema 驗證。
 - Schema `$id`、`Generic Project`、`Example Faction` 與 `runtime engine` 佔位內容已於 2026-08-17 Batch 0 收尾清理，替換為 `tactical-code-rift.local`／`Tactical Code Rift`／`妖怪`／`Phaser`。
-- 尚無機器可讀 AssetRecipe schema、recipe validator、manifest validation command、workflow registry 實作或引擎 importer。
+- `asset_recipe.schema.json`、`tools/validate_asset_metadata.py` 與 `npm run validate:assets` 已建立；首份 route-map recipe 已納入驗證。工作流程 registry 與通用引擎 importer 仍屬後續擴充。
 
 Runtime evidence:
 

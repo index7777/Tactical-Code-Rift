@@ -9,20 +9,21 @@ if not exist ".git" goto :not_repo
 for /f "delims=" %%R in ('git remote get-url origin 2^>nul') do set "ORIGIN=%%R"
 if not defined ORIGIN goto :no_origin
 if /I not "!ORIGIN!"=="%REPO_URL%" goto :wrong_origin
-for /f "delims=" %%B in ('git branch --show-current 2^>nul') do set "BRANCH=%%B"
-if not defined BRANCH goto :detached
+set "BRANCH=main"
 for /f "delims=" %%S in ('git status --porcelain') do set "DIRTY=1"
 if defined DIRTY goto :dirty
 echo [INFO] Fetching origin...
 git fetch origin --prune || goto :network_error
-git rev-parse --verify "refs/remotes/origin/!BRANCH!" >nul 2>nul || goto :no_remote_branch
-echo [INFO] Updating !BRANCH! with fast-forward only...
-git merge --ff-only "origin/!BRANCH!" || goto :diverged
-echo [OK] !BRANCH! is synchronized with origin/!BRANCH!.
+git switch main || goto :diverged
+git rev-parse --verify "refs/remotes/origin/main" >nul 2>nul || goto :no_remote_branch
+echo [INFO] Updating main with fast-forward only...
+git merge --ff-only origin/main || goto :diverged
+git branch --set-upstream-to=origin/main main >nul 2>nul
+echo [OK] main is synchronized with origin/main.
 goto :end
 :help
 echo Usage: sync-download.bat
-echo Fetches and fast-forwards the current branch. The working tree must be clean.
+echo Switches to and fast-forwards main. The working tree must be clean.
 goto :end
 :no_git
 echo [ERROR] Git for Windows was not found.

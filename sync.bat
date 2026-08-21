@@ -9,7 +9,7 @@ if /I "%~1"=="--help" goto :help
 echo Tactical Code Rift Sync
 echo.
 echo   1. Show status
-echo   2. Download current branch
+echo   2. Download main
 echo   3. Review and upload current branch
 echo   4. Exit
 set "CHOICE="

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "route-map-ui-v1",
+  "status": "runtime-trial",
+  "source": {
+    "path": "assets/candidates/ui/route-map-runtime-assets-split-v1/manifest.json",
+    "author": "User-provided project asset package",
+    "licenseStatus": "pending"
+  },
+  "transforms": [
+    { "operation": "copy", "parameters": { "exclude": ["reference/**"] } },
+    { "operation": "runtime-assignment", "parameters": { "engine": "Phaser", "scene": "JourneyScene" } }
+  ],
+  "outputs": [
+    { "path": "public/assets/journey/route-map-runtime-v1", "kind": "ui" }
+  ],
+  "approval": { "requiredBy": "Art Director", "evidence": "Runtime trial only; release approval pending" }
+}
