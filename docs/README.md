@@ -17,14 +17,15 @@ STATUS = AUTHORITATIVE_INDEX
 9. `COMBAT_REFACTOR_PHASE5B_CONTROLLER_PREVIEW.md`：Phase 5b Controller Preview wiring 契約；定義 application snapshot ownership 與 stale-preview cleanup。
 10. `COMBAT_REFACTOR_PHASE6_RESOLUTION.md`：Phase 6 真正 Battle Resolution / Commit 契約；規定 Execute 必須提交同一份 Preview 規則結果，而不是另算一套公式。
 11. `COMBAT_REFACTOR_PHASE6B_CONTROLLER_RESOLUTION.md`：Phase 6b Controller authoritative-resolution wiring 契約；移除獨立 preview context / player pending-delay 過渡結構。
-12. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
-13. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-14. `art-bible.md`：角色、怪物、背景與透明素材規範。
-15. `characters/README.md`：角色母版與 runtime 對照。
-16. `areas/README.md`：區域背景與 runtime 狀態。
-17. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-18. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-19. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+12. `COMBAT_REFACTOR_PHASE7_ENEMY_ACTION.md`：Phase 7 Enemy Action Resolver 契約；定義公開 Intent 執行、成功行動後韌性／破勢窗口清理、下一 Intent 公開與 enemy 重新排程。
+13. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
+14. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+15. `art-bible.md`：角色、怪物、背景與透明素材規範。
+16. `characters/README.md`：角色母版與 runtime 對照。
+17. `areas/README.md`：區域背景與 runtime 狀態。
+18. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+19. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+20. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 
 ## combat-refactor-v1 分支規則
 
