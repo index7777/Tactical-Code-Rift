@@ -915,3 +915,5 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Generated one F2 mountain-cut candidate from `docs/areas/area-01-encounter-bg-plan.md`; the bridge and tunnel stay at the outer edges and no characters, UI, text, weather particles or combat FX are baked in.
 - Deterministic background gate passed at 1672×941 with central density 0.0177 versus outer density 0.0170; manual runtime review and the production-resolution gate remain open.
 - Integrated it non-destructively as a runtime trial for `battle-2-upper` and `battle-3-upper`.
+- Verification: `npm run verify` passed (31 files, 120 tests) and Vercel deployed bundle `index-BzqZ28QC.js`.
+- Browser screenshot capture timed out after deployment, so the required 1280×720／844×390 manual composite review remains open. Candidate status stays `runtime-trial`; no approval is recorded.
