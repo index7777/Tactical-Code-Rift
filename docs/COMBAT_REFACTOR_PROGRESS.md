@@ -103,13 +103,6 @@ CI：run 137 build / test 全數通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE6_RESOLUTION.md`
 
-新增：
-
-- `src/core/resolution/BattleResolutionResolver.ts`
-- `src/core/resolution/BattleResolutionResolver.test.ts`
-
-已完成：
-
 - `BattleResolutionState` 集中 authoritative timeline / vitals / Intent / resilience / break windows snapshot。
 - `resolveBattleAction()` 強制 active actor 必須是 Timeline front。
 - Resolution 先呼叫 `resolveBattlePreview()`，再提交同一份 damage / lethal / Delay / Intent / Break Window 結果。
@@ -118,13 +111,33 @@ CI：run 137 build / test 全數通過。
 - resolver 對輸入 state 保持 immutable。
 - 測試包含 Preview / Resolution parity。
 
-CI：run 143 build / test 全數通過，因此 Phase 6 升為 VERIFIED。
+CI：run 143 build / test 全數通過。
 
 ## Phase 6b — Controller / Authoritative Resolution Wiring
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE6B_CONTROLLER_RESOLUTION.md`
+
+- Controller 直接持有 `BattleResolutionState`。
+- Preview 直接讀 authoritative battle state。
+- confirm 保存 committed card / target，不提前改 HP 或 Timeline。
+- 玩家 `completeResolution()` 呼叫 `resolveBattleAction()` 一次提交戰鬥結果。
+- 調度是唯一 player-side schedule-only 路徑，Delay 3。
+- `battle()` / `preview()` 都只回 defensive clone。
+
+CI：run 148 build / test 全數通過，因此 Phase 6b 升為 VERIFIED。
+
+## Phase 7 — Enemy Action Resolver
+
+狀態：`IMPLEMENTED_PENDING_CI`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE7_ENEMY_ACTION.md`
+
+新增：
+
+- `src/core/enemy/EnemyActionResolver.ts`
+- `src/core/enemy/EnemyActionResolver.test.ts`
 
 已更新：
 
@@ -133,25 +146,27 @@ CI：run 143 build / test 全數通過，因此 Phase 6 升為 VERIFIED。
 
 已實作：
 
-- Controller 直接持有 `BattleResolutionState`，不再各自持有 `timelineState` 與 `BattlePreviewContextState`。
-- `battle()` 提供完整 authoritative snapshot 的 defensive clone。
-- Preview 直接讀 authoritative battle state；移除 `setPreviewContext()` 過渡 API。
-- confirm 時提交共享手牌並保存 committed card / target，但不提前修改 HP 或 enemy Timeline。
-- 玩家 `completeResolution()` 正式呼叫 `resolveBattleAction()`，一次提交 HP / Intent / resilience / break windows / Timeline。
-- 玩家一般卡牌不再走 controller-local `pendingActionDelay`。
-- 調度保留唯一 player-side schedule-only 路徑：Delay 3，其他 combat state 不變。
-- Enemy 尚未有完整 action resolver，暫時仍以 explicit enemy delay 更新同一份 authoritative Timeline。
-- 新測試覆蓋普通傷害 commit、Delay + temporary resilience、lethal deletion、break-window creation、defensive clone、dispatch 與 enemy transition path。
+- `resolveEnemyAction()` 強制 enemy 必須是 Timeline front 且必須已有公開 Intent。
+- 正常 Intent 真正提交直接傷害；HP 到 0 的目標立即從 Timeline 移除，但 vitals 保留 HP=0。
+- 正常成功行動後 temporary resilience reset，base 保留。
+- 正常成功行動後該敵人的 Break Window 到期，其他敵人窗口保留。
+- `hard-stagger` 消耗 action opportunity，但不造成傷害，也不視為成功行動，因此不 reset resilience / 不 expire Break Window。
+- Resolver 不自己做 AI；下一 Intent 由 application/encounter script 明確輸入。
+- next Intent 必須屬於同一 enemy 且必須為 `normal`；AI 不可主動選 `hard-stagger`。
+- 敵人下一次排程 Delay 直接來自新公開 Intent。
+- Controller enemy path 不再接受 raw `enemyDelay`，改把 next revealed Intent 交給 `resolveEnemyAction()`。
+- 新測試覆蓋 damage、death removal、resilience reset、break-window expiry、hard-stagger、next-intent validation、next-intent scheduling、source immutability 與 controller wiring。
 
 刻意尚未完成：
 
-- Enemy successful-action resolver / 下一 Intent 生成。
-- 成功敵方行動後 temporary resilience reset / break-window expiry wiring。
+- Enemy AI Intent selection algorithm。
 - guard / redirect。
+- secondary status 真正 application / tick。
+- counter / recoil trigger queue。
 - 四角色專精 runtime bonus。
 - Phaser / BootScene / HUD。
-- AOE / multi-target。
+- 完整 multi-target presentation。
 
 ## 下一批
 
-先讓 Phase 6b CI 通過。之後進 Phase 7：Enemy Action Resolver，正式移除 `completeResolution(enemyDelay)` 的過渡參數，讓敵方成功行動負責 Intent 結算、臨時韌性重置、Break Window expiry、下一 Intent 公開與重新排程。
+先讓 Phase 7 CI 通過。之後進 Phase 8：角色專精與守勢／反應 resolver，先把凜、千景、朧、紅葉四種角色差異放進共用計算管線，再進 presentation/HUD 重構。
