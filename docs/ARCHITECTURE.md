@@ -1,47 +1,41 @@
-# 技術架構決策
+# 專案架構
 
-## 目標與選定技術
+STATUS = AUTHORITATIVE
 
-同一套遊戲核心先以 HTML5 快速測試，之後封裝至 iOS／Android 與 Steam。Demo 第一優先是 15–20 分鐘「單輪」閉環。
+## 實際技術
 
-- TypeScript（strict）＋ Phaser 3：2D 遊戲核心與呈現
-- Vite：Web 開發與輸出 `dist/web`
-- Vitest：純邏輯測試
-- 手機後段：Capacitor，共用 Web bundle
-- Steam 後段：Electron；Steamworks 僅存在 desktop adapter
+- TypeScript（strict）
+- Phaser 3.90
+- Vite 6
+- Vitest
+- Web-first；Capacitor、Electron 與 Steamworks 尚未接入
 
-這套 Web-first 技術最直接符合 HTML 優先驗證，且手機與 Steam 可重用輸出。代價是它不適合大型原生 3D／主機遊戲，但目前 2D 像素 ATB Demo 不受此限制。Capacitor、Electron、Steamworks SDK、簽章工具目前不安裝，等具體平台 task 才啟用。
-
-## 程式邊界
+## 權威程式根目錄
 
 ```text
-src/core          純 TypeScript：ATB、傷害、晶片、路線、輪迴、存檔模型
-src/application   Use cases：開始一輪、結算、返航、裝卸晶片
-src/presentation  Phaser scenes、HUD、動畫、輸入映射
-src/infrastructure Web／Capacitor／Electron 的存檔、音效、平台 adapter
-assets/source     原始資產與 provenance，不直接載入
-public/assets     通過審核的 runtime 資產
-dist              生成檔，不是 authoritative source
+src/core/             純規則、戰鬥、卡牌、路線、平衡
+src/application/      應用流程與戰鬥解算協調
+src/presentation/     Phaser 場景、輸入、HUD、演出與素材載入
+public/assets/        runtime 衍生檔，不是母版或核准證明
+assets/               來源、候選、recipe 與 provenance
+build/web/            Vite／Vercel 輸出，不是權威來源
 ```
 
-`core` 不得 import Phaser、DOM 或任何平台 SDK。鍵鼠、手把、觸控先轉成共同 game actions。平台功能以介面注入。
+`core` 不得 import Phaser、DOM 或平台 SDK。Phaser Scene 應只負責生命週期與組裝，不直接承擔完整規則或所有素材路徑。
 
-戰場背景由 `BattlefieldPresenter` 負責，規則層只持有場景識別，不依賴背景座標或列車物件。現行原型模式為 `rooftop`、`wayside`、`exploration`，均沿用同一組戰鬥布局與鏡頭契約。
+## 角色素材資料流
 
-`CombatResolutionController` 已承接時序套用、節拍建立、死亡撤銷後的實際出牌收集與勝敗判定；Phaser Presenter 仍在 `BootScene` 依節拍播放。後續 Boss 批次前須再把逐節拍執行迴圈移出 Scene，現階段不宣稱 God Object 拆分全部完成。
+`src/presentation/assets/player-assets.json` 是目前唯一角色 runtime manifest。`PlayerAssetManifest.ts` 負責把 manifest 轉成 Phaser preload。角色身份由 `PlayerRoster.ts` 管理，站位順序與身份分開。
 
-`JourneyScene` 負責主線選路與列車移動；`core/route` 的 `JourneyState` 保存固定起點／王終點、目前節點、已走節點與連線。事件、探索與伙伴節點現在只有資料和 placeholder resolution，不得在角色與 Boss 完成前擴寫內容系統。
+## 建置與驗證
 
-## 畫面、輸入與存檔
+- `npm run validate:assets`
+- `npm run test`
+- `npm run build`
+- `npm run verify`
 
-- 邏輯畫布 1280×720、16:9、FIT letterbox、pixel art 整數取樣。
-- 手機預設橫向並避開 safe area；Steam 所有流程支援 XInput 與鍵鼠；Web 支援鍵鼠與觸控。
-- tile、角色尺寸、方向數、動畫 FPS 要由 graybox 實測後鎖定，不從參考圖推定。
-- 存檔分 `ProfileState`（永久）及 `RunState`（局內），帶 schema version。正式版 Web/手機/桌面分別使用 IndexedDB、Capacitor、Electron userData adapter。
+標準輸出為 `build/web`，避免舊 `dist/web` 被預覽或同步程式鎖住時導致建置失敗。Vercel 亦使用同一輸出。
 
-## Canonical commands 與發布順序
+## 仍需拆分
 
-1. `npm run test`：核心規則。
-2. `npm run build`：生成可直接部署的 HTML 版本。
-3. Mobile task：同 bundle 放入 Capacitor shells，測 safe area、觸控、暫停／恢復。
-4. Steam task：同 bundle 放入 Electron，加入手把、Overlay、成就、雲存檔 adapter。
+`BootScene` 仍過大。已抽出角色 manifest、遭遇設定、loading screen 與戰鬥音樂控制；下一步是 battle preload、動畫登錄、HUD 組裝、規劃輸入與回合執行。

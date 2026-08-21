@@ -1,12 +1,11 @@
-# Area Art Bible Index
+# 區域美術索引
 
 STATUS = AUTHORITATIVE_INDEX
 
-| Area | State | Spec |
-|---|---|---|
-| Area 01／雨暮山線 | active | `area-01-rainfall-ridgeline.md` |
-| Area 01／旅程與戰鬥 BG 母版 | active | `area-01-bg-master.md` |
+| 區域 | Runtime | 狀態 | 權威規格 |
+|---|---|---|---|
+| Area 01 雨暮山線路線圖 | `area01-route-bg-runtime-trial-v2.png` | runtime trial；1672×941，未達正式解析度 | `area-01-bg-master.md` |
+| Area 01 戰鬥背景 | rooftop／wayside／exploration composites | runtime trial；未核准發布 | `area-01-rainfall-ridgeline.md` |
+| Rain Boss | SVG placeholder | 缺核准母版，禁止生成正式動作 | `../monsters/rain-boss.md` |
 
-新背景生成前必須先建立對應 Area Spec；不得只引用全域 Art Bible。
-
-第一區新 BG 還必須引用 `area-01-bg-master.md`；Area Spec 定義區域身份，BG Master 定義旅程／戰鬥構圖、分層與 runtime 驗收。
+`public/assets` 只代表遊戲可載入，不代表候選已核准或具有發布授權。正式版本不得包含名稱帶 `candidate`／`runtime-trial` 的背景。

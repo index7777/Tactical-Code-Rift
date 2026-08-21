@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "characters": [
+    {
+      "id": "rin",
+      "assetPrefix": "player-rin",
+      "poseRoot": "assets/battle/characters/rin/runtime",
+      "poseFilePrefix": "rin",
+      "currentPortrait": "assets/battle/characters/rin/portraits/amamiya-rin-portrait-current.png",
+      "timelinePortrait": "assets/battle/characters/rin/portraits/amamiya-rin-portrait-timeline.png"
+    },
+    {
+      "id": "chikage",
+      "assetPrefix": "player-chikage",
+      "poseRoot": "assets/battle/characters/chikage/runtime",
+      "poseFilePrefix": "chikage",
+      "currentPortrait": "assets/battle/characters/chikage/portraits/chikage-portrait-normal.png",
+      "timelinePortrait": "assets/battle/characters/chikage/portraits/chikage-portrait-combat.png"
+    },
+    {
+      "id": "oboro",
+      "assetPrefix": "player-oboro",
+      "poseRoot": "assets/battle/characters/oboro/runtime",
+      "poseFilePrefix": "oboro",
+      "currentPortrait": "assets/battle/characters/oboro/portraits/oboro-portrait-current.png",
+      "timelinePortrait": "assets/battle/characters/oboro/portraits/oboro-portrait-timeline.png"
+    },
+    {
+      "id": "mo",
+      "assetPrefix": "player-mo",
+      "poseRoot": "assets/battle/generated/characters/redleaf/production",
+      "poseFilePrefix": "redleaf",
+      "currentPortrait": "assets/battle/generated/characters/redleaf/production/redleaf-portrait-current.png",
+      "timelinePortrait": "assets/battle/generated/characters/redleaf/production/redleaf-portrait-timeline.png"
+    }
+  ]
+}

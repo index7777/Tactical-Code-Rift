@@ -15,10 +15,12 @@ import{isCardSelected}from'../../core/cards/CardSelection';
 import{brokenClashAction}from'../../core/battle/BrokenActionPolicy';
 import{heroineDisplayHeight,playHeroinePose}from'../battle/HeroinePose';
 import{playerRoster,playerRosterEntry}from'../../core/battle/PlayerRoster';
-import{queueNamedPlayerAssets}from'../assets/NamedPlayerAssetLoader';
+import{queuePlayerAssets}from'../assets/PlayerAssetManifest';
 import{encounterSetup}from'../battle/EncounterSetup';
+import{BattleAudioController}from'../battle/BattleAudioController';
+import{createSceneLoadingScreen}from'./SceneLoadingScreen';
 interface Actor extends VisualActor{sprite:Phaser.GameObjects.Sprite;hud:Phaser.GameObjects.Container;hudView:FighterHudView;hit:Phaser.GameObjects.Rectangle;hp:number;maxHp:number;shield:number;tempShield:number;balance:number;alive:boolean;exposed:boolean;broken:boolean;archetype?:EnemyArchetype;traitReady:boolean}
-export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private discardMode=false;private discardUsedThisRound=false;private intentFocus?:string;private previewTargetId?:string;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private undoButton!:Phaser.GameObjects.Text;private battleMusic?:Phaser.Sound.BaseSound;private cardTooltip?:Phaser.GameObjects.Container;
+export class BootScene extends Phaser.Scene{private pc=4;private ec=4;private busy=false;private round=1;private deck:TeamDeckState=createTeamDeckState();private timeline:ActionNode[]=[];private skipBonusNext=new Set<string>();private players=new Map<string,Actor>();private enemies=new Map<string,Actor>();private commands=new Map<string,PlayerCommand|null>();private planning:ActionNode[]=[];private planIndex=0;private selected?:BattleCard;private discardMode=false;private discardUsedThisRound=false;private intentFocus?:string;private previewTargetId?:string;private world!:Phaser.GameObjects.Container;private intentLayer!:Phaser.GameObjects.Container;private intentController!:IntentLayerController;private fighterHud!:FighterHudPresenter;private combatLayer!:Phaser.GameObjects.Container;private hudLayer!:Phaser.GameObjects.Container;private handLayer!:Phaser.GameObjects.Container;private timelineLayer!:Phaser.GameObjects.Container;private status!:Phaser.GameObjects.Text;private phase!:Phaser.GameObjects.Text;private undoButton!:Phaser.GameObjects.Text;private battleAudio?:BattleAudioController;private cardTooltip?:Phaser.GameObjects.Container;
 constructor(){super('BootScene')}
 private deathPresenter!:DeathPresenter;private outcomePresenter!:OutcomePresenter;
 private resultFxPresenter!:CombatResultFxPresenter;
@@ -28,34 +30,14 @@ private battlefieldMode:BattlefieldMode='rooftop';private battlefieldPresenter!:
 private requestedBattlefield?:BattlefieldMode;private journeyNodeId?:string;private selectedBattleMusicKey='battle-music';
 private loadingLayer?:Phaser.GameObjects.Container;
 init(data?:{battlefield?:BattlefieldMode;journeyNodeId?:string}){
-  this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId;this.pc=4;
+  const qaJourneyNodeId=new URLSearchParams(window.location.search).get('qa-battle')??undefined;
+  this.requestedBattlefield=data?.battlefield;this.journeyNodeId=data?.journeyNodeId??qaJourneyNodeId;this.pc=4;
   const setup=encounterSetup(this.journeyNodeId,this.requestedBattlefield);this.ec=setup.enemyCount;this.requestedBattlefield=setup.battlefield;this.selectedBattleMusicKey=setup.musicKey
 }
 private nextBattlefield():BattlefieldMode{return this.battlefieldMode==='rooftop'?'wayside':this.battlefieldMode==='wayside'?'exploration':'rooftop'}
 private currentPlanner(){return applyPlannedInitiative(this.timeline,this.commands).find(n=>n.team==='player'&&!this.commands.has(n.id))}
-loadNamedPlayerAssets(){
-  const poses=['idle-a','idle-b','ready','attack-a','attack-b','hit-a','hit-b','down'];
-  for(const id of ['rin','chikage','oboro','mo'])for(const pose of poses)this.load.image(`${id}-${pose}`,`assets/battle/characters/${id}/runtime/${id}-${pose}.png`);
-  this.load.image('portrait-rin-current','assets/battle/characters/rin/portraits/amamiya-rin-portrait-current.png');
-  this.load.image('portrait-rin-timeline','assets/battle/characters/rin/portraits/amamiya-rin-portrait-timeline.png');
-  this.load.image('portrait-mo-current','assets/battle/characters/mo/portraits/momiji-portrait-current.png');
-  this.load.image('portrait-mo-timeline','assets/battle/characters/mo/portraits/momiji-portrait-timeline.png');
-  this.load.image('portrait-chikage-current','assets/battle/characters/chikage/portraits/chikage-portrait-normal.png');
-  this.load.image('portrait-chikage-timeline','assets/battle/characters/chikage/portraits/chikage-portrait-combat.png');
-  this.load.image('portrait-oboro-current','assets/battle/characters/oboro/portraits/oboro-portrait-current.png');
-  this.load.image('portrait-oboro-timeline','assets/battle/characters/oboro/portraits/oboro-portrait-timeline.png');
-  this.load.image('fx-mo-slash-arc','assets/battle/characters/mo/fx/momiji-slash-arc.png');
-  this.load.image('fx-mo-slash-impact','assets/battle/characters/mo/fx/momiji-impact-final.png');
-}
 private showLoadingScreen(label:string){
-  const background=this.add.rectangle(640,360,1280,720,0x050914,1);
-  const glow=this.add.ellipse(640,348,420,94,0x487b85,.08);
-  const title=this.add.text(640,312,'戰術編碼：裂痕',{fontFamily:'serif',fontSize:'30px',fontStyle:'bold',color:'#f0dfc2'}).setOrigin(.5);
-  const status=this.add.text(640,356,label,{fontFamily:'sans-serif',fontSize:'13px',color:'#91b8c0'}).setOrigin(.5);
-  const track=this.add.rectangle(640,392,360,3,0x283a43,.9);
-  const bar=this.add.rectangle(460,392,0,3,0xcaa55f,1).setOrigin(0,.5);
-  this.loadingLayer=this.add.container(0,0,[background,glow,title,status,track,bar]).setDepth(1000);
-  this.load.on('progress',(value:number)=>bar.setDisplaySize(360*value,3));
+  this.loadingLayer=createSceneLoadingScreen(this,label);
 }
 preload(){this.showLoadingScreen(this.journeyNodeId?'正在整備戰場':'正在駛入雨暮山線');if(shouldStartJourney(new URLSearchParams(window.location.search),this.journeyNodeId))return;['bg-sky','bg-mountains-1','bg-mountains-2','bg-trees'].forEach(k=>this.load.image(k,`assets/battle/${k}.png`));this.load.image('bg-world01-rooftop-candidate','assets/battle/world01-rooftop-composite-candidate-v3.png');for(const name of ['wet-ground-shadow','wet-ground-shadow-wide','rain-splash-small','rain-splash-medium','ground-mist-low','fog-strip','puddle-reflection-soft','puddle-reflection-strong','stone-debris-a','stone-debris-b','rail-debris','lantern-foreground'])this.load.image(`battle-fg-${name.replace('wet-ground-shadow-wide','wet-shadow-wide').replace('wet-ground-shadow','wet-shadow').replace('rain-splash-','rain-').replace('ground-mist-low','ground-mist').replace('puddle-reflection-','puddle-').replace('stone-debris-','stone-').replace('lantern-foreground','lantern')}`,`assets/battle/foreground/world01/fg-${name}.png`);this.load.spritesheet('intent-smoke','assets/battle/generated/intent-smoke-sheet.png',{frameWidth:64,frameHeight:64});this.load.image('yokai-noise','assets/battle/generated/yokai-noise.png');this.load.audio('battle-music','assets/battle/demo_battle01.mp3');this.load.audio('boss-battle-music','assets/music/world-01/zone1-boss-bgm.mp3');this.load.audio('sword-swish','assets/battle/sword-swish.wav');this.load.audio('sword-impact','assets/battle/sword-impact.wav');this.load.image('fx-p9-arc-slash-1','assets/battle/fx/p9a-arc-slash-1.png');this.load.image('fx-p9-arc-slash-2','assets/battle/fx/p9a-arc-slash-2.png');this.load.image('fx-p9-arc-slash-3','assets/battle/fx/p8-arc-slash.svg');this.load.image('fx-p9-line-slash-1','assets/battle/fx/p9a-line-slash-1.png');this.load.image('fx-p9-line-slash-2','assets/battle/fx/p9a-line-slash-2.png');this.load.image('fx-p9-line-slash-3','assets/battle/fx/p8-line-slash.svg');this.load.image('fx-p9-impact-bloom','assets/battle/fx/p8-impact-bloom.svg');this.load.image('fx-p9-clash-cross','assets/battle/fx/p8-clash-cross.svg');this.load.image('fx-p9a-arc-slash-1','assets/battle/fx/p9a-arc-slash-1.png');this.load.image('fx-p9a-arc-slash-2','assets/battle/fx/p9a-arc-slash-2.png');this.load.image('fx-p9a-line-slash-1','assets/battle/fx/p9a-line-slash-1.png');this.load.image('fx-p9a-line-slash-2','assets/battle/fx/p9a-line-slash-2.png');this.load.image('fx-p10-enemy-arc-slash-1','assets/battle/fx/p8-arc-slash.svg');this.load.image('fx-p10-enemy-arc-slash-2','assets/battle/fx/p9a-arc-slash-2.png');this.load.image('fx-p10-enemy-line-slash-1','assets/battle/fx/p8-line-slash.svg');this.load.image('fx-p10-enemy-line-slash-2','assets/battle/fx/p9a-line-slash-2.png');for(const id of ['quick','heavy','break','guard','cover','relay','cycle','delay'])this.load.image(`card-art-${id}`,`assets/battle/cards/art/${id}.svg`);for(const id of ['power','tempo','damage','balance','shield','intercept','relay','restore'])this.load.image(`card-icon-${id}`,`assets/battle/cards/icons/${id}.svg`);for(const id of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior','rain-boss'])this.load.image(`fx-p11-enemy-${id}`,`assets/battle/fx/enemy/p11-${id}-slash.svg`);for(const family of ['attack','defense','support','tactics'])this.load.image(`card-frame-${family}`,`assets/battle/cards/frames/${family}.svg`);for(const pose of ['idle-a','idle-b','ready','attack-a','attack-b','hit-a','hit-b','down'])this.load.image(`heroine-${pose}`,`assets/battle/generated/characters/heroine/p11-4/heroine-${pose}.svg`);for(const pose of ['idle-a','idle-b','ready','attack-a','attack-b','hit-a','hit-b','down'])this.load.image(`redleaf-${pose}`,`assets/battle/generated/characters/redleaf/production/redleaf-${pose}.png`);this.load.image('fx-redleaf-slash-arc','assets/battle/generated/characters/redleaf/production/redleaf-slash-arc.png');this.load.image('fx-redleaf-slash-impact','assets/battle/generated/characters/redleaf/production/redleaf-slash-impact.png');this.load.image('chikage-idle-a','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-a.png');this.load.image('chikage-idle-b','assets/battle/generated/characters/chikage/chikage-sd-idle-runtime-b.png');this.load.image('oboro-idle-a','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-a.png');this.load.image('oboro-idle-b','assets/battle/generated/characters/oboro/oboro-sd-idle-runtime-b.png');for(const name of ['chikage','oboro','wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior']){this.load.image(`portrait-${name}-current`,`assets/battle/portraits/${name}-current.png`);this.load.image(`portrait-${name}-timeline`,`assets/battle/portraits/${name}-timeline.png`)};this.load.image('portrait-heroine-current','assets/battle/portraits/heroine-p11-4-current.svg');this.load.image('portrait-heroine-timeline','assets/battle/portraits/heroine-p11-4-timeline.svg');this.load.image('portrait-redleaf-current','assets/battle/generated/characters/redleaf/production/redleaf-portrait-current.png');this.load.image('portrait-redleaf-timeline','assets/battle/generated/characters/redleaf/production/redleaf-portrait-timeline.png');for(const name of ['chikage','oboro']){this.load.image(`${name}-ready`,`assets/battle/generated/characters/${name}/${name}-sd-ready-runtime-v1.png`);this.load.image(`${name}-attack-a`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v1.png`);this.load.image(`${name}-attack-b`,`assets/battle/generated/characters/${name}/${name}-sd-attack-runtime-v2.png`);this.load.image(`${name}-hit-a`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v1.png`);this.load.image(`${name}-hit-b`,`assets/battle/generated/characters/${name}/${name}-sd-hit-runtime-v2.png`);this.load.image(`${name}-down`,`assets/battle/generated/characters/${name}/${name}-sd-down-runtime-v2.png`)};// 第一區怪物母版：已交付母版的走 PNG runtime；rain-warrior/rain-boss 尚未生圖，
 // 暫時 fallback 到 SVG 剪影 placeholder（不 tint、不美觀，等使用者核准後補生）。
@@ -72,7 +54,7 @@ create(){
     if(!this.anims.exists('heroine-strike'))this.anims.create({key:'heroine-strike',frames:[{key:'heroine-attack-a'},{key:'heroine-attack-b'}],frameRate:12,repeat:0});
     if(!this.anims.exists('heroine-down'))this.anims.create({key:'heroine-down',frames:[{key:'heroine-down'}]});
     if(!this.anims.exists('enemy-idle'))this.anims.create({key:'enemy-idle',frames:this.anims.generateFrameNumbers('enemy',{start:0,end:3}),frameRate:5,repeat:-1});
-    this.startBattleMusic();
+    this.battleAudio=new BattleAudioController(this,this.selectedBattleMusicKey);this.battleAudio.start();
     this.world=this.add.container();
     this.hudLayer=this.add.container().setDepth(30).setScrollFactor(0);
     this.handLayer=this.add.container().setDepth(20).setScrollFactor(0);
@@ -95,27 +77,7 @@ create(){
     this.rebuild();this.playBattleIntro()
   }
 private playBattleIntro(){if(!this.journeyNodeId)return;const boss=this.journeyNodeId==='boss-1',elite=this.journeyNodeId==='elite-1';const veil=this.add.rectangle(640,360,1280,720,0x03070b,.92).setDepth(300).setScrollFactor(0),kicker=this.add.text(640,305,boss?'第一區・雨暮山線　終點':elite?'第一區・雨暮山線　精英':'第一區・雨暮山線',{fontFamily:'serif',fontSize:'18px',color:boss?'#ffb2a8':'#a9c8ce'}).setOrigin(.5).setDepth(301).setScrollFactor(0),title=this.add.text(640,350,boss?'雨暮驛・站守':elite?'雨夜武者':'遭遇',{fontFamily:'serif',fontSize:boss?'38px':'30px',fontStyle:'bold',color:'#fff1d6',stroke:'#12090b',strokeThickness:5}).setOrigin(.5).setDepth(301).setScrollFactor(0),line=this.add.rectangle(640,397,boss?420:280,2,boss?0xb6373f:0x87b6bd,.9).setDepth(301).setScrollFactor(0);this.input.enabled=false;this.time.delayedCall(boss?820:520,()=>this.tweens.add({targets:[veil,kicker,title,line],alpha:0,duration:320,onComplete:()=>{veil.destroy();kicker.destroy();title.destroy();line.destroy();this.input.enabled=true}}))}
-private startBattleMusic(){
-  this.battleMusic=this.sound.get(this.selectedBattleMusicKey)??this.sound.add(this.selectedBattleMusicKey,{loop:true,volume:0});
-  if(!this.battleMusic.isPlaying)this.battleMusic.play({loop:true,volume:0});
-  this.fadeBattleMusic(.3,1200);
-  this.game.events.off(Phaser.Core.Events.BLUR,this.onGameBlur,this);
-  this.game.events.off(Phaser.Core.Events.FOCUS,this.onGameFocus,this);
-  this.game.events.on(Phaser.Core.Events.BLUR,this.onGameBlur,this);
-  this.game.events.on(Phaser.Core.Events.FOCUS,this.onGameFocus,this);
-  this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{
-    this.game.events.off(Phaser.Core.Events.BLUR,this.onGameBlur,this);
-    this.game.events.off(Phaser.Core.Events.FOCUS,this.onGameFocus,this);
-  });
-}
-private onGameBlur(){this.fadeBattleMusic(0,500)}
-private onGameFocus(){this.fadeBattleMusic(.3,700)}
-private fadeBattleMusic(volume:number,duration:number){
-  if(!this.battleMusic)return;
-  this.tweens.killTweensOf(this.battleMusic);
-  this.tweens.add({targets:this.battleMusic,volume,duration,ease:'Sine.easeInOut'});
-}
-private returnToJourney(){this.fadeBattleMusic(0,350);this.time.delayedCall(350,()=>{this.battleMusic?.stop();this.scene.start('JourneyScene')})}
+private returnToJourney(){this.battleAudio?.fadeTo(0,350);this.time.delayedCall(350,()=>{this.battleAudio?.stop();this.scene.start('JourneyScene')})}
 private hud(){
     this.phase=this.add.text(22,9,'',{fontFamily:'sans-serif',fontSize:'12px',fontStyle:'bold',color:'#cbe9ee'}).setVisible(false);
     this.hudLayer.add(this.phase);
@@ -720,7 +682,7 @@ private async resolve(){
   }
   const played=this.resolutionController.committedCards(this.commands);this.deck=commitPlayedCards(this.deck,played);this.visibleHandCount=this.deck.hand.length;this.renderHand();played.forEach((_,i)=>this.time.delayedCall(i*70,()=>this.animateCardTravel(640-i*18,310,0x823447)));this.phase.setText(`回合 ${this.round}`);this.intentFocus=undefined;this.intentController.completeRound();
   const outcome=this.resolutionController.outcome(this.players.values(),this.enemies.values());
-  if(outcome){this.handLayer.setVisible(false);this.fadeBattleMusic(.05,900);await this.outcomePresenter.show(outcome,{onRetry:()=>this.scene.restart({battlefield:this.battlefieldMode,journeyNodeId:this.journeyNodeId}),onContinue:outcome==='victory'?(this.journeyNodeId?()=>this.returnToJourney():()=>this.scene.restart({battlefield:this.nextBattlefield()})):undefined});return}
+  if(outcome){this.handLayer.setVisible(false);this.battleAudio?.fadeTo(.05,900);await this.outcomePresenter.show(outcome,{onRetry:()=>this.scene.restart({battlefield:this.battlefieldMode,journeyNodeId:this.journeyNodeId}),onContinue:outcome==='victory'?(this.journeyNodeId?()=>this.returnToJourney():()=>this.scene.restart({battlefield:this.nextBattlefield()})):undefined});return}
   this.handLayer.setVisible(true);this.timelineLayer.setAlpha(1).setVisible(true);const beginNextRound=()=>{this.setStatus('');this.busy=false;this.nextRound(true)};this.time.delayedCall(140,beginNextRound);
 }
 }
@@ -729,6 +691,6 @@ private async resolve(){
 // compressed scene body also prevents dev/prod lifecycle timing differences.
 const bootScenePreload=BootScene.prototype.preload;
 BootScene.prototype.preload=function(){
-  queueNamedPlayerAssets(this.load);
+  queuePlayerAssets(this.load);
   bootScenePreload.call(this);
 };

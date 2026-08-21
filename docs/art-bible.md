@@ -1,78 +1,53 @@
-# Tactical Code Rift 美術製作總規格
+# Tactical Code Rift 美術規範
 
 STATUS = AUTHORITATIVE
 
-本文件約束角色、怪物、背景、事件圖與戰鬥整合。玩法規則仍以 `CURRENT_COMBAT_SPEC.md` 為準；美術不得自行新增技能、武器切換、方向或戰鬥狀態。
+## 素材狀態
 
-## 強制工作流
+1. `candidate`：候選，不得直接視為正式素材。
+2. `runtime-trial`：可接入遊戲驗收，但尚未核准發布。
+3. `approved`：由 Art Director 明確核准。
+4. `rejected`：保留為負面參考，禁止重新進入 runtime。
 
-```text
-Read Art Bible + relevant Character Master / Area Spec
-→ Read matching approved and rejected references
-→ Generate or edit one candidate
-→ Save under assets/candidates with provenance
-→ Run deterministic asset checks
-→ Integrate candidate into the real scene
-→ Run game at 1280×720 and mobile landscape
-→ Capture screenshots for idle, focus and action states
-→ Compare against master/spec and record Pass or Fail
-→ Iterate only on named failures, maximum 3 automatic attempts
-```
+檔案位於 `public/assets` 不代表 approved，也不代表具備發布授權。
 
-第三次仍不合格時停止，保留最後候選與三次報告，回報阻礙；不得無限生成。單張原圖、透明預覽或程式碼存在都不能成為核准證據。
+## 角色素材
 
-## 資產狀態
+- 角色身份必須來自核准 Character Master。
+- 方向、服裝、武器、比例與配色不得在衍生動作中漂移。
+- 橫向戰鬥動作使用真實透明 PNG，不得包含棋盤格、綠幕、背景、地面陰影、UI、文字或預先烘入的通用 FX。
+- 每名角色的 idle、ready、attack、hit、down 使用一致畫布、腳底 pivot 與顯示高度。
+- 4V4 驗收高度約 82～108 px；1V1 約 130～160 px。正式來源必須足以在目標高度保持乾淨輪廓。
+- 不得把 128 px prototype 插值放大後標示為高解析正式素材。
+- 非對稱角色或武器若未核准鏡像，禁止使用 horizontal flip。
 
-每個資產只能處於以下狀態之一：
+## Alpha 與裁切
 
-1. `candidate`：已生成，尚未通過整合驗收。
-2. `runtime-trial`：已接入遊戲，只供實機比較。
-3. `approved`：通過規格、自動檢查、實機截圖及 Art Director 核准。
-4. `rejected`：禁止再次作為正向生成 reference；必須保存圖片與具體原因。
+- Actor／FX 必須含 alpha channel，且不能完全透明。
+- 禁止烘入棋盤格、綠幕 spill、白邊、黑底與相鄰 atlas cell 碎片。
+- 清理不得任意刪除與角色相連的武器、髮絲或服裝輪廓。
+- standing pose 使用共同腳底基準；down pose 另有橫躺 bbox，但落地位置必須一致。
+- 自動檢查至少包含：格式、尺寸、alpha、bbox、透明 padding、孤立 component、pivot 與 runtime key 唯一性。
 
-候選不得直接覆寫 approved 資產。任何 runtime-trial 都需可回復且更新 `assets/ASSET_PROVENANCE.md`。
+## 背景
 
-## 角色共同規格
+- 背景不得烘入角色、路線節點、卡牌、文字、HUD、殺意線或攻擊 FX。
+- Area 01 中央交戰區保持低細節，角色與意圖線必須優先可讀。
+- 路線背景正式來源要求原生 3840×2160，並產生 2560×1440 與 1280×720 衍生檔。
+- 小於 2K 的生成圖不得經插值後宣稱為原生 4K。
 
-- 2D SD／chibi、日系 JRPG／anime、粗而乾淨的外輪廓、內部保留 cel shading。
-- 嚴格側視，只製作朝戰場中央的一個方向；能安全水平翻轉時不另畫方向。
-- 臉型、髮型、身體比例、服裝分件、武器種類與尺寸只由 Character Master 決定。
-- 角色圖不得烘焙 FX、發光、環境色、投影、地面、文字或 UI。
-- 普通戰鬥以 `idle / ready / down` 為最低繪圖集；attack、hit、break 優先以 ready／idle 加 runtime 位移、旋轉、染色、hit-stop 與 FX 完成。
-- 新 pose 必須引用同一 Character Master；不得用文字重新猜角色。
-- 4V4 實際顯示約 82–100 px 高，1V1 約 130–150 px；縮圖輪廓仍須可辨識。
+## Runtime 驗收
 
-## Character Master 必要欄位
+每次視覺變更至少檢查：
 
-每份 `docs/characters/*.md` 必須記錄：master reference、side-view reference、palette、body proportion、face/hair rules、costume rules、weapon dimensions、silhouette rules、allowed variations、forbidden variations、facing policy、pivot、runtime height、approval state。
+- 1280×720 桌面
+- 844×390 橫向小螢幕
+- idle、focus、attack、hit、down
+- silhouette、palette、pivot、scale、overlap
+- 網路 404、console error、黑色素材框
 
-沒有 approved Character Master 時禁止生成該角色的 pose、attack、hit、break 或 Event CG。
+失敗代碼包含：`alpha-failure`、`pivot-failure`、`runtime-overlap`、`style-drift`、`face-drift`、`costume-drift`、`weapon-size-drift`、`background-too-detailed`、`central-area-too-busy`、`wrong-area-palette`。
 
-## 背景共同規格
+## 核准
 
-- 超寬橫向 2D side-view battlefield；stylized Japanese JRPG／anime，不採 photorealistic 或 PBR 質感。
-- 背景細節與對比低於角色；中央 45–50% 保持低視覺噪音。
-- 中央是衝刺、交鋒、擊退、追擊、接力與 FX 安全區；高對比物件只可放在外側。
-- 地面需有明確且一致的角色接地基準，能容納 4V4 的 Y 軸錯層站位。
-- BG 不得包含人物、敵人、UI、HUD、文字、卡牌、殺生線或攻擊 FX。
-- 玩家在左、敵人在右；背景構圖不能暗示傳統同列一對一。
-
-## 戰場方向規則（美術／FX 必讀）
-
-- 場上永遠玩家 x < 640、敵方 x > 640；已由 `BattleLayout.ts` 決定並有測試守衛。做任何角色 pose、事件 CG、Event 圖、FX sheet 都以此為基準。
-- 角色母版本身：嚴格側視、朝戰場中央。玩家角色母版預設臉朝右（往敵方看），敵人母版預設臉朝左（往玩家看）。只有在對稱設計下才允許 horizontal flip；不對稱設計禁止翻。
-- 攻擊向 FX（斬擊、刀光、命中閃、彈開、殺生線、突進拖尾）**基準方向為從右向左**（沿用最早 `slash-cc0` CC0 素材原朝向）。runtime 由 `attacker.x < target.x` 決定 `flipX`，玩家攻擊需 `flipX=true`，敵方攻擊需 `flipX=false`。素材本身不得預先把方向反烘；沒有基準朝向的旋轉物件（爆散、粒子、光環）不受此規則約束。
-- 新增 FX sheet 提交時，必須在對應資料夾附一份 `direction.txt` 或於 provenance 記錄其基準朝向（例如 `base-swing-direction: right-to-left`），避免下次接入時 flip 錯。
-- 若未來全隊鏡像（例如試作 boss 場，玩家在右），要靠上述座標推導自動翻，不得再回頭在美術端把素材反畫。
-
-## 實機截圖門檻
-
-角色至少檢查：4V4 待機、目前行動者聚焦、中央交鋒、受擊／崩勢、死亡。背景至少檢查：無角色底圖、4V4 全線、聚焦殺生線、中央交鋒、1280×720 與 844×390 橫向。
-
-每次 Fail 必須使用具體代碼：`too-realistic`、`background-too-detailed`、`silhouette-lost`、`wrong-proportion`、`face-drift`、`costume-drift`、`weapon-size-drift`、`wrong-battlefield-composition`、`central-area-too-busy`、`ground-unreadable`、`wrong-area-palette`、`supernatural-too-strong`、`alpha-failure`、`pivot-failure`、`runtime-overlap`。
-
-## 自動與人工邊界
-
-可自動：尺寸、比例、PNG alpha、透明邊界、非空 bbox、中央邊緣密度、縮圖輸出、檔名、manifest、provenance 完整性、build、scene navigation、viewport、console、截圖保存及三次迭代計數。
-
-必須人工：角色魅力、臉部一致性、服裝／武器設計是否正確、輪廓辨識、背景是否搶戲、妖異強度、整體風格、最終 approved／rejected 決策。
+Codex 可以提出核准建議；只有使用者／Art Director 能把素材改為 approved。核准後必須同步更新 `references/approved/index.json`、角色／區域規格與 `assets/ASSET_PROVENANCE.md`。
