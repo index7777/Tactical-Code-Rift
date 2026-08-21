@@ -1,5 +1,6 @@
 import type { RefactorCardInstance } from '../cards/RefactorCardTypes';
 import type { IntentState } from '../intents/IntentState';
+import type { GuardReactionState } from '../reactions/GuardState';
 import {
   resolveBattlePreview,
   type BattlePreviewResult,
@@ -21,6 +22,8 @@ export interface BattleResolutionState {
   resilienceByEnemyId: Record<string, ControlResilienceState | undefined>;
   breakWindows: BreakWindowState[];
   nextBreakWindowSequence: number;
+  guardByTargetId?: Record<string, GuardReactionState | undefined>;
+  oboroDelayUsedByEnemyId?: Record<string, boolean | undefined>;
 }
 
 export interface BattleResolutionInput {
@@ -75,6 +78,13 @@ function cloneState(state: BattleResolutionState): BattleResolutionState {
     ),
     breakWindows: state.breakWindows.map((window) => ({ ...window })),
     nextBreakWindowSequence: state.nextBreakWindowSequence,
+    guardByTargetId: Object.fromEntries(
+      Object.entries(state.guardByTargetId ?? {}).map(([targetId, guard]) => [
+        targetId,
+        guard ? { ...guard } : undefined,
+      ]),
+    ),
+    oboroDelayUsedByEnemyId: { ...(state.oboroDelayUsedByEnemyId ?? {}) },
   };
 }
 
@@ -107,6 +117,9 @@ export function resolveBattleAction(
     targetIntent,
     targetResilience,
     breakWindows: source.breakWindows,
+    oboroDelayAlreadyUsed: input.targetId
+      ? Boolean(source.oboroDelayUsedByEnemyId?.[input.targetId])
+      : false,
   });
 
   const next = cloneState(source);
@@ -135,6 +148,20 @@ export function resolveBattleAction(
     if (preview.targetResilienceAfter) {
       next.resilienceByEnemyId[input.targetId] = { ...preview.targetResilienceAfter };
     }
+
+    if (preview.oboroBonusApplied) {
+      next.oboroDelayUsedByEnemyId = {
+        ...(next.oboroDelayUsedByEnemyId ?? {}),
+        [input.targetId]: true,
+      };
+    }
+  }
+
+  if (preview.createdGuardReaction) {
+    next.guardByTargetId = {
+      ...(next.guardByTargetId ?? {}),
+      [preview.createdGuardReaction.targetId]: { ...preview.createdGuardReaction },
+    };
   }
 
   if (preview.consumedBreakWindowIds.length > 0) {
@@ -165,6 +192,7 @@ export function resolveBattleAction(
   if (preview.lethal && input.targetId) {
     next.intentByEnemyId[input.targetId] = undefined;
     next.breakWindows = removeWindowsForTarget(next.breakWindows, input.targetId);
+    if (next.guardByTargetId) delete next.guardByTargetId[input.targetId];
   }
 
   next.timeline = {
