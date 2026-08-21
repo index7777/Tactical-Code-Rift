@@ -896,3 +896,4 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 
 - Added a read-only DOM QA state on the battle host (`qa-battle`, player/enemy counts, round, busy state, and four-player texture readiness) so deployed builds can be verified through browser isolation without exposing mutation controls.
 - Verification: `npm run verify` passed (31 files, 120 tests), player manifest validation passed (32 unique poses), and the production build completed in `build/web`.
+- Formal Vercel QA (`73c959d`): all seven direct encounter routes created one canvas, four players, the expected enemy count, round 1, an idle/non-busy planning state, and all four player texture namespaces. Counts were `battle-1=2`, `battle-2-upper=3`, `battle-2-lower=3`, `battle-3-upper=4`, `battle-3-lower=4`, `elite-1=3`, and `boss-1=3`.
