@@ -10,6 +10,6 @@ STATUS = AUTHORITATIVE_RELEASE_GATE
 | Area 01 route/battle backgrounds | Candidate/runtime trial | BLOCKED: native 4K master and final approval pending | Replace sub-2K trial and approve composite |
 | World 01 music | Prototype integrated | BLOCKED: ownership/distribution rights pending | Attach license or written authorization |
 | CC0 battle samples | Prototype | PASS with retained source records | Keep audit links and hashes |
-| Rain Boss | Placeholder only | BLOCKED: no approved master | Approve identity/master before generation |
+| Rain Boss | Approved v2 master integrated | BLOCKED: 1254px source below 2K target; runtime composite and release provenance gates remain | Capture 1280×720／844×390 Boss QA, retain approval/provenance, re-author native 2K only if required for release |
 
 Nothing marked `BLOCKED` may be described as release-cleared merely because it exists under `public/`.

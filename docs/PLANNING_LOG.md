@@ -940,3 +940,9 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Visual attempt v1 passed alpha/baseline checks but was registered as rejected `wrong-facing` because it used a three-quarter concept-art stance, an oversized curved blade and only 1254px source resolution. After reopening that negative reference, attempt v2 tightened the side-battle silhouette and weapon ratio; its deterministic RGBA checks pass, but slight three-quarter torso read, tight weapon padding and sub-2048 source resolution remain for Art Director review. No runtime replacement was made.
 - Art Director approved v2 and authorized continuation. The approved PNG now replaces the `rain-boss` SVG placeholder at 158px Boss height; ordinary enemy states continue to reuse one master, and enemy death now rises/fades into runtime shards without a separate down image. Native 2K re-authoring remains an explicit source-resolution gate.
 - Verification: approved/runtime PNG passed RGBA, non-empty bbox, foot baseline and usable-crop checks; `npm run verify` passed (31 test files, 120 tests) and production build emitted `index-C8zsUK8I.js`. Required 1280x720 and 844x390 Boss composite capture remains open.
+
+## 2026-08-21 — 新對話執行交接
+
+- Added authoritative `docs/NEXT_WORK.md` with ordered P0/P1/P2 work, concrete completion conditions, required runtime evidence, release gates, shared verification commands and explicit completed items that must not be repeated.
+- Updated `docs/README.md` to route new conversations to the handoff, corrected `PROJECT_STATUS.md` and `RELEASE_ASSET_AUDIT.md` for the approved/integrated Rain Boss, and retained the 1254px source-resolution and two-viewport composite gates.
+- This batch changes documentation only; gameplay and runtime assets are unchanged.

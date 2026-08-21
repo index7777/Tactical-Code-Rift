@@ -16,5 +16,6 @@ STATUS = AUTHORITATIVE_INDEX
 8. `areas/README.md`：區域背景與 runtime 狀態。
 9. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
 10. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+11. `NEXT_WORK.md`：新對話接手用的執行順序、完成條件與禁止重做項目。
 
 `HANDOFF.md`、舊 `player-a`～`player-d` 文件與 P1～P11 過程文件只保留歷史脈絡。`docs/archive/` 不得作為目前設計輸入。
