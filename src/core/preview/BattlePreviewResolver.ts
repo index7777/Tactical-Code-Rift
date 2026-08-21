@@ -1,4 +1,7 @@
-import type { RefactorCardInstance } from '../cards/RefactorCardTypes';
+import type {
+  RefactorCardInstance,
+  RefactorCardCategory,
+} from '../cards/RefactorCardTypes';
 import { interruptIntent, resolveIntentDelay } from '../intents/IntentResolver';
 import type { IntentState } from '../intents/IntentState';
 import {
@@ -52,6 +55,7 @@ export interface BattlePreviewResult {
   requestedDelay: number;
   actualDelay: number;
   ignoredResilience: number;
+  targetResilienceAfter?: ControlResilienceState;
   crossedPlayerActorIds: string[];
   crossedPlayerWindows: number;
   actorNextActionAt: number;
@@ -79,6 +83,12 @@ function cloneTimeline(timeline: BattleTimelineState): BattleTimelineState {
     currentTime: timeline.currentTime,
     entries: timeline.entries.map((entry) => ({ ...entry })),
   };
+}
+
+function cloneResilience(
+  resilience: ControlResilienceState | undefined,
+): ControlResilienceState | undefined {
+  return resilience ? { ...resilience } : undefined;
 }
 
 function validateVitals(vitals: PreviewActorVitals): void {
@@ -113,9 +123,9 @@ function validateTarget(input: BattlePreviewInput): void {
   }
 }
 
-function breakWindowConsumer(card: RefactorCardInstance): BreakWindowConsumer | undefined {
-  if (card.definition.category === 'heavy') return 'heavy';
-  if (card.definition.category === 'disruption') return 'disruption';
+function breakWindowConsumer(category: RefactorCardCategory): BreakWindowConsumer | undefined {
+  if (category === 'heavy') return 'heavy';
+  if (category === 'disruption') return 'disruption';
   return undefined;
 }
 
@@ -125,7 +135,7 @@ function matchingBreakWindow(
   card: RefactorCardInstance,
 ): BreakWindowState | undefined {
   if (!targetId) return undefined;
-  const consumer = breakWindowConsumer(card);
+  const consumer = breakWindowConsumer(card.definition.category);
   if (!consumer) return undefined;
   return windows.find((window) =>
     window.targetId === targetId && canConsumeBreakWindow(window, consumer),
@@ -163,6 +173,7 @@ export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewRe
   const requestedDelay = effect.delayTarget ?? 0;
   let actualDelay = 0;
   let ignoredResilience = 0;
+  let targetResilienceAfter = cloneResilience(input.targetResilience);
   let crossedPlayerActorIds: string[] = [];
   let targetTimelineFrom = targetEntry?.nextActionAt;
   let targetTimelineTo = targetEntry?.nextActionAt;
@@ -175,6 +186,7 @@ export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewRe
     const delayed = resolveIntentDelay(input.targetIntent, input.targetResilience, requestedDelay, ignore);
     actualDelay = delayed.actualDelay;
     ignoredResilience = delayed.ignoredResilience;
+    targetResilienceAfter = { ...delayed.resilience };
     intentAfter = cloneIntent(delayed.intent);
 
     if (actualDelay > 0 && targetEntry) {
@@ -217,6 +229,7 @@ export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewRe
     requestedDelay,
     actualDelay,
     ignoredResilience,
+    targetResilienceAfter,
     crossedPlayerActorIds,
     crossedPlayerWindows: crossedPlayerActorIds.length,
     actorNextActionAt,
