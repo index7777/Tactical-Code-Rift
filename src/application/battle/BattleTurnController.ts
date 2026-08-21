@@ -23,10 +23,11 @@ import type { IntentState } from '../../core/intents/IntentState';
 import {
   resolveBattlePreview,
   type BattlePreviewResult,
-  type PreviewActorVitals,
 } from '../../core/preview/BattlePreviewResolver';
-import type { BreakWindowState } from '../../core/status/BreakWindow';
-import type { ControlResilienceState } from '../../core/status/ControlResilience';
+import {
+  resolveBattleAction,
+  type BattleResolutionState,
+} from '../../core/resolution/BattleResolutionResolver';
 import {
   nextTimelineActor,
   scheduleAfterAction,
@@ -35,34 +36,46 @@ import type { BattleTimelineState } from '../../core/timeline/TimelineTypes';
 
 const DISPATCH_ACTION_ID = '__dispatch__';
 
-export interface BattlePreviewContextState {
-  vitalsByActorId: Record<string, PreviewActorVitals>;
-  intentByEnemyId: Record<string, IntentState | undefined>;
-  resilienceByEnemyId: Record<string, ControlResilienceState | undefined>;
-  breakWindows: BreakWindowState[];
-}
-
 function cloneIntent(intent: IntentState | undefined): IntentState | undefined {
   return intent
     ? { ...intent, targetIds: [...intent.targetIds], statusEffects: [...intent.statusEffects] }
     : undefined;
 }
 
-function clonePreviewContext(context: BattlePreviewContextState): BattlePreviewContextState {
+function cloneCard(card: RefactorCardInstance | undefined): RefactorCardInstance | undefined {
+  if (!card) return undefined;
   return {
+    instanceId: card.instanceId,
+    definition: {
+      ...card.definition,
+      effect: { ...card.definition.effect },
+    },
+  };
+}
+
+function cloneBattleState(state: BattleResolutionState): BattleResolutionState {
+  return {
+    timeline: {
+      currentTime: state.timeline.currentTime,
+      entries: state.timeline.entries.map((entry) => ({ ...entry })),
+    },
     vitalsByActorId: Object.fromEntries(
-      Object.entries(context.vitalsByActorId).map(([actorId, vitals]) => [actorId, { ...vitals }]),
+      Object.entries(state.vitalsByActorId).map(([actorId, vitals]) => [
+        actorId,
+        vitals ? { ...vitals } : undefined,
+      ]),
     ),
     intentByEnemyId: Object.fromEntries(
-      Object.entries(context.intentByEnemyId).map(([actorId, intent]) => [actorId, cloneIntent(intent)]),
+      Object.entries(state.intentByEnemyId).map(([enemyId, intent]) => [enemyId, cloneIntent(intent)]),
     ),
     resilienceByEnemyId: Object.fromEntries(
-      Object.entries(context.resilienceByEnemyId).map(([actorId, resilience]) => [
-        actorId,
+      Object.entries(state.resilienceByEnemyId).map(([enemyId, resilience]) => [
+        enemyId,
         resilience ? { ...resilience } : undefined,
       ]),
     ),
-    breakWindows: context.breakWindows.map((window) => ({ ...window })),
+    breakWindows: state.breakWindows.map((window) => ({ ...window })),
+    nextBreakWindowSequence: state.nextBreakWindowSequence,
   };
 }
 
@@ -70,6 +83,9 @@ function clonePreviewResult(preview: BattlePreviewResult | undefined): BattlePre
   if (!preview) return undefined;
   return {
     ...preview,
+    targetResilienceAfter: preview.targetResilienceAfter
+      ? { ...preview.targetResilienceAfter }
+      : undefined,
     crossedPlayerActorIds: [...preview.crossedPlayerActorIds],
     intentBefore: cloneIntent(preview.intentBefore),
     intentAfter: cloneIntent(preview.intentAfter),
@@ -83,27 +99,28 @@ function clonePreviewResult(preview: BattlePreviewResult | undefined): BattlePre
 }
 
 export class BattleTurnController {
-  private timelineState: BattleTimelineState;
+  private battleState: BattleResolutionState;
   private deckState: RefactorDeckState;
-  private previewContextState?: BattlePreviewContextState;
   private previewResult?: BattlePreviewResult;
   private turnState: BattleTurnState = waitingForNextActor();
-  private pendingActionDelay?: number;
+  private committedCard?: RefactorCardInstance;
+  private committedTargetId?: string;
+  private pendingDispatch = false;
 
-  constructor(
-    timeline: BattleTimelineState,
-    deck: RefactorDeckState,
-    previewContext?: BattlePreviewContextState,
-  ) {
-    this.timelineState = timeline;
+  constructor(battle: BattleResolutionState, deck: RefactorDeckState) {
+    this.battleState = cloneBattleState(battle);
     this.deckState = cloneRefactorDeckState(deck);
-    this.previewContextState = previewContext ? clonePreviewContext(previewContext) : undefined;
+  }
+
+  battle(): BattleResolutionState {
+    return cloneBattleState(this.battleState);
   }
 
   timeline(): BattleTimelineState {
+    const timeline = this.battleState.timeline;
     return {
-      currentTime: this.timelineState.currentTime,
-      entries: this.timelineState.entries.map((entry) => ({ ...entry })),
+      currentTime: timeline.currentTime,
+      entries: timeline.entries.map((entry) => ({ ...entry })),
     };
   }
 
@@ -122,18 +139,13 @@ export class BattleTurnController {
     return clonePreviewResult(this.previewResult);
   }
 
-  setPreviewContext(context: BattlePreviewContextState): void {
-    this.previewContextState = clonePreviewContext(context);
-    this.clearPreview();
-  }
-
   startNextActor(): BattleTurnState {
     if (this.turnState.phase !== 'WAITING_FOR_NEXT_ACTOR') {
       throw new Error(`cannot start next actor during ${this.turnState.phase}`);
     }
-    const actor = nextTimelineActor(this.timelineState);
+    const actor = nextTimelineActor(this.battleState.timeline);
     if (!actor) throw new Error('timeline has no actors');
-    this.pendingActionDelay = undefined;
+    this.clearPendingAction();
     this.clearPreview();
     this.turnState = beginActorTurn(actor);
     return this.turn();
@@ -175,10 +187,16 @@ export class BattleTurnController {
       throw new Error(`card requires a resolved target preview: ${card.instanceId}`);
     }
 
+    const targetId = card.definition.targetRule === 'self'
+      ? this.requireActivePlayerActorId()
+      : this.turnState.previewTargetId;
+
     this.turnState = confirmPlayerAction(this.turnState);
     const result = playOneCard(this.deckState, card.instanceId);
     this.deckState = result.state;
-    this.pendingActionDelay = result.played.definition.delay;
+    this.committedCard = cloneCard(result.played);
+    this.committedTargetId = targetId;
+    this.pendingDispatch = false;
     this.clearPreview();
     return this.turn();
   }
@@ -194,9 +212,10 @@ export class BattleTurnController {
     const result = dispatchCards(this.deckState, selectedInstanceIds);
     this.deckState = result.state;
     this.clearPreview();
+    this.clearPendingAction();
     this.turnState = selectAction(this.turnState, DISPATCH_ACTION_ID);
     this.turnState = confirmPlayerAction(this.turnState);
-    this.pendingActionDelay = DISPATCH_DELAY;
+    this.pendingDispatch = true;
     return this.turn();
   }
 
@@ -206,43 +225,67 @@ export class BattleTurnController {
     return this.turn();
   }
 
-  completeResolution(enemyDelay?: number): BattleTimelineState {
+  completeResolution(enemyDelay?: number): BattleResolutionState {
     if (this.turnState.phase !== 'RESOLVING' || !this.turnState.activeActor) {
       throw new Error(`cannot complete resolution during ${this.turnState.phase}`);
     }
 
-    const delay = this.turnState.activeActor.team === 'player'
-      ? this.requirePendingPlayerDelay()
-      : this.requireEnemyDelay(enemyDelay);
+    const actor = this.turnState.activeActor;
+    if (actor.team === 'player') {
+      if (this.pendingDispatch) {
+        const scheduled = scheduleAfterAction(
+          this.battleState.timeline,
+          actor.actorId,
+          DISPATCH_DELAY,
+        );
+        this.battleState = {
+          ...cloneBattleState(this.battleState),
+          timeline: scheduled.state,
+        };
+      } else {
+        const card = this.committedCard;
+        if (!card) throw new Error('player action has no committed card');
+        const resolved = resolveBattleAction({
+          state: this.battleState,
+          activeActorId: actor.actorId,
+          card,
+          targetId: this.committedTargetId,
+        });
+        this.battleState = resolved.state;
+      }
+    } else {
+      const delay = this.requireEnemyDelay(enemyDelay);
+      const scheduled = scheduleAfterAction(
+        this.battleState.timeline,
+        actor.actorId,
+        delay,
+      );
+      this.battleState = {
+        ...cloneBattleState(this.battleState),
+        timeline: scheduled.state,
+      };
+    }
 
-    const result = scheduleAfterAction(
-      this.timelineState,
-      this.turnState.activeActor.actorId,
-      delay,
-    );
-    this.timelineState = result.state;
-    this.pendingActionDelay = undefined;
+    this.clearPendingAction();
     this.clearPreview();
     this.turnState = finishResolution();
-    return this.timeline();
+    return this.battle();
   }
 
   private resolvePreview(card: RefactorCardInstance, targetId: string): BattlePreviewResult {
-    const context = this.previewContextState;
-    if (!context) throw new Error('battle preview context is not configured');
-    const target = context.vitalsByActorId[targetId];
+    const target = this.battleState.vitalsByActorId[targetId];
     if (!target) throw new Error(`preview vitals not found: ${targetId}`);
 
     return resolveBattlePreview({
       activeActorId: this.requireActivePlayerActorId(),
       card,
       target: { ...target },
-      timeline: this.timelineState,
-      targetIntent: cloneIntent(context.intentByEnemyId[targetId]),
-      targetResilience: context.resilienceByEnemyId[targetId]
-        ? { ...context.resilienceByEnemyId[targetId]! }
+      timeline: this.battleState.timeline,
+      targetIntent: cloneIntent(this.battleState.intentByEnemyId[targetId]),
+      targetResilience: this.battleState.resilienceByEnemyId[targetId]
+        ? { ...this.battleState.resilienceByEnemyId[targetId]! }
         : undefined,
-      breakWindows: context.breakWindows.map((window) => ({ ...window })),
+      breakWindows: this.battleState.breakWindows.map((window) => ({ ...window })),
     });
   }
 
@@ -256,6 +299,12 @@ export class BattleTurnController {
     this.previewResult = undefined;
   }
 
+  private clearPendingAction(): void {
+    this.committedCard = undefined;
+    this.committedTargetId = undefined;
+    this.pendingDispatch = false;
+  }
+
   private requireCardInHand(instanceId: string): RefactorCardInstance {
     const card = this.deckState.hand.find((candidate) => candidate.instanceId === instanceId);
     if (!card) throw new Error(`card is not in shared hand: ${instanceId}`);
@@ -266,13 +315,6 @@ export class BattleTurnController {
     return card.definition.targetRule === 'enemy'
       || card.definition.targetRule === 'ally'
       || card.definition.targetRule === 'any-ally';
-  }
-
-  private requirePendingPlayerDelay(): number {
-    if (this.pendingActionDelay === undefined) {
-      throw new Error('player action has no committed card or dispatch delay');
-    }
-    return this.pendingActionDelay;
   }
 
   private requireEnemyDelay(delay: number | undefined): number {
