@@ -47,7 +47,7 @@ CI：GitHub Actions run 104 通過。
 
 ## Phase 3 — Shared Hand / Deck
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 新增：
 
@@ -67,9 +67,11 @@ CI：GitHub Actions run 104 通過。
 - 調度 Delay 固定為 3。
 - Deck state 沒有 AP / Mana 欄位。
 
+CI：GitHub Actions run 125 通過。
+
 ## Phase 3b — Shared Hand Application Wiring
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 已完成：
 
@@ -87,11 +89,11 @@ CI 記錄：
 - run 114：build 通過、test 失敗 2 項。
 - 原因不是 runtime 排序錯誤，而是 controller 測試把「出牌後下一個一定是 ghost-fire」硬編碼；當抽到 Delay 3 的快斬時，`rin@3` 正確地仍排在 `ghost-fire@4` 前。
 - 測試已修正為直接以 `sortTimelineActors()` 的實際絕對時間排序判定下一 actor，不再假設固定角色。
-- Phase 3/3b 仍需等待修正後最新 CI 通過才能標成 VERIFIED。
+- run 125：修正後 build/test 全數通過，因此 Phase 3/3b 升為 VERIFIED。
 
 ## Phase 4 — Intent / Control Resilience / Break Window
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 先行文件：
 
@@ -120,13 +122,43 @@ CI 記錄：
 - 未消耗 break window 在目標下一次成功行動時失效；單純 delay / interrupt 不會直接令其失效。
 - 提供死亡目標的 break-window cleanup。
 
-尚未完成：
+CI：GitHub Actions run 125 通過。
 
-- Phase 4 尚未接 `BattleTurnController`；應先由純 domain CI 驗證。
-- 尚未生成敵人的下一個 AI Intent sequence。
-- 尚未做 damage / guard / redirect resolver。
-- 尚未做 Preview Resolver / Phaser HUD。
+## Phase 5 — Immutable Preview Resolver
+
+狀態：`IMPLEMENTED_PENDING_CI`
+
+先行文件：
+
+- `docs/COMBAT_REFACTOR_PHASE5_PREVIEW.md`
+
+新增：
+
+- `src/core/preview/BattlePreviewResolver.ts`
+- `src/core/preview/BattlePreviewResolver.test.ts`
+
+已實作：
+
+- Presentation 專用 immutable preview contract；不直接修改 deck/controller/timeline/intent/status source state。
+- 普通傷害、預測 HP 與 lethal 判定。
+- armor-break + heavy：預覽 +50% base damage 並標記會被消耗的 window。
+- imbalance + disruption：預覽忽略 1 韌性。
+- Delay 預覽透過 `resolveIntentDelay()` + `previewTimelineShift()`，回傳 actual delay、目標舊/新位置與 crossed player windows。
+- Interrupt 預覽透過 `interruptIntent()`，用 `hard-stagger` 表示事件替換而不移動當前節點。
+- lethal 優先將 Intent 標記為 deleted，並從 `predictedTimeline` 移除目標，供 HUD 做「刪除未來」預演。
+- 同時計算 active actor 使用該卡後的 `actorNextActionAt`，讓同一條 Timeline 可顯示自己的未來節點。
+- 卡牌建立 break window 時只回傳待建立描述，不在 Preview 生成永久 id。
+- 基本 target rule validation。
+- 測試包含 source snapshot deep immutability。
+
+刻意尚未加入：
+
+- 四角色專精 runtime bonus。
+- 千景 guard / redirect preview。
+- 多目標／AOE。
+- Phaser presenter。
+- commit/resolution mutation。
 
 ## 下一批
 
-先讓目前 head 通過 CI。若 Phase 3/3b + Phase 4 domain 全部通過，下一批進 Phase 5 Preview Resolver：把 Card + actor specialization + Intent + Resilience + BreakWindow + Timeline 組成單一 immutable prediction，presentation 只讀結果，不自行重算規則。
+先讓 Phase 5 CI 驗證通過。之後進 Phase 5b：把 `BattleTurnController` 的 `TARGET_PREVIEW` 接到 `BattlePreviewResolver`，但仍不接 Phaser；controller 只提供 snapshot / preview result，真正 HUD 仍留到 presentation phase。
