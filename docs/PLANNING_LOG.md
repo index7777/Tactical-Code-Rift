@@ -869,3 +869,22 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Preserved the previous `route-scene-bg-base.png` and the source candidate for immediate rollback; no route rules, node positions, connection logic or UI copy changed.
 - Assignment is runtime-trial only. Remaining gates are desktop/mobile composite screenshots, 2K high-DPI rendering review, source-resolution replacement and Art Director approval.
 - Verification: candidate/runtime SHA-256 values are identical; `npm run test` passes 30 files / 118 tests; `npm run build` and `git diff --check` pass, with only the existing Vite large-chunk warning.
+
+## 2026-08-21 — Production route-map visual and interaction QA
+
+- Inspected `https://tactical-code-rift.vercel.app/` with local headless Chrome at 1280×720 desktop and 844×390 mobile landscape. The deployed route uses the Area 01 v2 runtime-trial BG, retains the route HUD safe zones, and fits the mobile landscape viewport without the portrait overlay.
+- Verified the first available `迎擊` node by pointer click at its rendered desktop coordinate; the route transitioned into the battle scene and rendered the combat HUD, actors, intent lines, cards and Area 01 battle composite.
+- Cold headless loading showed an initially black canvas before the route became visible, so production startup performance/loading feedback remains a review point.
+- Found 12 unique missing battle-FX SVG requests (`p9-*` and `p10-enemy-*`) returning HTTP 404. Chrome also emitted repeated WebGL `texImage2D: bad image data` warnings; the route train token rendered as a black rectangle in this headless capture and needs a normal-GPU browser cross-check after the missing/invalid texture paths are resolved.
+- Verification screenshots and the raw browser report were kept as local untracked QA artifacts only; this inspection did not approve the runtime-trial background or modify gameplay behavior.
+
+## 2026-08-21 — Route, loading, FX and Area 01 presentation repair batch
+
+- Replaced the 12 dead `p9-*`／`p10-enemy-*` FX preload URLs with existing project-authored p8／p9a runtime textures while preserving the keys consumed by the battle presenters. No new FX candidate was generated or approved.
+- Added branded BootScene and JourneyScene loading states. The root route now skips the battle-only preload batch; battle assets load after an encounter is selected, with visible progress instead of a blank canvas.
+- Increased route-node, connection and text readability, reduced the available-node halo dominance, lightened the BG wash, enlarged compact-landscape typography, and replaced the SVG train token with deterministic Phaser geometry to avoid the black texture observed in headless Chrome.
+- Switched painted art rendering away from pixel-art sampling and restored browser smoothing. This improves scaled character／BG edges, but does not convert the 1672×941 route candidate into a native 2K or 4K source; the production-resolution gate remains open.
+- Corrected Area 01 foreground assignment: rooftop no longer receives rail debris, lantern or strong puddle reflection; wayside alone receives rail debris; exploration alone receives lantern, stones, fog and restrained strong reflection. Common puddles, contact shadows, mist and rain were reduced to keep the clash zone clear.
+- Local production preview QA: 1280×720 route renders, first `迎擊` node enters battle, 844×390 landscape fits without the portrait overlay, and no HTTP >=400 asset response was captured. The former 12 FX 404 URLs are absent. Headless Chrome still emits SVG/WebGL `texImage2D: bad image data` warnings, so a later PNG migration for remaining SVG runtime textures is recommended.
+- Raised only the deterministic 3,000-seed combat simulation test timeout to 15 seconds because it completes in roughly 4.7–7.1 seconds on this Windows runner and intermittently exceeded Vitest's unrelated 5-second default; assertions and simulation workload are unchanged.
+- Asset status remains `runtime-trial`; no candidate or background received Art Director approval in this batch.

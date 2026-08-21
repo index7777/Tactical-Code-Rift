@@ -35,18 +35,21 @@ export class BattlefieldPresenter{
     const image=(x:number,y:number,key:string,width:number,height:number,alpha:number)=>root.add(
       this.scene.add.image(x,y,key).setDisplaySize(width,height).setAlpha(alpha),
     );
-    image(230,506,'battle-fg-puddle-soft',260,78,.26);
-    image(1010,504,'battle-fg-puddle-strong',330,86,.22);
-    image(320,497,'battle-fg-wet-shadow',290,60,.16);
-    image(905,496,'battle-fg-wet-shadow-wide',310,66,.14);
-    image(640,526,'battle-fg-ground-mist',560,116,.18);
-    if(mode==='exploration')image(640,468,'battle-fg-fog-strip',520,104,.12);
-    image(104,507,'battle-fg-stone-a',150,77,.48);
-    image(1170,503,'battle-fg-stone-b',176,82,.44);
-    if(mode==='rooftop')image(1190,495,'battle-fg-rail-debris',178,74,.28);
-    image(1112,454,'battle-fg-lantern',132,112,mode==='exploration'?.42:.3);
-    image(72,482,'battle-fg-rain-small',132,63,.42);
-    image(1204,475,'battle-fg-rain-medium',156,61,.38);
+    image(300,497,'battle-fg-wet-shadow',260,50,.12);
+    image(965,497,'battle-fg-wet-shadow-wide',280,54,.11);
+    image(285,506,'battle-fg-puddle-soft',230,62,.15);
+    image(995,506,'battle-fg-puddle-soft',250,64,.13);
+    image(640,526,'battle-fg-ground-mist',520,92,.1);
+    if(mode==='exploration'){
+      image(640,468,'battle-fg-fog-strip',520,104,.1);
+      image(104,507,'battle-fg-stone-a',150,77,.38);
+      image(1170,503,'battle-fg-stone-b',176,82,.34);
+      image(1112,454,'battle-fg-lantern',132,112,.36);
+      image(1080,508,'battle-fg-puddle-strong',270,70,.13);
+    }
+    if(mode==='wayside')image(1190,495,'battle-fg-rail-debris',178,74,.22);
+    image(72,482,'battle-fg-rain-small',132,63,.32);
+    image(1204,475,'battle-fg-rain-medium',156,61,.29);
   }
 
   private wayside(root:Phaser.GameObjects.Container){
