@@ -12,15 +12,16 @@ STATUS = AUTHORITATIVE_INDEX
 4. `CURRENT_COMBAT_SPEC.md`：`main` 目前已實作的戰鬥規則摘要；在 `combat-refactor-v1` 分支只作舊 runtime 對照，不作為新玩法設計輸入。
 5. `COMBAT_REFACTOR_V1.md`：`combat-refactor-v1` 分支的戰鬥重構權威規格；此分支的戰鬥規則、HUD 與互動修改以本文件為準。
 6. `COMBAT_REFACTOR_IMPLEMENTATION_PLAN.md`：重構的檔案邊界、Phase 1～10 遷移順序、Phase 3b shared-hand wiring 契約與驗收方式。
-7. `COMBAT_REFACTOR_PHASE4_DOMAIN.md`：Phase 4 Intent／韌性／破勢窗口的純 domain 契約；Phase 4 source/tests 必須依此文件實作。
-8. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
-9. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-10. `art-bible.md`：角色、怪物、背景與透明素材規範。
-11. `characters/README.md`：角色母版與 runtime 對照。
-12. `areas/README.md`：區域背景與 runtime 狀態。
-13. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-14. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-15. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+7. `COMBAT_REFACTOR_PHASE4_DOMAIN.md`：Phase 4 Intent／韌性／破勢窗口的純 domain 契約。
+8. `COMBAT_REFACTOR_PHASE5_PREVIEW.md`：Phase 5 immutable Preview Resolver 契約；規定 presentation 只能讀預測結果，不自行重算戰鬥規則。
+9. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
+10. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+11. `art-bible.md`：角色、怪物、背景與透明素材規範。
+12. `characters/README.md`：角色母版與 runtime 對照。
+13. `areas/README.md`：區域背景與 runtime 狀態。
+14. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+15. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+16. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 
 ## combat-refactor-v1 分支規則
 
