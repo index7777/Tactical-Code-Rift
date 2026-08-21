@@ -16,14 +16,15 @@ STATUS = AUTHORITATIVE_INDEX
 8. `COMBAT_REFACTOR_PHASE5_PREVIEW.md`：Phase 5 immutable Preview Resolver 契約；規定 presentation 只能讀預測結果，不自行重算戰鬥規則。
 9. `COMBAT_REFACTOR_PHASE5B_CONTROLLER_PREVIEW.md`：Phase 5b Controller Preview wiring 契約；定義 application snapshot ownership 與 stale-preview cleanup。
 10. `COMBAT_REFACTOR_PHASE6_RESOLUTION.md`：Phase 6 真正 Battle Resolution / Commit 契約；規定 Execute 必須提交同一份 Preview 規則結果，而不是另算一套公式。
-11. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
-12. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-13. `art-bible.md`：角色、怪物、背景與透明素材規範。
-14. `characters/README.md`：角色母版與 runtime 對照。
-15. `areas/README.md`：區域背景與 runtime 狀態。
-16. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-17. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-18. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+11. `COMBAT_REFACTOR_PHASE6B_CONTROLLER_RESOLUTION.md`：Phase 6b Controller authoritative-resolution wiring 契約；移除獨立 preview context / player pending-delay 過渡結構。
+12. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
+13. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+14. `art-bible.md`：角色、怪物、背景與透明素材規範。
+15. `characters/README.md`：角色母版與 runtime 對照。
+16. `areas/README.md`：區域背景與 runtime 狀態。
+17. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+18. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+19. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 
 ## combat-refactor-v1 分支規則
 
