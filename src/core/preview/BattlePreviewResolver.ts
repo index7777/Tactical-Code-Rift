@@ -4,6 +4,7 @@ import type {
 } from '../cards/RefactorCardTypes';
 import { interruptIntent, resolveIntentDelay } from '../intents/IntentResolver';
 import type { IntentState } from '../intents/IntentState';
+import type { GuardReactionState } from '../reactions/GuardState';
 import {
   canConsumeBreakWindow,
   type BreakWindowConsumer,
@@ -18,7 +19,7 @@ import {
   shiftTimelineActor,
   sortTimelineActors,
 } from '../timeline/BattleTimeline';
-import type { BattleTimelineState } from '../timeline/TimelineTypes';
+import type { BattleTimelineState, TimelineEntry } from '../timeline/TimelineTypes';
 
 export type PreviewIntentChange = 'none' | 'moved' | 'interrupted' | 'deleted';
 
@@ -36,6 +37,7 @@ export interface BattlePreviewInput {
   targetIntent?: IntentState;
   targetResilience?: ControlResilienceState;
   breakWindows: readonly BreakWindowState[];
+  oboroDelayAlreadyUsed?: boolean;
 }
 
 export interface CreatedBreakWindowPreview {
@@ -48,6 +50,7 @@ export interface BattlePreviewResult {
   targetId?: string;
   baseDamage: number;
   breakBonusDamage: number;
+  specializationBonusDamage: number;
   finalDamage: number;
   hpBefore?: number;
   hpAfter?: number;
@@ -56,6 +59,7 @@ export interface BattlePreviewResult {
   actualDelay: number;
   ignoredResilience: number;
   targetResilienceAfter?: ControlResilienceState;
+  oboroBonusApplied: boolean;
   crossedPlayerActorIds: string[];
   crossedPlayerWindows: number;
   actorNextActionAt: number;
@@ -66,6 +70,7 @@ export interface BattlePreviewResult {
   intentChange: PreviewIntentChange;
   consumedBreakWindowIds: string[];
   createdBreakWindow?: CreatedBreakWindowPreview;
+  createdGuardReaction?: GuardReactionState;
   predictedTimeline: BattleTimelineState;
 }
 
@@ -121,6 +126,14 @@ function validateTarget(input: BattlePreviewInput): void {
   if ((rule === 'ally' || rule === 'any-ally') && targetEntry.team !== 'player') {
     throw new Error('card requires an ally target');
   }
+
+  if (
+    input.card.definition.category === 'guard'
+    && input.activeActorId !== 'chikage'
+    && input.target.actorId !== input.activeActorId
+  ) {
+    throw new Error('only chikage can guard another ally');
+  }
 }
 
 function breakWindowConsumer(category: RefactorCardCategory): BreakWindowConsumer | undefined {
@@ -142,6 +155,31 @@ function matchingBreakWindow(
   );
 }
 
+function sortsBeforeAt(
+  actor: TimelineEntry,
+  nextActionAt: number,
+  enemy: TimelineEntry,
+): boolean {
+  if (nextActionAt !== enemy.nextActionAt) return nextActionAt < enemy.nextActionAt;
+  if (actor.tieBreaker !== enemy.tieBreaker) return actor.tieBreaker < enemy.tieBreaker;
+  return actor.actorId < enemy.actorId;
+}
+
+function rinQuickBonus(
+  active: TimelineEntry,
+  actorNextActionAt: number,
+  input: BattlePreviewInput,
+): number {
+  if (input.activeActorId !== 'rin' || input.card.definition.category !== 'quick') return 0;
+  if ((input.card.definition.effect.damage ?? 0) <= 0) return 0;
+  const overtakes = input.timeline.entries.some((entry) =>
+    entry.team === 'enemy'
+    && entry.nextActionAt > active.nextActionAt
+    && sortsBeforeAt(active, actorNextActionAt, entry),
+  );
+  return overtakes ? 3 : 0;
+}
+
 export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewResult {
   validateTarget(input);
 
@@ -154,13 +192,21 @@ export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewRe
   const breakBonusDamage = consumedWindow?.kind === 'armor-break' && input.card.definition.category === 'heavy'
     ? Math.floor(baseDamage * 0.5)
     : 0;
-  const finalDamage = baseDamage + breakBonusDamage;
+
+  let predictedTimeline = cloneTimeline(input.timeline);
+  const actorNextActionAt = activeEntry.nextActionAt + input.card.definition.delay;
+  const rinBonus = rinQuickBonus(activeEntry, actorNextActionAt, input);
+  const moBonus = input.activeActorId === 'mo'
+    && input.card.definition.category === 'heavy'
+    && consumedWindow?.kind === 'armor-break'
+    ? 4
+    : 0;
+  const specializationBonusDamage = rinBonus + moBonus;
+  const finalDamage = baseDamage + breakBonusDamage + specializationBonusDamage;
   const hpBefore = input.target?.hp;
   const hpAfter = hpBefore === undefined ? undefined : Math.max(0, hpBefore - finalDamage);
   const lethal = hpAfter !== undefined && hpAfter <= 0 && hpBefore! > 0;
 
-  let predictedTimeline = cloneTimeline(input.timeline);
-  const actorNextActionAt = activeEntry.nextActionAt + input.card.definition.delay;
   predictedTimeline = {
     currentTime: predictedTimeline.currentTime,
     entries: predictedTimeline.entries.map((entry) =>
@@ -170,7 +216,12 @@ export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewRe
     ),
   };
 
-  const requestedDelay = effect.delayTarget ?? 0;
+  const baseRequestedDelay = effect.delayTarget ?? 0;
+  const oboroEligible = input.activeActorId === 'oboro'
+    && input.card.definition.category === 'disruption'
+    && baseRequestedDelay > 0
+    && !input.oboroDelayAlreadyUsed;
+  const requestedDelay = baseRequestedDelay + (oboroEligible ? 1 : 0);
   let actualDelay = 0;
   let ignoredResilience = 0;
   let targetResilienceAfter = cloneResilience(input.targetResilience);
@@ -217,11 +268,21 @@ export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewRe
     entries: sortTimelineActors(predictedTimeline).map((entry) => ({ ...entry })),
   };
 
+  const createdGuardReaction = input.card.definition.category === 'guard' && targetId
+    ? {
+      protectorId: input.activeActorId,
+      targetId,
+      guardRatio: effect.guardRatio ?? 0.5,
+      guardCap: effect.guardCap ?? 8,
+    }
+    : undefined;
+
   return {
     activeActorId: input.activeActorId,
     targetId,
     baseDamage,
     breakBonusDamage,
+    specializationBonusDamage,
     finalDamage,
     hpBefore,
     hpAfter,
@@ -230,6 +291,7 @@ export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewRe
     actualDelay,
     ignoredResilience,
     targetResilienceAfter,
+    oboroBonusApplied: oboroEligible && actualDelay > 0,
     crossedPlayerActorIds,
     crossedPlayerWindows: crossedPlayerActorIds.length,
     actorNextActionAt,
@@ -242,6 +304,7 @@ export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewRe
     createdBreakWindow: effect.createBreakWindow && targetId
       ? { targetId, kind: effect.createBreakWindow }
       : undefined,
+    createdGuardReaction,
     predictedTimeline,
   };
 }
