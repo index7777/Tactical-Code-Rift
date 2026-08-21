@@ -11,18 +11,19 @@ STATUS = AUTHORITATIVE_INDEX
 3. `ARCHITECTURE.md`：實際程式分層與目標邊界。
 4. `CURRENT_COMBAT_SPEC.md`：`main` 目前已實作的戰鬥規則摘要；在 `combat-refactor-v1` 分支只作舊 runtime 對照，不作為新玩法設計輸入。
 5. `COMBAT_REFACTOR_V1.md`：`combat-refactor-v1` 分支的戰鬥重構權威規格；此分支的戰鬥規則、HUD 與互動修改以本文件為準。
-6. `COMBAT_REFACTOR_IMPLEMENTATION_PLAN.md`：重構的檔案邊界、Phase 1～10 遷移順序與驗收方式。
-7. `COMBAT_REFACTOR_PHASE4_DOMAIN.md`：Phase 4 Intent／韌性／破勢窗口純 domain 契約。
-8. `COMBAT_REFACTOR_PHASE5_PREVIEW.md`：Phase 5 immutable Preview Resolver 契約；presentation 只能讀預測結果，不自行重算戰鬥規則。
-9. `COMBAT_REFACTOR_PHASE5B_CONTROLLER_PREVIEW.md`：Phase 5b Controller → Preview Resolver wiring 契約；規定 preview context、stale preview 清除與 confirm gate。
-10. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
-11. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-12. `art-bible.md`：角色、怪物、背景與透明素材規範。
-13. `characters/README.md`：角色母版與 runtime 對照。
-14. `areas/README.md`：區域背景與 runtime 狀態。
-15. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-16. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-17. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+6. `COMBAT_REFACTOR_IMPLEMENTATION_PLAN.md`：重構的檔案邊界、Phase 1～10 遷移順序、Phase 3b shared-hand wiring 契約與驗收方式。
+7. `COMBAT_REFACTOR_PHASE4_DOMAIN.md`：Phase 4 Intent／韌性／破勢窗口的純 domain 契約。
+8. `COMBAT_REFACTOR_PHASE5_PREVIEW.md`：Phase 5 immutable Preview Resolver 契約；規定 presentation 只能讀預測結果，不自行重算戰鬥規則。
+9. `COMBAT_REFACTOR_PHASE5B_CONTROLLER_PREVIEW.md`：Phase 5b Controller Preview wiring 契約；定義 application snapshot ownership 與 stale-preview cleanup。
+10. `COMBAT_REFACTOR_PHASE6_RESOLUTION.md`：Phase 6 真正 Battle Resolution / Commit 契約；規定 Execute 必須提交同一份 Preview 規則結果，而不是另算一套公式。
+11. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
+12. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+13. `art-bible.md`：角色、怪物、背景與透明素材規範。
+14. `characters/README.md`：角色母版與 runtime 對照。
+15. `areas/README.md`：區域背景與 runtime 狀態。
+16. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+17. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+18. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 
 ## combat-refactor-v1 分支規則
 
