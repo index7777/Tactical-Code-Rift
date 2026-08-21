@@ -923,3 +923,10 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Candidate v2 contains no precipitation, keeps the broken torii and stone lanterns at the outer edges, and preserves the central combat safe zone.
 - Deterministic background gate passed at 1672×941 with central density 0.0272 versus outer density 0.0280; production-resolution and manual runtime gates remain open.
 - Integrated v2 non-destructively as a runtime trial for `battle-3-lower`.
+
+## 2026-08-21 — F4 terminal-platform candidate v1
+
+- Generated one dedicated F4 terminal-platform Boss background from `docs/areas/area-01-encounter-bg-plan.md`; no actors, UI, text, rain, supernatural forms or combat FX are baked in.
+- Deterministic background validation passed at 1672x941 with central density 0.0128 versus outer density 0.0204; production-resolution and manual runtime gates remain open.
+- Integrated it non-destructively as a runtime trial for `boss-1`, replacing the generic `wayside` battlefield assignment while preserving runtime weather and Boss escalation layers.
+- Verification: `npm run verify` passed (31 test files, 120 tests) and the production build completed with bundle `index-B6vbnW6h.js`. Required 1280x720 and 844x390 runtime composite review remains open; no Art Director approval is recorded.

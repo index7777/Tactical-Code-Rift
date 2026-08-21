@@ -699,5 +699,6 @@ BootScene.prototype.preload=function(){
   this.load.image('bg-world01-rail-halt-trial','assets/battle/area01-rail-halt-bg-runtime-trial-v1.png');
   this.load.image('bg-world01-mountain-cut-trial','assets/battle/area01-mountain-cut-bg-runtime-trial-v1.png');
   this.load.image('bg-world01-forest-path-trial','assets/battle/area01-forest-path-bg-runtime-trial-v2.png');
+  this.load.image('bg-world01-terminal-platform-trial','assets/battle/area01-terminal-platform-bg-runtime-trial-v1.png');
   bootScenePreload.call(this);
 };

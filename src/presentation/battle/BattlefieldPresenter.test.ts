@@ -7,6 +7,7 @@ describe('normalizeBattlefieldMode',()=>{
     expect(normalizeBattlefieldMode('rail-halt')).toBe('rail-halt');
     expect(normalizeBattlefieldMode('mountain-cut')).toBe('mountain-cut');
     expect(normalizeBattlefieldMode('forest-path')).toBe('forest-path');
+    expect(normalizeBattlefieldMode('terminal-platform')).toBe('terminal-platform');
     expect(normalizeBattlefieldMode('wayside')).toBe('wayside');
     expect(normalizeBattlefieldMode('exploration')).toBe('exploration');
   });

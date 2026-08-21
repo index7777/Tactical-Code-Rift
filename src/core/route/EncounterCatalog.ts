@@ -1,6 +1,6 @@
 import type { EnemyArchetype } from '../battle/BattleTypes';
 
-export type EncounterBattlefield = 'rail-halt' | 'mountain-cut' | 'forest-path' | 'rooftop' | 'wayside' | 'exploration';
+export type EncounterBattlefield = 'rail-halt' | 'mountain-cut' | 'forest-path' | 'terminal-platform' | 'rooftop' | 'wayside' | 'exploration';
 
 export interface StoryEncounter {
   nodeId: string;
@@ -50,7 +50,7 @@ export const storyEncounters: Record<string, StoryEncounter> = {
     nodeId: 'boss-1',
     title: '雨暮驛・終點',
     enemies: ['rain-boss', 'wayfarer-umbrella', 'noose-ghost'],
-    battlefield: 'wayside',
+    battlefield: 'terminal-platform',
   },
 };
 
