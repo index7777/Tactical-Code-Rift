@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { createRefactorDeck } from '../../core/cards/RefactorDeck';
 import type { RefactorCardDefinition } from '../../core/cards/RefactorCardTypes';
+import { createIntentState } from '../../core/intents/IntentState';
+import { createControlResilience } from '../../core/status/ControlResilience';
 import { createBattleTimeline, sortTimelineActors } from '../../core/timeline/BattleTimeline';
-import { BattleTurnController } from './BattleTurnController';
+import {
+  BattleTurnController,
+  type BattlePreviewContextState,
+} from './BattleTurnController';
 
 const cardDefinitions: RefactorCardDefinition[] = [
   { id: 'quick-a', name: '快斬 A', category: 'quick', delay: 3, targetRule: 'enemy', effect: { damage: 8 } },
@@ -15,14 +20,45 @@ const cardDefinitions: RefactorCardDefinition[] = [
   { id: 'delay-b', name: '牽制 B', category: 'disruption', delay: 4, targetRule: 'enemy', effect: { delayTarget: 2 } },
 ];
 
-function makeController() {
+function previewContext(ghostFireHp = 39): BattlePreviewContextState {
+  return {
+    vitalsByActorId: {
+      rin: { actorId: 'rin', hp: 32, maxHp: 40 },
+      chikage: { actorId: 'chikage', hp: 40, maxHp: 40 },
+      'ghost-fire': { actorId: 'ghost-fire', hp: ghostFireHp, maxHp: 52 },
+    },
+    intentByEnemyId: {
+      'ghost-fire': createIntentState({
+        id: 'ghost-fire-rush',
+        enemyId: 'ghost-fire',
+        kind: 'normal',
+        name: '鬼火疾走',
+        targetIds: ['rin'],
+        damage: 20,
+        delay: 5,
+        canDelay: true,
+        canInterrupt: true,
+        canGuard: true,
+        canRedirect: true,
+        statusEffects: ['burn'],
+      }),
+    },
+    resilienceByEnemyId: {
+      'ghost-fire': createControlResilience(0),
+    },
+    breakWindows: [],
+  };
+}
+
+function makeController(definitions = cardDefinitions, context = previewContext()) {
   return new BattleTurnController(
     createBattleTimeline([
       { actorId: 'rin', team: 'player', nextActionAt: 0, tieBreaker: 0 },
       { actorId: 'ghost-fire', team: 'enemy', nextActionAt: 4, tieBreaker: 10 },
       { actorId: 'chikage', team: 'player', nextActionAt: 7, tieBreaker: 1 },
     ]),
-    createRefactorDeck(cardDefinitions, 42),
+    createRefactorDeck(definitions, 42),
+    context,
   );
 }
 
@@ -151,5 +187,127 @@ describe('BattleTurnController shared-hand wiring', () => {
     expect(timeline.currentTime).toBe(2);
     expect(timeline.entries.find((entry) => entry.actorId === 'ghost-fire')?.nextActionAt).toBe(6);
     expect(controller.deck().hand.map((card) => card.instanceId)).toEqual(handBefore);
+  });
+});
+
+describe('BattleTurnController target preview wiring', () => {
+  it('exposes resolver output for a delay card without mutating the real timeline', () => {
+    const disruptionOnly: RefactorCardDefinition[] = Array.from({ length: 6 }, (_, index) => ({
+      id: `delay-${index}`,
+      name: `牽制 ${index}`,
+      category: 'disruption',
+      delay: 4,
+      targetRule: 'enemy',
+      effect: { delayTarget: 2 },
+    }));
+    const controller = makeController(disruptionOnly);
+    controller.startNextActor();
+    const selected = controller.deck().hand[0]!;
+    controller.selectPlayerCard(selected.instanceId);
+    controller.previewPlayerTarget('ghost-fire');
+
+    expect(controller.preview()).toMatchObject({
+      targetId: 'ghost-fire',
+      requestedDelay: 2,
+      actualDelay: 2,
+      targetTimelineFrom: 4,
+      targetTimelineTo: 6,
+      intentChange: 'moved',
+    });
+    expect(controller.timeline().entries.find((entry) => entry.actorId === 'ghost-fire')?.nextActionAt).toBe(4);
+  });
+
+  it('exposes lethal deletion preview', () => {
+    const heavyOnly: RefactorCardDefinition[] = Array.from({ length: 6 }, (_, index) => ({
+      id: `heavy-${index}`,
+      name: `重斬 ${index}`,
+      category: 'heavy',
+      delay: 7,
+      targetRule: 'enemy',
+      effect: { damage: 18 },
+    }));
+    const controller = makeController(heavyOnly, previewContext(10));
+    controller.startNextActor();
+    controller.selectPlayerCard(controller.deck().hand[0]!.instanceId);
+    controller.previewPlayerTarget('ghost-fire');
+
+    expect(controller.preview()).toMatchObject({
+      lethal: true,
+      hpBefore: 10,
+      hpAfter: 0,
+      intentChange: 'deleted',
+    });
+    expect(controller.preview()!.predictedTimeline.entries.some((entry) => entry.actorId === 'ghost-fire')).toBe(false);
+  });
+
+  it('returns a defensive clone of preview output', () => {
+    const controller = makeController();
+    controller.startNextActor();
+    controller.selectPlayerCard(controller.deck().hand[0]!.instanceId);
+    controller.previewPlayerTarget('ghost-fire');
+
+    const external = controller.preview()!;
+    external.predictedTimeline.entries.length = 0;
+    external.crossedPlayerActorIds.push('fake');
+
+    expect(controller.preview()!.predictedTimeline.entries.length).toBeGreaterThan(0);
+    expect(controller.preview()!.crossedPlayerActorIds).not.toContain('fake');
+  });
+
+  it('clears stale preview when changing card or cancelling', () => {
+    const controller = makeController();
+    controller.startNextActor();
+    const [first, second] = controller.deck().hand;
+    controller.selectPlayerCard(first!.instanceId);
+    controller.previewPlayerTarget('ghost-fire');
+    expect(controller.preview()).toBeDefined();
+
+    controller.cancelPlayerStep();
+    expect(controller.preview()).toBeUndefined();
+    controller.selectPlayerCard(second!.instanceId);
+    expect(controller.preview()).toBeUndefined();
+  });
+
+  it('requires a successful resolver preview before confirming a targeted card', () => {
+    const controller = new BattleTurnController(
+      createBattleTimeline([
+        { actorId: 'rin', team: 'player', nextActionAt: 0, tieBreaker: 0 },
+        { actorId: 'ghost-fire', team: 'enemy', nextActionAt: 4, tieBreaker: 10 },
+      ]),
+      createRefactorDeck(cardDefinitions, 42),
+    );
+    controller.startNextActor();
+    const selected = controller.deck().hand[0]!;
+    controller.selectPlayerCard(selected.instanceId);
+    expect(() => controller.previewPlayerTarget('ghost-fire')).toThrow('battle preview context is not configured');
+    expect(() => controller.confirmPlayerCard()).toThrow(`card requires a resolved target preview: ${selected.instanceId}`);
+  });
+
+  it('clears preview on confirm without applying the predicted target mutation', () => {
+    const controller = makeController();
+    controller.startNextActor();
+    const selected = controller.deck().hand[0]!;
+    controller.selectPlayerCard(selected.instanceId);
+    controller.previewPlayerTarget('ghost-fire');
+    const targetBefore = controller.timeline().entries.find((entry) => entry.actorId === 'ghost-fire')!.nextActionAt;
+
+    controller.confirmPlayerCard();
+    expect(controller.preview()).toBeUndefined();
+    expect(controller.timeline().entries.find((entry) => entry.actorId === 'ghost-fire')!.nextActionAt).toBe(targetBefore);
+  });
+
+  it('uses a newly supplied preview context for the next preview', () => {
+    const controller = makeController();
+    controller.startNextActor();
+    const selected = controller.deck().hand[0]!;
+    controller.selectPlayerCard(selected.instanceId);
+    controller.previewPlayerTarget('ghost-fire');
+    expect(controller.preview()!.hpBefore).toBe(39);
+
+    controller.cancelPlayerStep();
+    controller.setPreviewContext(previewContext(12));
+    controller.selectPlayerCard(selected.instanceId);
+    controller.previewPlayerTarget('ghost-fire');
+    expect(controller.preview()!.hpBefore).toBe(12);
   });
 });
