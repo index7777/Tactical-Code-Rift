@@ -3,6 +3,7 @@ import { interruptIntent, resolveIntentDelay } from '../intents/IntentResolver';
 import type { IntentState } from '../intents/IntentState';
 import {
   canConsumeBreakWindow,
+  type BreakWindowConsumer,
   type BreakWindowKind,
   type BreakWindowState,
 } from '../status/BreakWindow';
@@ -112,15 +113,22 @@ function validateTarget(input: BattlePreviewInput): void {
   }
 }
 
+function breakWindowConsumer(card: RefactorCardInstance): BreakWindowConsumer | undefined {
+  if (card.definition.category === 'heavy') return 'heavy';
+  if (card.definition.category === 'disruption') return 'disruption';
+  return undefined;
+}
+
 function matchingBreakWindow(
   windows: readonly BreakWindowState[],
   targetId: string | undefined,
   card: RefactorCardInstance,
 ): BreakWindowState | undefined {
   if (!targetId) return undefined;
-  if (card.definition.category !== 'heavy' && card.definition.category !== 'disruption') return undefined;
+  const consumer = breakWindowConsumer(card);
+  if (!consumer) return undefined;
   return windows.find((window) =>
-    window.targetId === targetId && canConsumeBreakWindow(window, card.definition.category),
+    window.targetId === targetId && canConsumeBreakWindow(window, consumer),
   );
 }
 
@@ -152,7 +160,7 @@ export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewRe
     ),
   };
 
-  let requestedDelay = effect.delayTarget ?? 0;
+  const requestedDelay = effect.delayTarget ?? 0;
   let actualDelay = 0;
   let ignoredResilience = 0;
   let crossedPlayerActorIds: string[] = [];
