@@ -897,3 +897,9 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Added a read-only DOM QA state on the battle host (`qa-battle`, player/enemy counts, round, busy state, and four-player texture readiness) so deployed builds can be verified through browser isolation without exposing mutation controls.
 - Verification: `npm run verify` passed (31 files, 120 tests), player manifest validation passed (32 unique poses), and the production build completed in `build/web`.
 - Formal Vercel QA (`73c959d`): all seven direct encounter routes created one canvas, four players, the expected enemy count, round 1, an idle/non-busy planning state, and all four player texture namespaces. Counts were `battle-1=2`, `battle-2-upper=3`, `battle-2-lower=3`, `battle-3-upper=4`, `battle-3-lower=4`, `elite-1=3`, and `boss-1=3`.
+## 2026-08-21 — Area 01 encounter BG plan
+
+- Adopted an RPG/DBG-style four-family background plan for seven battle nodes: rail halt, mountain cut, forest path, and a dedicated terminal Boss platform.
+- Retired rooftop combat as the formal direction because its perspective and curved surface conflict with the shared horizontal actor baseline; the current rooftop remains a historical runtime trial until replacement.
+- Defined node-to-family mapping, reusable runtime dressing, fixed safe zones, production order, and art-pipeline rejection gates in `docs/areas/area-01-encounter-bg-plan.md`.
+- This batch changes design documentation only. No candidate was generated, approved, or assigned to runtime.
