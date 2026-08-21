@@ -908,3 +908,5 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Generated one F1 rail-halt candidate from `docs/areas/area-01-encounter-bg-plan.md`; no characters, UI, text, weather particles or combat FX are baked into it.
 - Deterministic background gate passed at 1672×941 with central density 0.0204 versus outer density 0.0251; production-resolution gate remains open.
 - Integrated it non-destructively as a runtime trial for `battle-1`, `battle-2-lower`, and `elite-1`. The existing rooftop candidate remains available for historical comparison and the unfinished F2 nodes.
+- Verification: `npm run verify` passed (31 files, 120 tests) and Vercel deployed bundle `index-NpBi5nty.js`. Formal 1280×720 battle QA confirmed a horizontal readable ground plane, clear central intent lines, four-player/two-enemy silhouette separation, and no landmark/card-dock overlap.
+- The attempted 844×390 headless capture stopped at the loading screen, so narrow-runtime approval remains open. Candidate status stays `runtime-trial`; no Art Director approval is recorded.
