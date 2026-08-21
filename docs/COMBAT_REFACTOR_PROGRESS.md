@@ -87,6 +87,7 @@ CI：run 125 通過。
 - lethal preview：從 predicted Timeline 刪除目標、Intent change = deleted。
 - active actor 自身 future Timeline 位置。
 - source snapshot deep immutability。
+- Phase 6 前置：Preview 現在也回傳 `targetResilienceAfter`，讓 commit 不必重算控制公式。
 
 CI 記錄：
 
@@ -96,7 +97,7 @@ CI 記錄：
 
 ## Phase 5b — Controller Preview Wiring
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE5B_CONTROLLER_PREVIEW.md`
 
@@ -116,9 +117,39 @@ CI 記錄：
 - confirm 只提交 card / Delay，不把 preview prediction 當成真正 HP / Intent / Timeline mutation。
 - 測試新增 delay preview、lethal deletion preview、defensive clone、stale preview cleanup、context refresh。
 
+CI：run 137 build / test 全數通過，因此 Phase 5b 升為 VERIFIED。
+
+## Phase 6 — Battle Resolution / Commit
+
+狀態：`IMPLEMENTED_PENDING_CI`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE6_RESOLUTION.md`
+
+新增：
+
+- `src/core/resolution/BattleResolutionResolver.ts`
+- `src/core/resolution/BattleResolutionResolver.test.ts`
+
+已實作：
+
+- `BattleResolutionState` 集中 authoritative timeline / vitals / Intent / resilience / break windows snapshot。
+- `resolveBattleAction()` 強制 active actor 必須是 Timeline front。
+- Resolution 先呼叫 `resolveBattlePreview()`，再提交同一份 damage / lethal / Delay / Intent / Break Window 結果，不建立第二套戰鬥公式。
+- 普通傷害真正寫回 HP。
+- active actor 依卡牌 Delay 真正排回 Timeline；commit 時 `timeline.currentTime` 推進到 actedAt。
+- Delay 真正移動目標 Timeline 節點，並直接採用 Preview 回傳的 post-control resilience。
+- Interrupt 真正替換 Intent 為 hard-stagger，不額外移動目標節點。
+- armor-break / imbalance 真正被消耗。
+- 建立破勢卡用 deterministic `bw:<sequence>:<kind>:<targetId>` id。
+- lethal 真正將 HP 設 0、移除 Timeline actor / Intent / 該 target Break Window。
+- vitals 在死亡後保留 HP=0，供死亡演出／結果讀取。
+- resolver 對輸入 state 保持 immutable。
+- 測試包含 Preview / Resolution parity。
+
 刻意尚未完成：
 
-- 真正 damage / HP / Intent / resilience / break-window commit resolver。
+- Phase 6 尚未接入 `BattleTurnController` 的真正 resolution path。
+- enemy successful action 的 resilience reset / next Intent generation。
 - guard / redirect。
 - 四角色專精 runtime bonus。
 - Phaser / BootScene / HUD。
@@ -126,4 +157,4 @@ CI 記錄：
 
 ## 下一批
 
-先讓 Phase 5b CI 通過。之後進 Phase 6：建立真正的 `BattleResolutionResolver` / commit snapshot mutation，使 Preview 與 Execute 共用相同規則來源；仍先不接舊 Phaser HUD。
+先讓 Phase 6 build/test 驗證。通過後做 Phase 6b：由 `BattleTurnController` 持有 authoritative `BattleResolutionState`，玩家 confirm 後在 resolution 階段透過 `resolveBattleAction()` 真正提交 Preview 同款結果，移除目前 controller 只靠 card Delay 排程、再由外部 `setPreviewContext()` 手動同步的過渡流程。
