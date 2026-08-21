@@ -19,6 +19,7 @@ import type {
   RefactorCardInstance,
   RefactorDeckState,
 } from '../../core/cards/RefactorCardTypes';
+import { resolveEnemyAction } from '../../core/enemy/EnemyActionResolver';
 import type { IntentState } from '../../core/intents/IntentState';
 import {
   resolveBattlePreview,
@@ -225,13 +226,14 @@ export class BattleTurnController {
     return this.turn();
   }
 
-  completeResolution(enemyDelay?: number): BattleResolutionState {
+  completeResolution(nextEnemyIntent?: IntentState): BattleResolutionState {
     if (this.turnState.phase !== 'RESOLVING' || !this.turnState.activeActor) {
       throw new Error(`cannot complete resolution during ${this.turnState.phase}`);
     }
 
     const actor = this.turnState.activeActor;
     if (actor.team === 'player') {
+      if (nextEnemyIntent) throw new Error('player resolution does not accept an enemy intent');
       if (this.pendingDispatch) {
         const scheduled = scheduleAfterAction(
           this.battleState.timeline,
@@ -254,16 +256,13 @@ export class BattleTurnController {
         this.battleState = resolved.state;
       }
     } else {
-      const delay = this.requireEnemyDelay(enemyDelay);
-      const scheduled = scheduleAfterAction(
-        this.battleState.timeline,
-        actor.actorId,
-        delay,
-      );
-      this.battleState = {
-        ...cloneBattleState(this.battleState),
-        timeline: scheduled.state,
-      };
+      if (!nextEnemyIntent) throw new Error('enemy resolution requires the next revealed intent');
+      const resolved = resolveEnemyAction({
+        state: this.battleState,
+        enemyId: actor.actorId,
+        nextIntent: nextEnemyIntent,
+      });
+      this.battleState = resolved.state;
     }
 
     this.clearPendingAction();
@@ -315,10 +314,5 @@ export class BattleTurnController {
     return card.definition.targetRule === 'enemy'
       || card.definition.targetRule === 'ally'
       || card.definition.targetRule === 'any-ally';
-  }
-
-  private requireEnemyDelay(delay: number | undefined): number {
-    if (delay === undefined) throw new Error('enemy resolution requires an action delay');
-    return delay;
   }
 }
