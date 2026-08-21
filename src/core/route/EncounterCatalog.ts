@@ -1,6 +1,6 @@
 import type { EnemyArchetype } from '../battle/BattleTypes';
 
-export type EncounterBattlefield = 'rail-halt' | 'mountain-cut' | 'rooftop' | 'wayside' | 'exploration';
+export type EncounterBattlefield = 'rail-halt' | 'mountain-cut' | 'forest-path' | 'rooftop' | 'wayside' | 'exploration';
 
 export interface StoryEncounter {
   nodeId: string;
@@ -38,7 +38,7 @@ export const storyEncounters: Record<string, StoryEncounter> = {
     nodeId: 'battle-3-lower',
     title: '下線・迷途夜道',
     enemies: ['wayfarer-umbrella', 'lost-monk', 'noose-ghost', 'wet-corpse'],
-    battlefield: 'exploration',
+    battlefield: 'forest-path',
   },
   'elite-1': {
     nodeId: 'elite-1',

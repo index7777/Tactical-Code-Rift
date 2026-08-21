@@ -45,6 +45,15 @@
       "reason": "Third and final automatic attempt baked the checkerboard into RGB again and began repainting details instead of preserving the v2 subject. Automatic iteration stopped at the configured limit.",
       "spec": "docs/characters/player-b.md",
       "rejectedAt": "2026-08-17T11:41:45.471934+00:00"
+    },
+    {
+      "asset": "references/rejected/backgrounds/area01-forest-path-bg-candidate-v1.png",
+      "source": "assets/candidates/backgrounds/world01/area01-forest-path-bg-candidate-v1.png",
+      "category": "backgrounds",
+      "code": "baked-weather",
+      "reason": "Rain streaks are baked across the reusable background; Area 01 weather must remain a runtime layer so intensity can vary by node and does not contaminate UI or actor silhouettes.",
+      "spec": "docs/areas/area-01-encounter-bg-plan.md",
+      "rejectedAt": "2026-08-21T09:09:16.062900+00:00"
     }
   ]
 }

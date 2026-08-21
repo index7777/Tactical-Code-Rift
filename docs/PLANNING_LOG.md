@@ -917,3 +917,9 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Integrated it non-destructively as a runtime trial for `battle-2-upper` and `battle-3-upper`.
 - Verification: `npm run verify` passed (31 files, 120 tests) and Vercel deployed bundle `index-BzqZ28QC.js`.
 - Browser screenshot capture timed out after deployment, so the required 1280×720／844×390 manual composite review remains open. Candidate status stays `runtime-trial`; no approval is recorded.
+## 2026-08-21 — F3 forest-path candidates
+
+- Generated F3 candidate v1 and rejected it with `baked-weather` because rain streaks were embedded in the reusable BG; registered and reopened the negative reference before retrying.
+- Candidate v2 contains no precipitation, keeps the broken torii and stone lanterns at the outer edges, and preserves the central combat safe zone.
+- Deterministic background gate passed at 1672×941 with central density 0.0272 versus outer density 0.0280; production-resolution and manual runtime gates remain open.
+- Integrated v2 non-destructively as a runtime trial for `battle-3-lower`.

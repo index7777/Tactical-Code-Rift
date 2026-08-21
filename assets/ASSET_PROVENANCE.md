@@ -48,6 +48,16 @@ User-provided `route_map_runtime_assets_split_v1` is archived intact at `assets/
 
 ## Usage notes
 
+### 2026-08-21 F3 forest-path background candidates
+
+| Runtime file | Work | Author | License | Source |
+|---|---|---|---|---|
+| `public/assets/battle/area01-forest-path-bg-runtime-trial-v2.png` | Area 01 F3 林間參道 BG；下路深處節點 | Built-in ImageGen, directed by the Area 01 Art Bible and encounter BG plan | Project-generated candidate; release approval pending | `assets/candidates/backgrounds/world01/area01-forest-path-bg-candidate-v2.png`; 1672×941 RGB |
+
+- Candidate v1 was rejected with `baked-weather`: visible rain streaks were painted into the reusable BG instead of remaining a runtime weather layer. The rejection is preserved under `references/rejected/backgrounds/`.
+- Candidate v2 removes all precipitation and passed 16:9, minimum runtime size and central-density advisory (`center=0.0272`, `outer=0.0280`).
+- The v2 assignment is a reversible runtime trial for `battle-3-lower`, not an approved production master. It remains below the required 3840×2160 production-source gate.
+
 ### 2026-08-21 F2 mountain-cut background candidate
 
 | Runtime file | Work | Author | License | Source |

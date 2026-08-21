@@ -12,6 +12,8 @@ export class BattlefieldPresenter{
       add(this.scene.add.image(640,360,'bg-world01-rail-halt-trial').setDisplaySize(1280,720));
     }else if(mode==='mountain-cut'){
       add(this.scene.add.image(640,360,'bg-world01-mountain-cut-trial').setDisplaySize(1280,720));
+    }else if(mode==='forest-path'){
+      add(this.scene.add.image(640,360,'bg-world01-forest-path-trial').setDisplaySize(1280,720));
     }else if(mode==='rooftop'){
       add(this.scene.add.image(640,360,'bg-world01-rooftop-candidate').setDisplaySize(1280,720).setTint(0xd7e2e5));
     }else{
@@ -44,7 +46,7 @@ export class BattlefieldPresenter{
     image(285,506,'battle-fg-puddle-soft',230,62,.15);
     image(995,506,'battle-fg-puddle-soft',250,64,.13);
     image(640,526,'battle-fg-ground-mist',520,92,.1);
-    if(mode==='exploration'){
+    if(mode==='exploration'||mode==='forest-path'){
       image(640,468,'battle-fg-fog-strip',520,104,.1);
       image(104,507,'battle-fg-stone-a',150,77,.38);
       image(1170,503,'battle-fg-stone-b',176,82,.34);
