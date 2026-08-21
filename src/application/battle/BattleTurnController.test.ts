@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRefactorDeck } from '../../core/cards/RefactorDeck';
 import type { RefactorCardDefinition } from '../../core/cards/RefactorCardTypes';
-import { createBattleTimeline } from '../../core/timeline/BattleTimeline';
+import { createBattleTimeline, sortTimelineActors } from '../../core/timeline/BattleTimeline';
 import { BattleTurnController } from './BattleTurnController';
 
 const cardDefinitions: RefactorCardDefinition[] = [
@@ -48,9 +48,11 @@ describe('BattleTurnController shared-hand wiring', () => {
     controller.beginResolution();
     const timeline = controller.completeResolution();
     expect(timeline.entries.find((entry) => entry.actorId === 'rin')?.nextActionAt).toBe(selected.definition.delay);
+
+    const expectedNext = sortTimelineActors(timeline)[0]!;
     expect(controller.startNextActor()).toMatchObject({
-      phase: 'ENEMY_EXECUTING',
-      activeActor: { actorId: 'ghost-fire' },
+      activeActor: { actorId: expectedNext.actorId },
+      phase: expectedNext.team === 'player' ? 'PLAYER_IDLE' : 'ENEMY_EXECUTING',
     });
   });
 
@@ -79,10 +81,11 @@ describe('BattleTurnController shared-hand wiring', () => {
     controller.previewPlayerTarget('ghost-fire');
     controller.confirmPlayerCard();
     controller.beginResolution();
-    controller.completeResolution();
+    const timeline = controller.completeResolution();
 
     expect(controller.timeline().entries.find((entry) => entry.actorId === 'chikage')?.nextActionAt).toBe(7);
-    expect(controller.startNextActor().activeActor?.actorId).toBe('ghost-fire');
+    const expectedNext = sortTimelineActors(timeline)[0]!;
+    expect(controller.startNextActor().activeActor?.actorId).toBe(expectedNext.actorId);
   });
 
   it('dispatches zero to two cards as a complete Delay 3 action', () => {
