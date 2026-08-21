@@ -67,12 +67,35 @@ CI：GitHub Actions run 104 通過。
 - 調度 Delay 固定為 3。
 - Deck state 沒有 AP / Mana 欄位。
 
+## Phase 3b — Shared Hand Application Wiring
+
+狀態：`IMPLEMENTED_PENDING_CI`
+
+已完成：
+
+- `BattleTurnController` 現在持有新版 `RefactorDeckState`，不再只接收任意 action id。
+- 玩家只能選擇目前共享手牌中實際存在的 card instance。
+- 需要目標的卡牌在沒有 Target Preview 時不可確認。
+- 卡牌在確認執行時立即從共享手牌移入棄牌堆並補回 5 張；進入 `EXECUTING` 後不可撤回。
+- 玩家行動的 Timeline Delay 直接取自已提交卡牌的 `definition.delay`，呼叫端不再替玩家傳入任意 Delay。
+- `dispatch()` 是獨立完整行動，只允許 `PLAYER_IDLE` 使用，交換 0–2 張，Delay 固定為 3。
+- Enemy resolution 不操作共享手牌，仍由 enemy skill / intent 明確提供其 action Delay。
+- controller 對外提供 clone 後的 deck snapshot，避免 presentation 直接修改 domain state。
+
+新增／更新測試鎖定：
+
+- 非手牌中的 instance 不可選。
+- 單次只消耗一張已選牌並補回 5 張。
+- 其他隊友不需要先提交行動。
+- 調度保留未選牌，且 0 張交換仍消耗 Delay 3 行動。
+- Enemy action 不改 shared hand。
+
 尚未完成：
 
-- 尚未把 `RefactorDeck` 接進 `BattleTurnController`；此接線會在 Phase 3 CI 通過後做為下一小批，避免 domain 與 application 錯誤同批混在一起。
-- 尚未建立正式 20 張新卡池資料；目前測試用 definitions 只驗證 deck lifecycle。
+- 尚未建立正式 20 張新卡池資料；目前測試 definitions 只驗證 deck / controller lifecycle。
+- 尚未建立 Intent / 韌性 / 破勢 domain。
 - 尚未做 Phaser / HUD。
 
 ## 下一批
 
-Phase 3b：把 shared hand 接到 `BattleTurnController`，鎖死「當前角色只能使用目前共享手牌中的一張牌，或使用調度」；之後進 Phase 4 Intent / 韌性 / 破勢。
+Phase 4：建立 `IntentState`、`ControlResilience`、`BreakWindow` 與其純 domain tests。這一批仍不接 Phaser；先把「公開 Intent、延後抗性、破勢窗口在目標成功行動後失效」鎖成 source of truth，再進 Preview Resolver。
