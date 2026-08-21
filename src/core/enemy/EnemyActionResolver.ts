@@ -1,4 +1,5 @@
 import type { IntentState } from '../intents/IntentState';
+import { resolveGuardDamage } from '../reactions/GuardState';
 import type { BattleResolutionState } from '../resolution/BattleResolutionResolver';
 import { expireWindowsAfterSuccessfulAction } from '../status/BreakWindow';
 import { resetTemporaryResilience } from '../status/ControlResilience';
@@ -21,7 +22,9 @@ export interface EnemyActionResult {
   nextIntent: IntentState;
   successfulAction: boolean;
   damageByTargetId: Record<string, number>;
+  guardReductionByTargetId: Record<string, number>;
   defeatedTargetIds: string[];
+  chengshiTriggered: boolean;
 }
 
 function cloneIntent(intent: IntentState | undefined): IntentState | undefined {
@@ -56,6 +59,13 @@ function cloneState(state: BattleResolutionState): BattleResolutionState {
     ),
     breakWindows: state.breakWindows.map((window) => ({ ...window })),
     nextBreakWindowSequence: state.nextBreakWindowSequence,
+    guardByTargetId: Object.fromEntries(
+      Object.entries(state.guardByTargetId ?? {}).map(([targetId, guard]) => [
+        targetId,
+        guard ? { ...guard } : undefined,
+      ]),
+    ),
+    oboroDelayUsedByEnemyId: { ...(state.oboroDelayUsedByEnemyId ?? {}) },
   };
 }
 
@@ -86,15 +96,29 @@ export function resolveEnemyAction(input: EnemyActionInput): EnemyActionResult {
   const actedAt = active.nextActionAt;
   const successfulAction = currentIntent.kind === 'normal';
   const damageByTargetId: Record<string, number> = {};
+  const guardReductionByTargetId: Record<string, number> = {};
   const defeatedTargetIds: string[] = [];
+  let chengshiTriggered = false;
 
   if (successfulAction) {
-    const damage = currentIntent.damage ?? 0;
+    const incomingDamage = currentIntent.damage ?? 0;
     for (const targetId of currentIntent.targetIds) {
       const vitals = next.vitalsByActorId[targetId];
       if (!vitals || vitals.hp <= 0) continue;
 
-      const hpAfter = Math.max(0, vitals.hp - damage);
+      let appliedDamage = incomingDamage;
+      const guard = next.guardByTargetId?.[targetId];
+      if (guard && currentIntent.canGuard) {
+        const guarded = resolveGuardDamage(guard, incomingDamage);
+        appliedDamage = guarded.damageAfter;
+        if (guarded.consumed) {
+          guardReductionByTargetId[targetId] = guarded.reduction;
+          if (guard.protectorId === 'chikage') chengshiTriggered = true;
+          delete next.guardByTargetId![targetId];
+        }
+      }
+
+      const hpAfter = Math.max(0, vitals.hp - appliedDamage);
       const dealt = vitals.hp - hpAfter;
       damageByTargetId[targetId] = dealt;
       next.vitalsByActorId[targetId] = { ...vitals, hp: hpAfter };
@@ -102,6 +126,7 @@ export function resolveEnemyAction(input: EnemyActionInput): EnemyActionResult {
       if (hpAfter === 0) {
         defeatedTargetIds.push(targetId);
         next.timeline = removeTimelineActor(next.timeline, targetId);
+        if (next.guardByTargetId) delete next.guardByTargetId[targetId];
       }
     }
 
@@ -110,11 +135,19 @@ export function resolveEnemyAction(input: EnemyActionInput): EnemyActionResult {
       next.resilienceByEnemyId[input.enemyId] = resetTemporaryResilience(resilience);
     }
     next.breakWindows = expireWindowsAfterSuccessfulAction(next.breakWindows, input.enemyId);
+    next.oboroDelayUsedByEnemyId = {
+      ...(next.oboroDelayUsedByEnemyId ?? {}),
+      [input.enemyId]: false,
+    };
   }
 
   next.intentByEnemyId[input.enemyId] = cloneIntent(input.nextIntent);
 
-  const scheduled = scheduleAfterAction(next.timeline, input.enemyId, input.nextIntent.delay);
+  const scheduled = scheduleAfterAction(
+    next.timeline,
+    input.enemyId,
+    input.nextIntent.delay + (chengshiTriggered ? 1 : 0),
+  );
   next.timeline = {
     currentTime: actedAt,
     entries: scheduled.state.entries.map((entry) => ({ ...entry })),
@@ -127,6 +160,8 @@ export function resolveEnemyAction(input: EnemyActionInput): EnemyActionResult {
     nextIntent: cloneIntent(input.nextIntent)!,
     successfulAction,
     damageByTargetId: { ...damageByTargetId },
+    guardReductionByTargetId: { ...guardReductionByTargetId },
     defeatedTargetIds: [...defeatedTargetIds],
+    chengshiTriggered,
   };
 }
