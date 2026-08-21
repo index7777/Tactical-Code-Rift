@@ -11,7 +11,7 @@ STATUS = AUTHORITATIVE_INDEX
 3. `ARCHITECTURE.md`：實際程式分層與目標邊界。
 4. `CURRENT_COMBAT_SPEC.md`：`main` 目前已實作的戰鬥規則摘要；在 `combat-refactor-v1` 分支只作舊 runtime 對照，不作為新玩法設計輸入。
 5. `COMBAT_REFACTOR_V1.md`：`combat-refactor-v1` 分支的戰鬥重構權威規格；此分支的戰鬥規則、HUD 與互動修改以本文件為準。
-6. `COMBAT_REFACTOR_IMPLEMENTATION_PLAN.md`：重構的檔案邊界、Phase 1～10 遷移順序與驗收方式。
+6. `COMBAT_REFACTOR_IMPLEMENTATION_PLAN.md`：重構的檔案邊界、Phase 1～10 遷移順序、Phase 3b shared-hand wiring 契約與驗收方式。
 7. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
 8. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
 9. `art-bible.md`：角色、怪物、背景與透明素材規範。
@@ -29,6 +29,6 @@ STATUS = AUTHORITATIVE_INDEX
 - `COMBAT_REFACTOR_PROGRESS.md` 用來判斷目前做到哪一批，以及哪一批仍待 CI／runtime 證據。
 - `CURRENT_COMBAT_SPEC.md`、`COMBAT_ACCEPTANCE_CHECKLIST.md`、`NEXT_WORK.md` 中描述舊 round planning、雙列 timeline、殺生線主導、下一回合提交等內容，只用來識別要被替換的 legacy runtime。
 - 不從 `docs/archive/` 恢復任何舊玩法。
-- 每一批新實作都必須先更新重構文件／驗收，再改 source/tests。
+- 每一批新實作都必須先在重構規格／實作計畫中有明確契約，並同步更新 progress，再進 source/tests。
 
 `HANDOFF.md`、舊 `player-a`～`player-d` 文件與 P1～P11 過程文件只保留歷史脈絡。`docs/archive/` 不得作為目前設計輸入。
