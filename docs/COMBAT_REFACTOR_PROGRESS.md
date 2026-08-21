@@ -151,6 +151,13 @@ CI：GitHub Actions run 125 通過。
 - 基本 target rule validation。
 - 測試包含 source snapshot deep immutability。
 
+CI 記錄：
+
+- run 130：`npm run build` 失敗，測試未執行。
+- 原因是 TypeScript 無法把完整 `RefactorCardCategory` union 自動縮窄成 `BreakWindowConsumer`；`quick / guard / break` 不能傳給 `canConsumeBreakWindow()`。
+- 已新增明確的 `breakWindowConsumer()` adapter，只把 `heavy / disruption` 映射成可消耗破勢窗口的 consumer，避免使用型別斷言把 domain 邊界抹掉。
+- 修正 commit `ba42deed...` 後重新等待 CI；在 build/test 全通過前 Phase 5 不升級為 VERIFIED。
+
 刻意尚未加入：
 
 - 四角色專精 runtime bonus。
@@ -161,4 +168,4 @@ CI：GitHub Actions run 125 通過。
 
 ## 下一批
 
-先讓 Phase 5 CI 驗證通過。之後進 Phase 5b：把 `BattleTurnController` 的 `TARGET_PREVIEW` 接到 `BattlePreviewResolver`，但仍不接 Phaser；controller 只提供 snapshot / preview result，真正 HUD 仍留到 presentation phase。
+先讓 Phase 5 修正後 CI 驗證通過。之後進 Phase 5b：把 `BattleTurnController` 的 `TARGET_PREVIEW` 接到 `BattlePreviewResolver`，但仍不接 Phaser；controller 只提供 snapshot / preview result，真正 HUD 仍留到 presentation phase。
