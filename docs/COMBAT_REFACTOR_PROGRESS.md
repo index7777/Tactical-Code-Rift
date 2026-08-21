@@ -130,43 +130,58 @@ CI：run 148 build / test 全數通過，因此 Phase 6b 升為 VERIFIED。
 
 ## Phase 7 — Enemy Action Resolver
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE7_ENEMY_ACTION.md`
 
+- `resolveEnemyAction()` 強制 enemy 必須是 Timeline front 且必須已有公開 Intent。
+- 正常 Intent 提交直接傷害；HP 到 0 的目標立即從 Timeline 移除，但 vitals 保留 HP=0。
+- 成功行動後 temporary resilience reset、該敵人的 Break Window 到期。
+- `hard-stagger` 消耗 action opportunity但不視為成功行動。
+- 下一 Intent 由 application / encounter script 明確輸入，必須屬於同一 enemy 且為 `normal`。
+- 下一 Intent Delay 成為 enemy scheduling source of truth。
+- Controller enemy path 不再接受 raw `enemyDelay`。
+
+CI：run 155 build / test 全數通過，因此 Phase 7 升為 VERIFIED。
+
+## Phase 8 — Actor Specialization + Guard / Reaction
+
+狀態：`IMPLEMENTED_PENDING_CI`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE8_SPECIALIZATION_GUARD.md`
+
 新增：
 
-- `src/core/enemy/EnemyActionResolver.ts`
-- `src/core/enemy/EnemyActionResolver.test.ts`
+- `src/core/reactions/GuardState.ts`
+- `src/core/reactions/Phase8CombatRules.test.ts`
 
 已更新：
 
+- `src/core/preview/BattlePreviewResolver.ts`
+- `src/core/resolution/BattleResolutionResolver.ts`
+- `src/core/enemy/EnemyActionResolver.ts`
 - `src/application/battle/BattleTurnController.ts`
-- `src/application/battle/BattleTurnController.test.ts`
 
 已實作：
 
-- `resolveEnemyAction()` 強制 enemy 必須是 Timeline front 且必須已有公開 Intent。
-- 正常 Intent 真正提交直接傷害；HP 到 0 的目標立即從 Timeline 移除，但 vitals 保留 HP=0。
-- 正常成功行動後 temporary resilience reset，base 保留。
-- 正常成功行動後該敵人的 Break Window 到期，其他敵人窗口保留。
-- `hard-stagger` 消耗 action opportunity，但不造成傷害，也不視為成功行動，因此不 reset resilience / 不 expire Break Window。
-- Resolver 不自己做 AI；下一 Intent 由 application/encounter script 明確輸入。
-- next Intent 必須屬於同一 enemy 且必須為 `normal`；AI 不可主動選 `hard-stagger`。
-- 敵人下一次排程 Delay 直接來自新公開 Intent。
-- Controller enemy path 不再接受 raw `enemyDelay`，改把 next revealed Intent 交給 `resolveEnemyAction()`。
-- 新測試覆蓋 damage、death removal、resilience reset、break-window expiry、hard-stagger、next-intent validation、next-intent scheduling、source immutability 與 controller wiring。
+- 標準守勢使用 50% 減傷、單次上限 8；只有實際減傷 > 0 才消耗。
+- 非千景角色只能對自己建立守勢；`chikage` 可指定任意存活友軍。
+- Guard reaction 存在 authoritative `BattleResolutionState.guardByTargetId`，Preview / Controller snapshot 皆 defensive clone。
+- 千景守勢成功降低直接傷害時觸發承勢：攻擊者下一次排程 `+1 Delay`，同一 enemy action 最多一次；此效果不經控制韌性。
+- 凜 `quick` 在自身下一節點仍成功搶在原本前方至少一個敵人之前時，該次攻擊 +3。
+- 朧對同一敵人成功行動前第一次有效 disruption Delay：requested Delay +1；只有 actual Delay > 0 才寫入 cycle flag；敵人成功行動後重置。
+- 紅葉 `heavy` 消耗 armor-break 時，在原本 +50% base damage 之外再 +4 固定傷害。
+- Preview 回傳 `specializationBonusDamage`、`oboroBonusApplied`、`createdGuardReaction`；Execute 直接提交同一份 Preview 結果。
+- Enemy resolver 真正消耗 guard、回傳 guard reduction、套用承勢並重置朧 cycle。
 
-刻意尚未完成：
+目前刻意不做：
 
-- Enemy AI Intent selection algorithm。
-- guard / redirect。
-- secondary status 真正 application / tick。
+- redirect / 掩護換目標。
+- persistent-status application / tick。
 - counter / recoil trigger queue。
-- 四角色專精 runtime bonus。
+- AOE guard stacking / damage split。
 - Phaser / BootScene / HUD。
-- 完整 multi-target presentation。
 
 ## 下一批
 
-先讓 Phase 7 CI 通過。之後進 Phase 8：角色專精與守勢／反應 resolver，先把凜、千景、朧、紅葉四種角色差異放進共用計算管線，再進 presentation/HUD 重構。
+先讓 Phase 8 CI 通過。通過後進新的 presentation path：先建立 `src/presentation/battle/refactor/` 的 Timeline / Hand / Target Preview / Actor / Intent presenters 與 `RefactorBattleScene` 骨架，仍不沿用舊雙列 Timeline 與整輪規劃 HUD。
