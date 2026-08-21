@@ -54,6 +54,15 @@
       "reason": "Rain streaks are baked across the reusable background; Area 01 weather must remain a runtime layer so intensity can vary by node and does not contaminate UI or actor silhouettes.",
       "spec": "docs/areas/area-01-encounter-bg-plan.md",
       "rejectedAt": "2026-08-21T09:09:16.062900+00:00"
+    },
+    {
+      "asset": "references/rejected/characters/rain-boss-master-side-candidate-v1.png",
+      "source": "assets/candidates/monsters/rainfall-ridgeline/rain-boss-master-side-candidate-v1.png",
+      "category": "characters",
+      "code": "wrong-facing",
+      "reason": "The torso, shoulders and legs are drawn in a three-quarter concept-art stance rather than a strict left-facing 2D battle side profile; the blade also expands into an oversized curved sword and the 1254px source misses the approved 2048px master target.",
+      "spec": "docs/monsters/rain-boss.md",
+      "rejectedAt": "2026-08-21T10:26:57.578869+00:00"
     }
   ]
 }

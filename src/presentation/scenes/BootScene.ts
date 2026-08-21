@@ -47,7 +47,7 @@ preload(){this.showLoadingScreen(this.journeyNodeId?'正在整備戰場':'正在
 // 暫時 fallback 到 SVG 剪影 placeholder（不 tint、不美觀，等使用者核准後補生）。
 for(const name of ['wet-corpse','lantern-child','mountain-hound','wayfarer-umbrella','noose-ghost','lost-monk','rain-warrior'])this.load.image(`monster-${name}`,`assets/battle/generated/monsters/rainfall-ridgeline/${name}-master-runtime-v1.png`);
 // rain-boss（BOSS 雨切終式）尚未生圖，先保留 SVG placeholder；核准後補為 PNG runtime。
-this.load.image('monster-rain-boss','assets/battle/generated/monsters/rainfall-ridgeline/rain-boss-side-v1.svg');this.load.spritesheet('hero','assets/battle/samurai.png',{frameWidth:48,frameHeight:48});this.load.spritesheet('enemy','assets/battle/enemy-knight.png',{frameWidth:64,frameHeight:64});this.load.image('yokai','assets/battle/kamaitachi.png')}
+this.load.image('monster-rain-boss','assets/battle/generated/monsters/rainfall-ridgeline/rain-boss-master-runtime-v1.png');this.load.spritesheet('hero','assets/battle/samurai.png',{frameWidth:48,frameHeight:48});this.load.spritesheet('enemy','assets/battle/enemy-knight.png',{frameWidth:64,frameHeight:64});this.load.image('yokai','assets/battle/kamaitachi.png')}
 create(){
     this.loadingLayer?.destroy(true);this.loadingLayer=undefined;
     if(shouldStartJourney(new URLSearchParams(window.location.search),this.journeyNodeId)){this.scene.start('JourneyScene');return}
@@ -119,10 +119,9 @@ private addActor(f:Fighter){
       sprite=this.add.sprite(0,-8,heroine?playerTexture:enemyTexture).setFlipX(heroine&&!poseLocked).setData('heroine',heroine).setData('poseLocked',poseLocked).setData('poseAssetPrefix',character?.assetPrefix).setData('heroBaseY',-8).setData('darkSilhouette',oboro);
     if(heroine){sprite.setData('heroHeight',heroineDisplayHeight(this.pc));playHeroinePose(sprite,'idle')}
     else if(hasMasterTexture){
-      // 母版原圖 ~2000px，需按顯示高度縮放；一律限制在最高 100px 以免頭部逼近上方時序條。
-      // rain-warrior（精英）例外，比一般怪高 14px，用剪影比例表達精英強度但仍不超過 heroineDisplayHeight(pc<=2)。
+      // 普通母版限制在 100px；雨夜武者增加 14px，站守依核准 Boss 規格使用 158px。
       const eliteBoost=f.archetype==='rain-warrior'?14:0;
-      const targetHeight=Math.min(100,heroineDisplayHeight(Math.max(3,this.ec)))+eliteBoost;
+      const targetHeight=f.archetype==='rain-boss'?158:Math.min(100,heroineDisplayHeight(Math.max(3,this.ec)))+eliteBoost;
       const src=sprite.texture.getSourceImage()as{width:number;height:number};
       if(src.width>0&&src.height>0)sprite.setDisplaySize(Math.round(targetHeight*src.width/src.height),targetHeight);
     }

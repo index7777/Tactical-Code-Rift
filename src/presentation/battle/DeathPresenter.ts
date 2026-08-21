@@ -22,10 +22,11 @@ export class DeathPresenter {
     this.scene.tweens.add({targets:ring,scale,alpha:0,duration:style==='heavy'?520:360,ease:'Cubic.easeOut',onComplete:()=>ring.destroy()});
     for(let i=0;i<(style==='heavy'?14:9);i++){
       const shard=this.scene.add.rectangle(actor.root.x,actor.root.y-8,12,3,color,.9).setDepth(109).setRotation(i*.7);this.combatLayer.add(shard);
-      this.scene.tweens.add({targets:shard,x:actor.root.x+(i%2?1:-1)*(28+i*4),y:actor.root.y-28+(i%5)*14,alpha:0,angle:90,duration:320+i*12,onComplete:()=>shard.destroy()})
+      const dissolveY=enemy?actor.root.y-64-(i%5)*15:actor.root.y-28+(i%5)*14;
+      this.scene.tweens.add({targets:shard,x:actor.root.x+(i%2?1:-1)*(28+i*4),y:dissolveY,alpha:0,angle:90,duration:320+i*12,onComplete:()=>shard.destroy()})
     }
     this.scene.sound.play('sword-impact',{volume:style==='heavy'?1:.75});
-    this.scene.tweens.add({targets:actor.root,y:actor.root.y+(heroine?5:18),angle:heroine?0:enemy?-9:9,duration:exit.impact,ease:'Quad.easeOut'});
+    this.scene.tweens.add({targets:actor.root,y:actor.root.y+(heroine?5:enemy?-6:18),angle:heroine||enemy?0:9,duration:exit.impact,ease:'Quad.easeOut'});
     this.scene.time.delayedCall(exit.impact,()=>{
       const targets:Phaser.GameObjects.GameObject[]=[actor.root];if(actor.hud)targets.push(actor.hud);
       this.scene.tweens.add({targets,alpha:exit.removeFromField?0:.18,duration:exit.fade,ease:'Cubic.easeIn',onComplete:()=>{

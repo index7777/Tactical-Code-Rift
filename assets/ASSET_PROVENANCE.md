@@ -48,6 +48,16 @@ User-provided `route_map_runtime_assets_split_v1` is archived intact at `assets/
 
 ## Usage notes
 
+### 2026-08-21 Rain Boss textual master approval
+
+- The Art Director approved the project-original textual Character Master in `docs/monsters/rain-boss.md` and reduced enemy production to one universal left-facing `master-side` asset.
+- Idle, ready, hit and break behavior must reuse the master through runtime transforms and FX. Death uses an original runtime dissolve treatment rather than a separate down pose or copied third-party animation.
+- This approval authorizes one visual master candidate; it does not pre-approve any generated image or release asset.
+- Built-in ImageGen attempt v1 (`assets/candidates/monsters/rainfall-ridgeline/rain-boss-master-side-candidate-v1.png`) returned genuine alpha but was rejected as `wrong-facing`: three-quarter concept-art stance, oversized curved blade and a 1254px source below the 2048px master target. The rejection is preserved under `references/rejected/characters/`.
+- Corrected attempt v2 (`assets/candidates/monsters/rainfall-ridgeline/rain-boss-master-side-candidate-v2.png`) is a 1254x1254 RGBA visual candidate. Deterministic alpha, bbox and foot-baseline checks passed; manual Art Director review remains required. Its torso retains a slight three-quarter read and the source remains below 2048px, so it is not assigned to runtime.
+- The Art Director approved v2 on 2026-08-21. A byte-identical runtime copy is assigned as `public/assets/battle/generated/monsters/rainfall-ridgeline/rain-boss-master-runtime-v1.png`; it renders at 158px height in `boss-1`. The original 1254px source resolution is recorded and is not represented as native 2K.
+- Enemy deaths reuse their universal master and dissolve upward through runtime desaturation/fade/shards; no enemy down-pose asset is required.
+
 ### 2026-08-21 F4 terminal-platform background candidate
 
 | Runtime file | Work | Author | License | Source |

@@ -930,3 +930,13 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Deterministic background validation passed at 1672x941 with central density 0.0128 versus outer density 0.0204; production-resolution and manual runtime gates remain open.
 - Integrated it non-destructively as a runtime trial for `boss-1`, replacing the generic `wayside` battlefield assignment while preserving runtime weather and Boss escalation layers.
 - Verification: `npm run verify` passed (31 test files, 120 tests) and the production build completed with bundle `index-B6vbnW6h.js`. Required 1280x720 and 844x390 runtime composite review remains open; no Art Director approval is recorded.
+
+## 2026-08-21 — 雨暮驛・站守文字母版草案
+
+- Replaced the empty Rain Boss gate with a complete textual Character Master draft covering identity, silhouette, anatomy, station-uniform costume, the `閉塞信號刀`, palette, combat scale, required key poses, runtime-only FX and explicit drift rejection codes.
+- The design preserves the existing `rain-boss` encounter role and its two current attacks while keeping weather, signal glow, slash FX, contact shadows and phase escalation outside the reusable character source.
+- Status remains `DRAFT_AWAITING_ART_DIRECTOR_APPROVAL`; per the project art pipeline, no Boss image asset may be generated until the user explicitly approves this text master.
+- Art Director subsequently approved the textual master and reduced the Boss/enemy scope to one universal `master-side`; idle, ready, hit and break reuse runtime transforms, while death uses an original JRPG-style dissolve instead of a down image. Visual asset approval remains separate.
+- Visual attempt v1 passed alpha/baseline checks but was registered as rejected `wrong-facing` because it used a three-quarter concept-art stance, an oversized curved blade and only 1254px source resolution. After reopening that negative reference, attempt v2 tightened the side-battle silhouette and weapon ratio; its deterministic RGBA checks pass, but slight three-quarter torso read, tight weapon padding and sub-2048 source resolution remain for Art Director review. No runtime replacement was made.
+- Art Director approved v2 and authorized continuation. The approved PNG now replaces the `rain-boss` SVG placeholder at 158px Boss height; ordinary enemy states continue to reuse one master, and enemy death now rises/fades into runtime shards without a separate down image. Native 2K re-authoring remains an explicit source-resolution gate.
+- Verification: approved/runtime PNG passed RGBA, non-empty bbox, foot baseline and usable-crop checks; `npm run verify` passed (31 test files, 120 tests) and production build emitted `index-C8zsUK8I.js`. Required 1280x720 and 844x390 Boss composite capture remains open.

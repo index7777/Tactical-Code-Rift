@@ -2,7 +2,9 @@
   "schemaVersion": 1,
   "items": [
     {"asset":"public/assets/battle/chikage-sd-side-master-runtime-trial-v1.png","category":"characters","spec":"docs/characters/chikage.md","approval":"Art Director approved in user instruction 2026-08-18","status":"approved-master-runtime"},
-    {"asset":"public/assets/battle/oboro-sd-side-master-runtime-trial-v1.png","category":"characters","spec":"docs/characters/oboro.md","approval":"Art Director approved in user instruction 2026-08-18","status":"approved-master-runtime"}
+    {"asset":"public/assets/battle/oboro-sd-side-master-runtime-trial-v1.png","category":"characters","spec":"docs/characters/oboro.md","approval":"Art Director approved in user instruction 2026-08-18","status":"approved-master-runtime"},
+    {"asset":"docs/monsters/rain-boss.md","category":"monsters","spec":"docs/monsters/rain-boss.md","approval":"Art Director approved the textual master and one-universal-master scope in user instruction 2026-08-21","status":"approved-text-master"},
+    {"asset":"assets/candidates/monsters/rainfall-ridgeline/rain-boss-master-side-candidate-v2.png","category":"monsters","spec":"docs/monsters/rain-boss.md","approval":"Art Director approved visual master candidate v2 in user instruction 2026-08-21","status":"approved-master-runtime"}
   ],
   "note": "千景與朧 Master 已核准；衍生動作候選仍需各自實機驗收。"
 }
