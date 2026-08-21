@@ -77,6 +77,13 @@ function cloneBattleState(state: BattleResolutionState): BattleResolutionState {
     ),
     breakWindows: state.breakWindows.map((window) => ({ ...window })),
     nextBreakWindowSequence: state.nextBreakWindowSequence,
+    guardByTargetId: Object.fromEntries(
+      Object.entries(state.guardByTargetId ?? {}).map(([targetId, guard]) => [
+        targetId,
+        guard ? { ...guard } : undefined,
+      ]),
+    ),
+    oboroDelayUsedByEnemyId: { ...(state.oboroDelayUsedByEnemyId ?? {}) },
   };
 }
 
@@ -92,6 +99,7 @@ function clonePreviewResult(preview: BattlePreviewResult | undefined): BattlePre
     intentAfter: cloneIntent(preview.intentAfter),
     consumedBreakWindowIds: [...preview.consumedBreakWindowIds],
     createdBreakWindow: preview.createdBreakWindow ? { ...preview.createdBreakWindow } : undefined,
+    createdGuardReaction: preview.createdGuardReaction ? { ...preview.createdGuardReaction } : undefined,
     predictedTimeline: {
       currentTime: preview.predictedTimeline.currentTime,
       entries: preview.predictedTimeline.entries.map((entry) => ({ ...entry })),
@@ -285,6 +293,7 @@ export class BattleTurnController {
         ? { ...this.battleState.resilienceByEnemyId[targetId]! }
         : undefined,
       breakWindows: this.battleState.breakWindows.map((window) => ({ ...window })),
+      oboroDelayAlreadyUsed: Boolean(this.battleState.oboroDelayUsedByEnemyId?.[targetId]),
     });
   }
 
