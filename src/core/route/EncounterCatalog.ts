@@ -1,6 +1,6 @@
 import type { EnemyArchetype } from '../battle/BattleTypes';
 
-export type EncounterBattlefield = 'rail-halt' | 'rooftop' | 'wayside' | 'exploration';
+export type EncounterBattlefield = 'rail-halt' | 'mountain-cut' | 'rooftop' | 'wayside' | 'exploration';
 
 export interface StoryEncounter {
   nodeId: string;
@@ -20,7 +20,7 @@ export const storyEncounters: Record<string, StoryEncounter> = {
     nodeId: 'battle-2-upper',
     title: '上線・獸影追行',
     enemies: ['mountain-hound', 'lantern-child', 'wet-corpse'],
-    battlefield: 'rooftop',
+    battlefield: 'mountain-cut',
   },
   'battle-2-lower': {
     nodeId: 'battle-2-lower',
@@ -32,7 +32,7 @@ export const storyEncounters: Record<string, StoryEncounter> = {
     nodeId: 'battle-3-upper',
     title: '上線・山犬群襲',
     enemies: ['mountain-hound', 'noose-ghost', 'lantern-child', 'wet-corpse'],
-    battlefield: 'exploration',
+    battlefield: 'mountain-cut',
   },
   'battle-3-lower': {
     nodeId: 'battle-3-lower',

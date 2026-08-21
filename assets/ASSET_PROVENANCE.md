@@ -48,6 +48,15 @@ User-provided `route_map_runtime_assets_split_v1` is archived intact at `assets/
 
 ## Usage notes
 
+### 2026-08-21 F2 mountain-cut background candidate
+
+| Runtime file | Work | Author | License | Source |
+|---|---|---|---|---|
+| `public/assets/battle/area01-mountain-cut-bg-runtime-trial-v1.png` | Area 01 F2 山壁切通 BG；上路兩個節點共用 | Built-in ImageGen, directed by the Area 01 Art Bible and encounter BG plan | Project-generated candidate; release approval pending | `assets/candidates/backgrounds/world01/area01-mountain-cut-bg-candidate-v1.png`; 1672×941 RGB |
+
+- Deterministic background validation passed 16:9, minimum runtime size and central-density advisory (`center=0.0177`, `outer=0.0170`).
+- This is a reversible runtime trial for `battle-2-upper` and `battle-3-upper`, not an approved production master. It remains below the required 3840×2160 production-source gate.
+
 ### 2026-08-21 F1 rail-halt background candidate
 
 | Runtime file | Work | Author | License | Source |

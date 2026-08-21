@@ -110,7 +110,7 @@ export class JourneyScene extends Phaser.Scene{
     this.previewTitle?.setText(encounter?.title??labels[node.type]);
     if(encounter){
       const enemies=encounter.enemies.map(id=>enemyNames[id]??id).join('・');
-      const battlefieldLabel=encounter.battlefield==='rail-halt'?'雨夜沿線月台':encounter.battlefield==='rooftop'?'列車車頂':encounter.battlefield==='wayside'?'沿線停靠':'離車山道';
+      const battlefieldLabel=encounter.battlefield==='rail-halt'?'雨夜沿線月台':encounter.battlefield==='mountain-cut'?'山壁切通':encounter.battlefield==='rooftop'?'列車車頂':encounter.battlefield==='wayside'?'沿線停靠':'離車山道';
       this.previewBody?.setText(`敵群　${enemies}\n場景　${battlefieldLabel}`)
     }else this.previewBody?.setText(routeCopy[node.type]);
   }

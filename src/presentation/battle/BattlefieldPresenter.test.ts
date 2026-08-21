@@ -5,6 +5,7 @@ describe('normalizeBattlefieldMode',()=>{
   it('supports roof, wayside and exploration encounter framing',()=>{
     expect(normalizeBattlefieldMode('rooftop')).toBe('rooftop');
     expect(normalizeBattlefieldMode('rail-halt')).toBe('rail-halt');
+    expect(normalizeBattlefieldMode('mountain-cut')).toBe('mountain-cut');
     expect(normalizeBattlefieldMode('wayside')).toBe('wayside');
     expect(normalizeBattlefieldMode('exploration')).toBe('exploration');
   });
