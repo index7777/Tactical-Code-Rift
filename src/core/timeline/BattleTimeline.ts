@@ -52,6 +52,11 @@ export function orderedTimeline(state: BattleTimelineState): TimelineEntry[] {
   return [...state.entries].sort(compareTimelineEntries);
 }
 
+/** Refactor-spec name for consumers that only need the sorted projection. */
+export function sortTimelineActors(state: BattleTimelineState): TimelineEntry[] {
+  return orderedTimeline(state);
+}
+
 export function nextTimelineActor(state: BattleTimelineState): TimelineEntry | undefined {
   return orderedTimeline(state)[0];
 }
@@ -73,6 +78,14 @@ export function removeTimelineActor(
   };
 }
 
+/** Dead actors do not remain as dormant entries in the new timeline model. */
+export function removeDeadActor(
+  state: BattleTimelineState,
+  actorId: string,
+): BattleTimelineState {
+  return removeTimelineActor(state, actorId);
+}
+
 export function shiftTimelineActor(
   state: BattleTimelineState,
   actorId: string,
@@ -89,6 +102,24 @@ export function shiftTimelineActor(
       candidate.actorId === actorId ? { ...candidate, nextActionAt } : { ...candidate },
     ),
   };
+}
+
+export function delayActor(
+  state: BattleTimelineState,
+  actorId: string,
+  amount: number,
+): BattleTimelineState {
+  if (!Number.isFinite(amount) || amount < 0) throw new Error('delay amount must be non-negative');
+  return shiftTimelineActor(state, actorId, amount);
+}
+
+export function advanceActor(
+  state: BattleTimelineState,
+  actorId: string,
+  amount: number,
+): BattleTimelineState {
+  if (!Number.isFinite(amount) || amount < 0) throw new Error('advance amount must be non-negative');
+  return shiftTimelineActor(state, actorId, -amount);
 }
 
 export function previewTimelineShift(
@@ -124,6 +155,15 @@ export function previewTimelineShift(
   };
 }
 
+export function countCrossedPlayerWindows(
+  state: BattleTimelineState,
+  actorId: string,
+  delay: number,
+): number {
+  if (!Number.isFinite(delay) || delay < 0) throw new Error('delay must be non-negative');
+  return previewTimelineShift(state, actorId, delay).crossedPlayerActorIds.length;
+}
+
 export function completeActorAction(
   state: BattleTimelineState,
   actorId: string,
@@ -153,4 +193,13 @@ export function completeActorAction(
     actedAt,
     nextActionAt,
   };
+}
+
+/** Refactor-spec name: finishing one action schedules that actor by card Delay. */
+export function scheduleAfterAction(
+  state: BattleTimelineState,
+  actorId: string,
+  delay: number,
+): CompleteActionResult {
+  return completeActorAction(state, actorId, delay);
 }
