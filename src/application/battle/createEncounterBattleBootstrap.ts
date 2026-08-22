@@ -2,6 +2,10 @@ import { enemyArchetypePools } from '../../core/battle/EnemySkills';
 import type { EnemyArchetype } from '../../core/battle/BattleTypes';
 import { createRefactorDeck } from '../../core/cards/RefactorDeck';
 import {
+  RAIN_BOSS_BASE_RESILIENCE,
+  RAIN_BOSS_HP,
+} from '../../core/enemy/BossEnemyActionCatalog';
+import {
   RAIN_WARRIOR_BASE_RESILIENCE,
   RAIN_WARRIOR_HP,
   rainWarriorActionAt,
@@ -36,11 +40,11 @@ const LEGACY_ENEMY_HP: Readonly<Record<Exclude<EnemyArchetype,
   | 'noose-ghost'
   | 'lost-monk'
   | 'wayfarer-umbrella'
-  | 'rain-warrior'>, number>> = {
+  | 'rain-warrior'
+  | 'rain-boss'>, number>> = {
   swift: 34,
   crusher: 54,
   hexer: 38,
-  'rain-boss': 128,
 };
 
 function targetFor(enemyIndex: number): (typeof PLAYER_IDS)[number] {
@@ -50,12 +54,14 @@ function targetFor(enemyIndex: number): (typeof PLAYER_IDS)[number] {
 function enemyHp(archetype: EnemyArchetype): number {
   if (isNormalEnemyArchetype(archetype)) return NORMAL_ENEMY_HP[archetype];
   if (archetype === 'rain-warrior') return RAIN_WARRIOR_HP;
+  if (archetype === 'rain-boss') return RAIN_BOSS_HP;
   return LEGACY_ENEMY_HP[archetype];
 }
 
 function enemyBaseResilience(archetype: EnemyArchetype): number {
   if (isNormalEnemyArchetype(archetype)) return NORMAL_ENEMY_BASE_RESILIENCE[archetype];
   if (archetype === 'rain-warrior') return RAIN_WARRIOR_BASE_RESILIENCE;
+  if (archetype === 'rain-boss') return RAIN_BOSS_BASE_RESILIENCE;
   return 0;
 }
 
