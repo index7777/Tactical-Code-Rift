@@ -52,6 +52,13 @@ export interface EnemyActionAiDefinition {
   maxPhase?: number;
 }
 
+export interface ActionCounterplayDefinition {
+  delayable: boolean;
+  interruptible: boolean;
+  guardable: boolean;
+  redirectable: boolean;
+}
+
 export type ActionPresentationProfile =
   | 'quick-melee'
   | 'heavy-melee'
@@ -78,6 +85,7 @@ export interface ActionDefinition {
   clash: ActionClashDefinition;
   telegraph: ActionTelegraphDefinition;
   ai?: EnemyActionAiDefinition;
+  counterplay?: ActionCounterplayDefinition;
   presentationProfile: ActionPresentationProfile;
 }
 
@@ -179,5 +187,6 @@ export function createActionDefinition(definition: ActionDefinition): ActionDefi
     clash: { ...definition.clash, tags: [...definition.clash.tags] },
     telegraph: { ...definition.telegraph },
     ai: definition.ai ? { ...definition.ai } : undefined,
+    counterplay: definition.counterplay ? { ...definition.counterplay } : undefined,
   };
 }
