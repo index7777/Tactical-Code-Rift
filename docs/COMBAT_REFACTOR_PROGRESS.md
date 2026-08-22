@@ -172,7 +172,7 @@ CI：run 221 build / test 通過；使用者已完成 GitHub Pages browser QA，
 
 ## Phase 10 — Default Cutover / Legacy Rollback
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`CI_VERIFIED_BROWSER_REGRESSION_PENDING`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10_DEFAULT_CUTOVER.md`
 
@@ -186,15 +186,32 @@ CI：run 221 build / test 通過；使用者已完成 GitHub Pages browser QA，
 - legacy source 本批未刪除。
 - 新增 `CombatEntryPolicy.test.ts` 覆蓋 default / compatibility / rollback / precedence。
 
+CI：run 228 build / test 通過。仍需 GitHub Pages default-entry / legacy-rollback browser regression。
+
+## Phase 10b — Asset Reconnect
+
+狀態：`IMPLEMENTATION_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE10B_ASSET_RECONNECT.md`
+
+目標：
+
+- 新版 Scene 自己 preload 現有角色 runtime manifest，不依賴 `BootScene.preload()`。
+- 四名隊友改用現有 pose / portrait 資產顯示。
+- 單 Timeline 接回 timeline portrait。
+- battlefield 接回 World 01 rooftop candidate 背景。
+- QA `ghost-fire` 只暫用現有 yokai runtime visual 作測試顯示，不宣稱正式 identity。
+- 保留 texture 缺失 fallback，先把真實資產接回再從畫面找 scale / pivot / overlap / 演出問題。
+
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10_CUTOVER_PENDING_CI_AND_BROWSER_REGRESSION`
+狀態：`PHASE10_BROWSER_REGRESSION_AND_PHASE10B_PENDING`
 
-- Phase 9e / 9f 已完成 CI 與 browser QA。
-- Phase 10 最新 source 尚待 CI。
-- CI 通過後需用 GitHub Pages 驗證無 flag URL 直接進新版，`?legacy-combat=1` 可回到舊入口。
-- regression 通過前不移除 legacy combat source。
+- Phase 10 CI 已通過。
+- default-entry / legacy rollback browser regression 尚待驗證。
+- 使用者要求先把現有資產接回新版戰鬥，再從真實畫面找問題；因此 Phase 10b 先執行，但 legacy source 仍保留。
+- Phase 10b CI 與 browser QA 完成前不進 legacy removal。
 
 ## 下一批
 
-先讓 Phase 10 CI 通過；通過後做 GitHub Pages default-entry / legacy-rollback browser regression。只有兩條入口都驗證後，才建立 legacy removal contract 並逐項移除 RoundPlanner、雙 Timeline、舊 killing-intent planning layer 與 next-round interaction。
+實作 Phase 10b asset reconnect；CI 通過後用 GitHub Pages 檢查 1280×720 / 844×390、資產 404、角色 scale / pivot、Timeline portrait、背景遮擋與 default/legacy 入口。依實際問題再拆 actor normalization / animation sequencing。
