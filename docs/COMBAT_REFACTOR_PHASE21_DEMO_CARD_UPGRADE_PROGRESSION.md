@@ -1,6 +1,6 @@
 # Combat Refactor Phase 21 — Demo Card Upgrade Progression
 
-STATUS = IMPLEMENTATION_CONTRACT
+STATUS = PHASE21A_CI_VERIFIED_JOURNEY_WIRING_PENDING
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -54,34 +54,35 @@ No upgrade adds a new target rule, status, Clash mode, Break kind, interrupt fla
 
 ## Data boundary
 
-Add a pure progression module that owns:
+Implemented pure `DemoCardUpgradeProgression` owns:
 
 - family upgrade ids;
 - milestone lookup by completed encounter id;
 - validation / normalization of an owned upgrade set;
+- stable remaining-choice order;
 - deterministic application of owned upgrades to `RefactorCardDefinition` values.
 
-The module must return detached card definitions and effects. Base card definitions remain immutable.
+The module returns detached card definitions and effects. Base card definitions remain immutable.
 
 Duplicate upgrade ids are normalized to one owned upgrade. Unknown upgrade ids are rejected.
 
 ## Battle bootstrap boundary
 
-`createEncounterBattleBootstrap()` may accept an explicit owned-upgrade list and apply it before creating the shared deck.
+`createEncounterBattleBootstrap()` now accepts an explicit owned-upgrade list as its third argument and applies it before creating the shared deck.
 
-The default remains an empty list, so existing story encounters and tests are behavior-identical until Journey progression wiring supplies upgrades.
+The default remains an empty list, so existing story encounters remain behavior-identical until Journey progression wiring supplies upgrades.
 
 The combat resolver, Preview, ActionDefinition adapter, Clash rules, and presentation sequencer consume the upgraded card data through the existing card definition boundary; they do not independently know about progression.
 
 ## Journey ownership
 
-The Journey layer will later own the run's selected upgrade ids and reward-choice interaction. Combat must not write progression state.
+The Journey layer will own the run's selected upgrade ids and reward-choice interaction. Combat must not write progression state.
 
 Phase 21a stops before reward-choice UI and registry persistence. It establishes the pure rules and bootstrap seam first.
 
 ## Verification
 
-Automated evidence must cover:
+Automated coverage includes:
 
 - exact three milestone ids / branch equivalence;
 - no reward on battle-2 or boss;
@@ -90,12 +91,22 @@ Automated evidence must cover:
 - unknown upgrade ids reject;
 - base definitions remain unchanged;
 - empty-upgrade bootstrap keeps current combat values;
-- build/test pass.
+- upgraded definitions are applied before deck instantiation.
+
+CI run 499: `npm run build` passed and `npm test` passed.
+
+## Phase 21b pending
+
+Still pending:
+
+- Journey registry persistence for owned upgrade ids;
+- post-victory reward detection exactly once per milestone;
+- family-upgrade choice presentation;
+- feeding the persisted upgrade list into the next `RefactorBattleScene` bootstrap;
+- route/battle browser QA.
 
 ## Out of scope
 
-- reward-choice UI;
-- Journey registry persistence;
 - deck size changes;
 - card acquisition/removal;
 - rarity/currency/shop systems;
