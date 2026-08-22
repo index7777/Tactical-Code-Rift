@@ -17,11 +17,13 @@ import {
   REFACTOR_BOSS_MUSIC_KEY,
   REFACTOR_BATTLE_MUSIC_KEY,
   REFACTOR_IMPACT_SFX_KEY,
+  REFACTOR_CARD_FRAME_KEY,
   REFACTOR_SWISH_SFX_KEY,
   actorBattleTextureKey,
   actorTimelineTextureKey,
   playerPoseTextureKey,
   queueRefactorBattleAssets,
+  refactorCardFamilyTextureKey,
 } from '../battle/refactor/RefactorBattleAssets';
 import {
   buildEnemyActionAnimationPlan,
@@ -76,6 +78,7 @@ export class RefactorBattleScene extends Phaser.Scene {
   private selectedMusicKey = REFACTOR_BATTLE_MUSIC_KEY;
   private resultShown = false;
   private qaOutcome?: BattleOutcome;
+  private enemySpawnIds: string[] = [];
 
   constructor() {
     super('RefactorBattleScene');
@@ -91,6 +94,7 @@ export class RefactorBattleScene extends Phaser.Scene {
     const encounter = storyEncounter(this.journeyNodeId);
     if (!encounter) throw new Error(`unknown battle node: ${this.journeyNodeId}`);
     this.battlefield = encounter.battlefield;
+    this.enemySpawnIds = [...encounter.enemies];
     this.selectedMusicKey = this.journeyNodeId.startsWith('boss-')
       ? REFACTOR_BOSS_MUSIC_KEY
       : REFACTOR_BATTLE_MUSIC_KEY;
@@ -133,7 +137,6 @@ export class RefactorBattleScene extends Phaser.Scene {
     this.addToWorld(this.add.rectangle(640, 360, layout.width, layout.height, 0x07101a, 1));
     this.drawBattlefieldBackground();
     this.drawOverlayPanel(layout.partyRail, 0x08151d, 0x739aa2, 0.64);
-    this.drawOverlayPanel(layout.intentPanel, 0x121820, 0xb28f65, 0.68);
 
     if (!this.runtime) {
       this.resetWorldCamera(0);
@@ -146,7 +149,6 @@ export class RefactorBattleScene extends Phaser.Scene {
   }
 
   private renderView(view: RefactorBattleView): void {
-    const layout = REFACTOR_BATTLE_LAYOUT;
     if (!view.canDispatch) {
       this.dispatchMode = false;
       this.dispatchSelection.clear();
@@ -235,6 +237,8 @@ export class RefactorBattleScene extends Phaser.Scene {
           actorAlpha,
           'world',
         );
+        actor.setDepth(Math.round(displayPosition.y));
+        ring?.setDepth(Math.round(displayPosition.y) - 2);
         this.actorSprites.set(position.actorId, actor);
         if (isTargetable) {
           actor.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
@@ -252,12 +256,9 @@ export class RefactorBattleScene extends Phaser.Scene {
 
     this.renderPartyStatus(view);
 
-    const enemyIds = view.timeline
-      .filter((node) => node.team === 'enemy')
-      .map((node) => node.actorId)
-      .filter((actorId, index, all) => all.indexOf(actorId) === index);
+    const enemyIds = this.enemySpawnIds;
     enemyIds.forEach((enemyId, index) => {
-      const enemyPosition = enemyStagePosition(index);
+      const enemyPosition = enemyStagePosition(index, enemyIds.length);
       const { x, y, perspectiveScale } = enemyPosition;
       const vitals = view.vitalsByActorId[enemyId];
       const alive = Boolean(vitals && vitals.hp > 0);
@@ -278,6 +279,8 @@ export class RefactorBattleScene extends Phaser.Scene {
       const textureKey = actorBattleTextureKey(enemyId);
       if (textureKey && this.textures.exists(textureKey)) {
         const actor = this.addFittedImage(x, y, textureKey, 172 * perspectiveScale, 154 * perspectiveScale, 1, 'world');
+        actor.setDepth(Math.round(y));
+        ring?.setDepth(Math.round(y) - 2);
         this.actorSprites.set(enemyId, actor);
         if (isTargetable) {
           actor.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
@@ -292,25 +295,18 @@ export class RefactorBattleScene extends Phaser.Scene {
         });
       }
 
-      this.addText(x, y + 76 * perspectiveScale, actorDisplayName(enemyId), '11px', '#f0dddd', 0.5, 'world');
-      this.addText(x, y + 93 * perspectiveScale, vitals ? `生命 ${vitals.hp}/${vitals.maxHp}` : '--', '10px', '#dcb7af', 0.5, 'world');
+      const overheadY = y - 92 * perspectiveScale;
+      const intent = view.enemyIntents.find((candidate) => candidate.enemyId === enemyId);
+      const overheadDepth = 2000 + Math.round(y);
+      this.addToWorld(this.add.rectangle(x, overheadY, 132, 42, 0x100b10, 0.82).setStrokeStyle(1, 0xb65d69, 0.7).setDepth(overheadDepth));
+      this.addText(x - 60, overheadY - 15, actorDisplayName(enemyId), '9px', '#f0dddd', 0, 'world').setDepth(overheadDepth + 1);
+      this.addText(x + 60, overheadY - 15, intent?.name ?? '—', '8px', '#e1b6aa', 1, 'world').setDepth(overheadDepth + 1);
+      this.addToWorld(this.add.rectangle(x, overheadY + 4, 116, 7, 0x2b1b20, 1).setDepth(overheadDepth + 1));
+      const hpRatio = vitals ? Math.max(0, vitals.hp / vitals.maxHp) : 0;
+      this.addToWorld(this.add.rectangle(x - 58, overheadY + 4, 116 * hpRatio, 7, 0xd45168, 1).setOrigin(0, 0.5).setDepth(overheadDepth + 2));
+      this.addText(x, overheadY + 15, vitals ? `${vitals.hp}/${vitals.maxHp}` : '--', '8px', '#f2dfe1', 0.5, 'world').setDepth(overheadDepth + 2);
     });
-
-    this.addText(layout.intentPanel.x + 10, layout.intentPanel.y + 9, '敵方意圖', '9px', '#d8b98d');
-    const intent = view.enemyIntents[0];
-    if (intent) {
-      const targets = intent.targetIds.map(actorDisplayName).filter(Boolean).join('、') || '—';
-      this.addText(layout.intentPanel.x + 10, layout.intentPanel.y + 29, intent.name, '13px', '#f0ded0');
-      this.addText(
-        layout.intentPanel.x + 10,
-        layout.intentPanel.y + 55,
-        `傷害 ${intent.damage ?? 0} → ${targets}\n延遲 ${intent.delay}`,
-        '10px',
-        '#c7d8d9',
-      );
-    } else {
-      this.addText(layout.intentPanel.x + 10, layout.intentPanel.y + 36, '—', '13px', '#899da2');
-    }
+    this.worldContent?.sort('depth');
 
     if (view.preview) {
       const previewX = 650;
@@ -344,6 +340,7 @@ export class RefactorBattleScene extends Phaser.Scene {
   }
 
   private drawSharedHand(view: RefactorBattleView, handLayout: RefactorHandLayoutMetrics): void {
+    if (handLayout.state === 'HIDDEN') return;
     const anySkillSelected = view.hand.some((card) => card.selected);
     this.addText(
       24,
@@ -353,14 +350,20 @@ export class RefactorBattleScene extends Phaser.Scene {
       '#9fc5cd',
     );
 
-    view.hand.forEach((card, index) => {
-      const x = 248 + index * handLayout.cardGap;
+    const orderedHand = view.hand.map((card, index) => ({ card, index }))
+      .sort((left, right) => Number(left.card.selected) - Number(right.card.selected));
+    orderedHand.forEach(({ card, index }) => {
+      const baseX = 248 + index * handLayout.cardGap;
       const dispatchSelected = this.dispatchSelection.has(card.instanceId);
       const family = cardFamilyStyle(card.category);
       const presentation = cardSelectionPresentation(card.selected, dispatchSelected, anySkillSelected);
-      const width = handLayout.cardWidth * presentation.scale;
-      const height = handLayout.cardHeight * presentation.scale;
-      const y = handLayout.cardY + presentation.yOffset;
+      const selectedFocus = card.selected && (handLayout.state === 'FOCUS' || handLayout.state === 'TARGETING');
+      const x = selectedFocus ? 640 : baseX;
+      const focusScale = selectedFocus ? 1.5 : 1;
+      const width = handLayout.cardWidth * focusScale;
+      const height = handLayout.cardHeight * focusScale;
+      const y = selectedFocus ? 500 : handLayout.cardY;
+      const cardAlpha = selectedFocus ? 1 : anySkillSelected ? 0.42 : presentation.alpha;
 
       if (card.selected) {
         this.addToHud(
@@ -369,9 +372,17 @@ export class RefactorBattleScene extends Phaser.Scene {
         );
       }
 
-      const cardRect = this.add.rectangle(x, y, width, height, family.fill, presentation.alpha)
+      const cardRect = this.add.rectangle(x, y, width, height, family.fill, cardAlpha)
         .setStrokeStyle(presentation.strokeWidth, family.stroke, presentation.glowAlpha);
       this.addToHud(cardRect);
+
+      const familyKey = refactorCardFamilyTextureKey(card.category);
+      if (this.textures.exists(REFACTOR_CARD_FRAME_KEY)) {
+        this.addToHud(this.add.image(x, y, REFACTOR_CARD_FRAME_KEY).setDisplaySize(width, height).setAlpha(cardAlpha));
+      }
+      if (this.textures.exists(familyKey)) {
+        this.addFittedImage(x, y - height * 0.23, familyKey, width * 0.84, height * 0.43, cardAlpha, 'hud');
+      }
 
       const accentBar = this.add.rectangle(
         x,
@@ -383,16 +394,16 @@ export class RefactorBattleScene extends Phaser.Scene {
       );
       this.addToHud(accentBar);
 
-      const markY = y - height * 0.28;
+      const markY = y - height * 0.38;
       const mark = this.add.rectangle(x, markY, 22, 22, family.accent, card.selected ? 0.24 : 0.12)
         .setRotation(Math.PI / 4)
         .setStrokeStyle(1, family.accent, card.selected ? 0.9 : 0.55);
       this.addToHud(mark);
       this.addText(x, markY, family.label.slice(0, 1), '8px', family.text, 0.5);
-      this.addText(x, y - height * 0.10, card.name, card.selected ? '13px' : '12px', '#f4f5f2', 0.5);
-      this.addText(x, y + height * 0.015, family.label, '8px', family.text, 0.5);
+      this.addText(x, y - height * 0.39, card.name, selectedFocus ? '14px' : '10px', '#f4f5f2', 0.5);
+      this.addText(x, y - height * 0.30, `Delay ${card.delay} · ${family.label}`, '8px', family.text, 0.5);
 
-      const effectLines = handLayout.state === 'EXPANDED' ? card.effectLines : card.effectLines.slice(0, 1);
+      const effectLines = selectedFocus || handLayout.state === 'DISPATCH' ? card.effectLines : [];
       effectLines.forEach((line, lineIndex) => {
         this.addText(
           x,
@@ -404,7 +415,7 @@ export class RefactorBattleScene extends Phaser.Scene {
         );
       });
 
-      const footerY = y + height / 2 - 14;
+      const footerY = y + height / 2 - 16;
       const footer = this.add.rectangle(x, footerY, width - 12, 22, 0x070c12, 0.9)
         .setStrokeStyle(1, family.stroke, card.selected ? 0.86 : 0.42);
       this.addToHud(footer);
@@ -809,12 +820,14 @@ export class RefactorBattleScene extends Phaser.Scene {
     this.clearAutoAdvance();
     this.animationBusy = true;
     this.input.enabled = false;
+    this.hudContent?.setVisible(false);
   }
 
   private finishPresentationMotion(): void {
     for (const timer of this.presentationTimers.splice(0)) timer.remove(false);
     this.animationBusy = false;
     this.input.enabled = true;
+    this.hudContent?.setVisible(true);
   }
 
   private clearPresentationMotion(): void {

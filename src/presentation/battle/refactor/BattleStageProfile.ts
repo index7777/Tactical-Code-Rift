@@ -31,6 +31,8 @@ export interface FormationSlot {
   depthBandIndex: number;
 }
 
+export type FormationSide = 'player' | 'enemy';
+
 export interface StageActorPosition {
   actorId: string;
   x: number;
@@ -49,16 +51,14 @@ export interface BackgroundFrame {
 export const RAIL_HALT_STAGE_PROFILE: BattleStageProfile = {
   width: 1280,
   height: 720,
-  playerZone: { x: 300, y: 382, width: 300, height: 120 },
-  enemyZone: { x: 830, y: 390, width: 200, height: 100 },
+  playerZone: { x: 270, y: 404, width: 360, height: 62 },
+  enemyZone: { x: 690, y: 392, width: 520, height: 92 },
   actionZone: { x: 550, y: 395, width: 300, height: 115 },
   depthBands: [
-    { y: 392, scale: 0.88 },
-    { y: 420, scale: 0.96 },
-    { y: 462, scale: 1.07 },
-    { y: 492, scale: 1.16 },
+    { y: 408, scale: 0.96 },
+    { y: 464, scale: 1.08 },
   ],
-  enemyVisualScaleMultiplier: 1.14,
+  enemyVisualScaleMultiplier: 1.06,
   backgroundFocalPoint: { x: 0.51, y: 0.53 },
   hudSafeTop: 112,
   hudSafeBottom: 584,
@@ -68,10 +68,10 @@ export const RAIL_HALT_STAGE_PROFILE: BattleStageProfile = {
 };
 
 export const FOUR_PLAYER_FORMATION_SLOTS: readonly FormationSlot[] = [
-  { xRatio: 0.08, depthBandIndex: 0 },
-  { xRatio: 0.68, depthBandIndex: 1 },
-  { xRatio: 0.24, depthBandIndex: 2 },
-  { xRatio: 0.84, depthBandIndex: 3 },
+  { xRatio: 0.04, depthBandIndex: 0 },
+  { xRatio: 0.52, depthBandIndex: 0 },
+  { xRatio: 0.25, depthBandIndex: 1 },
+  { xRatio: 0.73, depthBandIndex: 1 },
 ];
 
 export const DEFAULT_PLAYER_ACTOR_ORDER = ['rin', 'chikage', 'oboro', 'mo'] as const;
@@ -99,15 +99,21 @@ export function formationPositions(
 
 export function enemyStagePosition(
   index: number,
+  count = 4,
   profile: BattleStageProfile = RAIL_HALT_STAGE_PROFILE,
 ): { x: number; y: number; perspectiveScale: number } {
-  const safeIndex = Math.max(0, index);
-  const bandIndex = Math.min(profile.depthBands.length - 1, 1 + (safeIndex % 2));
-  const band = profile.depthBands[bandIndex];
-  const xStep = Math.min(profile.enemyZone.width * 0.38, 82);
+  const layouts: Record<number, readonly FormationSlot[]> = {
+    1: [{ xRatio: 0.5, depthBandIndex: 1 }],
+    2: [{ xRatio: 0.75, depthBandIndex: 0 }, { xRatio: 0.25, depthBandIndex: 1 }],
+    3: [{ xRatio: 0.75, depthBandIndex: 0 }, { xRatio: 0.25, depthBandIndex: 0 }, { xRatio: 0.5, depthBandIndex: 1 }],
+    4: [{ xRatio: 0.78, depthBandIndex: 0 }, { xRatio: 0.28, depthBandIndex: 0 }, { xRatio: 0.54, depthBandIndex: 1 }, { xRatio: 0.04, depthBandIndex: 1 }],
+  };
+  const slots = layouts[Math.min(4, Math.max(1, count))] ?? layouts[4];
+  const slot = slots[Math.min(Math.max(0, index), slots.length - 1)];
+  const band = profile.depthBands[slot.depthBandIndex];
   return {
-    x: profile.enemyZone.x + profile.enemyZone.width * 0.48 + safeIndex * xStep,
-    y: clamp(band.y, profile.enemyZone.y, profile.enemyZone.y + profile.enemyZone.height),
+    x: profile.enemyZone.x + profile.enemyZone.width * slot.xRatio,
+    y: band.y + (slot.depthBandIndex === 0 ? -12 : 16),
     perspectiveScale: band.scale * profile.enemyVisualScaleMultiplier,
   };
 }

@@ -14,7 +14,7 @@ DATE = 2026-08-22
 2. 完整卡牌在 `PLAYER_IDLE` 時沉入畫面下緣，只露出約一半高度。
 3. 選牌時 selected card 才完整抽出；其餘牌下沉並退階。
 4. 執行／結算期間手牌與決策 UI 全部退場，戰場演出成為唯一主焦點。
-5. 不生成新美術；先以程序化灰盒完成 layout，再接入使用者指定的既有 `tactical-code-rift-card-assets-v1` 卡框與 family 圖案做 composite QA。
+5. 不生成新美術；依使用者指示跳過獨立灰盒交付，直接用既有 `tactical-code-rift-card-assets-v1` 卡框與 family 圖案完成 runtime composite QA。
 
 ## 取代的舊契約
 
@@ -69,6 +69,9 @@ DATE = 2026-08-22
 - 前後排腳點差目標為 44–60 logical px。
 - 我方固定朝右；敵方固定朝左。
 - 所有 HOME、action return point 與 death anchor 均從 slot＋foot pivot 推導，不保存角色特例座標。
+- encounter 建立時即把 actor id 綁定到 immutable spawn slot；死亡只改 alive／presentation，不移除 slot、不讓其他敵人往前補位。
+- 允許前後排輪廓局部重疊，但 front/rear 必須至少有一個清楚的水平錯位，且不得遮住頭部、武器主 silhouette 或 foot contact。
+- 明確 render order：ground/ring < rear actor < front actor < overhead/target feedback < damage/result text；同 row 使用穩定 slot index，不依每次 render 的陣列偶然順序。
 
 ### Four-unit layout
 
@@ -156,7 +159,7 @@ Boss encounter 可讓 Boss 使用一個主 slot 和較大的 canonical asset sca
 ### `FOCUS`／`TARGETING`
 
 - selected card 抽到中央偏下的 focus anchor，完整顯示。
-- selected 視覺尺度目標為 idle card 的 1.55–1.85 倍；最終值由 1280×720 與 844×390 灰盒決定。
+- selected 視覺尺度目標為 idle card 的 1.55–1.85 倍；最終值由 1280×720 與 844×390 runtime composite 決定。
 - 其他四張牌中心沉到 logical y `748` 以下並降至 35–55% alpha。
 - selected card、actor target 與 Preview 必須形成一個 focus 群組；不新增全寬 Preview panel。
 - Confirm 固定在右下 safe zone；Cancel 為較小的次要控制。
@@ -256,7 +259,7 @@ Boss encounter 可讓 Boss 使用一個主 slot 和較大的 canonical asset sca
 
 - 完成 W1、W2、W5 pure policies 與 unit tests。
 - 用程序化矩形確認 4v4＋PEEK／FOCUS／HIDDEN layout。
-- 停止點：先交 1280×720、844×390 灰盒 QA，不生成資產。
+- 停止點：直接交 1280×720、844×390 runtime composite QA，不生成資產。
 
 ### Batch B — Runtime presenters
 

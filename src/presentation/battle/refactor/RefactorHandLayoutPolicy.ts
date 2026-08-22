@@ -1,6 +1,6 @@
 import type { BattleTurnPhase } from '../../../core/turns/BattleTurnState';
 
-export type RefactorHandLayoutState = 'COLLAPSED' | 'EXPANDED';
+export type RefactorHandLayoutState = 'PEEK' | 'FOCUS' | 'TARGETING' | 'HIDDEN' | 'DISPATCH';
 
 export interface RefactorHandLayoutMetrics {
   state: RefactorHandLayoutState;
@@ -18,16 +18,15 @@ export interface RefactorHandLayoutMetrics {
   utilityHeight: number;
 }
 
-const EXPANDED_PHASES: ReadonlySet<BattleTurnPhase> = new Set([
-  'CARD_SELECTED',
-  'TARGET_PREVIEW',
-]);
-
 export function handLayoutState(
   phase: BattleTurnPhase,
   dispatchMode: boolean,
 ): RefactorHandLayoutState {
-  return dispatchMode || EXPANDED_PHASES.has(phase) ? 'EXPANDED' : 'COLLAPSED';
+  if (dispatchMode) return 'DISPATCH';
+  if (phase === 'PLAYER_IDLE') return 'PEEK';
+  if (phase === 'CARD_SELECTED') return 'FOCUS';
+  if (phase === 'TARGET_PREVIEW') return 'TARGETING';
+  return 'HIDDEN';
 }
 
 export function handLayoutMetrics(
@@ -35,13 +34,13 @@ export function handLayoutMetrics(
   dispatchMode: boolean,
 ): RefactorHandLayoutMetrics {
   const state = handLayoutState(phase, dispatchMode);
-  if (state === 'EXPANDED') {
+  if (state === 'FOCUS' || state === 'TARGETING') {
     return {
       state,
       labelY: 548,
-      cardY: 635,
-      cardWidth: 142,
-      cardHeight: 150,
+      cardY: 770,
+      cardWidth: 136,
+      cardHeight: 204,
       cardGap: 152,
       previewY: 522,
       actionPrimaryY: 626,
@@ -49,16 +48,20 @@ export function handLayoutMetrics(
       utilityX: 1110,
       utilityY: 635,
       utilityWidth: 132,
-      utilityHeight: 150,
+      utilityHeight: 132,
     };
   }
+
+  if (state === 'HIDDEN') return { state, labelY: 760, cardY: 840, cardWidth: 136, cardHeight: 204, cardGap: 148, previewY: 558, actionPrimaryY: 640, actionSecondaryY: 684, utilityX: 1110, utilityY: 840, utilityWidth: 132, utilityHeight: 116 };
+
+  if (state === 'DISPATCH') return { state, labelY: 548, cardY: 660, cardWidth: 136, cardHeight: 204, cardGap: 148, previewY: 522, actionPrimaryY: 626, actionSecondaryY: 676, utilityX: 1110, utilityY: 635, utilityWidth: 132, utilityHeight: 150 };
 
   return {
     state,
     labelY: 586,
-    cardY: 651,
+    cardY: 720,
     cardWidth: 136,
-    cardHeight: 116,
+    cardHeight: 204,
     cardGap: 148,
     previewY: 558,
     actionPrimaryY: 640,

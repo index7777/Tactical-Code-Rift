@@ -15,6 +15,10 @@ export const REFACTOR_BATTLE_MUSIC_KEY = 'battle-music';
 export const REFACTOR_BOSS_MUSIC_KEY = 'boss-battle-music';
 export const REFACTOR_SWISH_SFX_KEY = 'refactor-sfx-sword-swish';
 export const REFACTOR_IMPACT_SFX_KEY = 'refactor-sfx-sword-impact';
+export const REFACTOR_CARD_FRAME_KEY = 'refactor-card-frame-neutral-v1';
+export function refactorCardFamilyTextureKey(category: string): string {
+  return `refactor-card-family-${category}-v1`;
+}
 
 const ENEMY_IDS = [
   'wet-corpse',
@@ -75,6 +79,10 @@ export function queueRefactorBattleAssets(load: Phaser.Loader.LoaderPlugin): voi
         ? 'assets/battle/generated/monsters/rainfall-ridgeline/rain-boss-master-runtime-v1.png'
         : `assets/battle/portraits/${enemyId}-timeline.png`,
     );
+  }
+  load.image(REFACTOR_CARD_FRAME_KEY, 'assets/battle/cards/master-v1/card-frame-neutral.png');
+  for (const family of ['quick', 'heavy', 'guard', 'disruption', 'break']) {
+    load.image(refactorCardFamilyTextureKey(family), `assets/battle/cards/master-v1/card-family-${family}.png`);
   }
   load.audio(REFACTOR_BATTLE_MUSIC_KEY, 'assets/battle/demo_battle01.mp3');
   load.audio(REFACTOR_BOSS_MUSIC_KEY, 'assets/music/world-01/zone1-boss-bgm.mp3');

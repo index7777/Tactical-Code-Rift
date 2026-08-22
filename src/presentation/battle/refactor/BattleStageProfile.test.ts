@@ -28,19 +28,19 @@ describe('BattleStageProfile', () => {
       expect(position.y).toBeLessThanOrEqual(zone.y + zone.height);
     }
 
-    expect(positions.map((position) => position.y)).toEqual([392, 420, 462, 492]);
-    expect(positions.map((position) => position.perspectiveScale)).toEqual([0.88, 0.96, 1.07, 1.16]);
-    expect(positions[0].perspectiveScale).toBeLessThan(positions[1].perspectiveScale);
-    expect(positions[1].perspectiveScale).toBeLessThan(positions[2].perspectiveScale);
-    expect(positions[2].perspectiveScale).toBeLessThan(positions[3].perspectiveScale);
-    expect(positions[3].perspectiveScale / positions[0].perspectiveScale).toBeGreaterThanOrEqual(1.28);
+    expect(positions.map((position) => position.y)).toEqual([408, 408, 464, 464]);
+    expect(positions.map((position) => position.perspectiveScale)).toEqual([0.96, 0.96, 1.08, 1.08]);
+    expect(positions[0].perspectiveScale).toBe(positions[1].perspectiveScale);
+    expect(positions[2].perspectiveScale).toBe(positions[3].perspectiveScale);
+    expect(positions[2].perspectiveScale / positions[0].perspectiveScale).toBeGreaterThanOrEqual(1.1);
+    expect(positions[2].perspectiveScale / positions[0].perspectiveScale).toBeLessThanOrEqual(1.15);
   });
 
   it('uses wider horizontal separation so front and rear silhouettes do not rely on y offsets', () => {
     const positions = formationPositions(['rin', 'chikage', 'oboro', 'mo']);
-    expect(positions[1].x - positions[0].x).toBeGreaterThanOrEqual(175);
-    expect(positions[3].x - positions[2].x).toBeGreaterThanOrEqual(175);
-    expect(positions[2].x - positions[0].x).toBeGreaterThanOrEqual(45);
+    expect(positions[1].x - positions[0].x).toBeGreaterThanOrEqual(170);
+    expect(positions[3].x - positions[2].x).toBeGreaterThanOrEqual(170);
+    expect(positions[2].x - positions[0].x).toBeGreaterThanOrEqual(70);
   });
 
   it('derives enemy placement and visual weight from the stage profile', () => {
@@ -51,10 +51,17 @@ describe('BattleStageProfile', () => {
     expect(enemy.y).toBeGreaterThanOrEqual(zone.y);
     expect(enemy.y).toBeLessThanOrEqual(zone.y + zone.height);
     expect(enemy.perspectiveScale).toBeCloseTo(
-      RAIL_HALT_STAGE_PROFILE.depthBands[1].scale * RAIL_HALT_STAGE_PROFILE.enemyVisualScaleMultiplier,
+      RAIL_HALT_STAGE_PROFILE.depthBands[0].scale * RAIL_HALT_STAGE_PROFILE.enemyVisualScaleMultiplier,
       6,
     );
-    expect(RAIL_HALT_STAGE_PROFILE.enemyVisualScaleMultiplier).toBe(1.14);
+    expect(RAIL_HALT_STAGE_PROFILE.enemyVisualScaleMultiplier).toBe(1.06);
+  });
+
+  it('keeps four enemies in stable separated two-row spawn slots', () => {
+    const positions = [0, 1, 2, 3].map((index) => enemyStagePosition(index, 4));
+    expect(positions.map(({ y }) => y)).toEqual([396, 396, 480, 480]);
+    expect(Math.abs(positions[0].x - positions[1].x)).toBeCloseTo(260, 6);
+    expect(Math.abs(positions[2].x - positions[3].x)).toBeCloseTo(260, 6);
   });
 
   it('covers the stage without distorting source aspect ratio', () => {

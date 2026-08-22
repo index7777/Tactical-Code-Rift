@@ -39,10 +39,10 @@ describe('actionApproachPosition', () => {
 describe('Phase 10m battlefield layout', () => {
   it('uses wider horizontal formation spread while staying in the player side', () => {
     const xs = PLAYER_HOME_POSITIONS.map((position) => position.x);
-    expect(Math.min(...xs)).toBeGreaterThanOrEqual(320);
-    expect(Math.max(...xs)).toBeLessThanOrEqual(560);
-    expect(PLAYER_HOME_POSITIONS[1].x - PLAYER_HOME_POSITIONS[0].x).toBeGreaterThanOrEqual(150);
-    expect(PLAYER_HOME_POSITIONS[3].x - PLAYER_HOME_POSITIONS[2].x).toBeGreaterThanOrEqual(150);
+    expect(Math.min(...xs)).toBeGreaterThanOrEqual(280);
+    expect(Math.max(...xs)).toBeLessThanOrEqual(540);
+    expect(PLAYER_HOME_POSITIONS[1].x - PLAYER_HOME_POSITIONS[0].x).toBeGreaterThanOrEqual(170);
+    expect(PLAYER_HOME_POSITIONS[3].x - PLAYER_HOME_POSITIONS[2].x).toBeGreaterThanOrEqual(170);
   });
 
   it('keeps floating HUD panels compact', () => {
