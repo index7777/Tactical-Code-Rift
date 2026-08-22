@@ -1,6 +1,6 @@
 # Combat Refactor Phase 19 — Clash Presentation
 
-STATUS = IMPLEMENTATION_CONTRACT
+STATUS = PHASE19A_CI_VERIFIED_SCENE_WIRING_PENDING
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -30,7 +30,7 @@ This is a presentation branch of the existing Action Presentation Sequencer, not
 
 ## Preview boundary
 
-`TargetPreviewView` may expose a compact Clash presentation snapshot only when `preview.clash.resolution.eligible === true`:
+`TargetPreviewView` exposes a compact Clash presentation snapshot only when `preview.clash.resolution.eligible === true`:
 
 - `contestedEnemyId`
 - `outcome`: `player-win | draw | enemy-win`
@@ -41,13 +41,13 @@ The Scene must not display or recompute a giant global `CLASH POWER X VS Y` syst
 
 ## Animation plan
 
-Player action presentation may attach an optional Clash branch when the current target preview contains an eligible Clash.
+Player action presentation attaches an optional Clash branch when the current target preview contains an eligible Clash.
 
 The plan owns only presentation metadata:
 
 - contested enemy actor id;
 - authoritative outcome;
-- both profile ids already selected for player/enemy presentation;
+- authored/fallback enemy presentation profile id;
 - no damage or Intent mutation.
 
 If the contested enemy sprite is unavailable, the Scene may fall back to the existing one-sided player action presentation while preserving the authoritative Clash resolution.
@@ -69,9 +69,34 @@ Visual result branching:
 
 The branch must never call `resolveClashPreview()` or inspect legacy `clashPower`.
 
+## Phase 19a implemented boundary
+
+Implemented and CI verified:
+
+- `TargetPreviewPresenter` consumes `BattlePreviewWithClashResult` and exposes presentation Clash data only for eligible authoritative resolutions.
+- unavailable/no Clash produces no presentation branch.
+- `RefactorBattleAnimationPlan` carries the same authoritative Clash outcome and contested enemy id into the player presentation plan.
+- enemy profile selection reuses authored Intent presentation metadata, with `enemy-light` only as the existing fallback.
+- no presentation code recalculates Clash scores or outcome.
+- tests cover eligible preview mapping, unavailable Clash suppression, and preservation of enemy-heavy + enemy-win data into the player animation plan.
+
+CI run 480: `npm run build` passed and `npm test` passed.
+
+## Phase 19b pending Scene wiring
+
+Still pending:
+
+- simultaneous player/enemy approach;
+- Clash contact FX;
+- presentation-only hit-stop;
+- player-win/draw/enemy-win recoil/follow-through branch;
+- return-to-formation browser QA.
+
+The existing one-sided player action choreography remains active until this Scene wiring batch lands.
+
 ## Initial implementation scope
 
-Phase 19 first implementation is QA-bootstrap capable and uses only existing sprites/procedural FX.
+Phase 19 uses only existing sprites/procedural FX.
 
 It may use a fixed presentation-only hit-stop duration and small displacement tuning constants. These constants are visual only and do not enter ActionDefinition or combat math.
 
@@ -79,16 +104,18 @@ Story encounters remain unchanged until authored production Clash metadata is ex
 
 ## Verification
 
-Required automated evidence:
+Phase 19a evidence:
 
 - Target Preview exposes eligible Clash outcome/contested enemy only from authoritative preview data;
 - unavailable/no Clash produces no Clash presentation snapshot;
 - player animation plan carries the same authoritative outcome without recalculation;
-- no Scene import of `ClashResolver`;
-- Scene calls player resolution once on Clash contact;
 - build/test pass.
 
-Browser QA remains required for readable simultaneous contact, result branch, and return-to-formation behavior.
+Phase 19b must additionally verify:
+
+- no Scene import of `ClashResolver`;
+- Scene calls player resolution once on Clash contact;
+- browser-readable simultaneous contact, result branch, and return-to-formation behavior.
 
 ## Out of scope
 
