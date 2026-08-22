@@ -141,47 +141,43 @@ CI：run 192 build / test 全數通過，因此 Phase 9c 升為 `VERIFIED`。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9D_FLAG_QA_INTERACTIONS.md`
 
-已實作：
+已實作 enemy resolution、enemy / ally target routing、千景 any-ally Guard 與調度 0–2 張。
 
-- `RefactorBattleRuntime` 可注入 `RefactorEnemyIntentProvider`，Scene 不自行決定 enemy Intent。
-- `resolveActiveEnemyAction()` 讓 `ENEMY_EXECUTING` 正式走 Controller -> EnemyActionResolver -> `WAITING_FOR_NEXT_ACTOR`。
-- QA bootstrap 新增 deterministic `createRefactorQaEnemyIntent()`，由 `main.ts` composition root 注入 runtime。
-- `RefactorBattleView.targetableActorIds` 讓 Scene 只對 selected card 的 target team 掛互動。
-- 千景 `any-ally` Guard 可以在 Scene 點我方角色進 Target Preview。
-- Scene 新增純 UI ephemeral 調度模式，可選 0 / 1 / 2 張後一次提交；不建立第二份 combat state。
-- runtime 仍拒絕沒有 provider 的 enemy resolution。
+CI：run 205 build / test 全數通過，因此 Phase 9d 為 `VERIFIED`。
 
-新增測試：enemy provider resolution、無 provider 拒絕、enemy / any-ally / self target routing、dispatch 0 / 1 / 2 張。
-
-CI 記錄：
-
-- run 201：`npm run build` 通過；`npm test` 235 個測試中 234 通過、1 個失敗。
-- 唯一失敗是 `RefactorBattleRuntimePhase9d.test.ts` 把 `any-ally` target list 順序寫死成 `['chikage', 'rin']`，實際 runtime 依 authoritative vitals insertion order回傳 `['rin', 'chikage']`。
-- 此失敗不代表 target routing 規則錯誤；修正測試、不改 production target logic 後，run 205 build / test 全數通過，因此 Phase 9d 升為 `VERIFIED`。
-
-流程紀錄：Phase 9d contract 已先建立；本次 source/tests 寫入後才補齊 progress 狀態，未完全符合索引要求的「contract + progress 皆先於 source/tests」順序。此偏差已在本文件明確記錄，不視為完整流程合規證據。
+流程紀錄：Phase 9d contract 已先建立；progress 更新晚於 source/tests 的偏差已記錄，不視為完整流程合規證據。
 
 ## Phase 9e — GitHub Pages QA Hosting
 
-狀態：`IMPLEMENTATION_PENDING_WORKFLOW`
+狀態：`BROWSER_QA_IN_PROGRESS`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9E_GITHUB_PAGES_QA.md`
 
-- 因 Vercel Hobby build-rate limit 阻塞 current-head preview，QA hosting 改用 GitHub Pages。
-- 只新增 branch-scoped Pages deployment workflow，不改 combat domain / application / presentation 規則。
-- Pages build 沿用 `npm ci` + `npm run build` 與既有 `build/web` output。
-- Vite `base: './'` 保持不變，避免另建 Pages 專用 asset path。
-- 預定 QA 入口：`https://index7777.github.io/Tactical-Code-Rift/?combat-refactor=1`。
-- GitHub Pages deployment 成功只解除 hosting blocker；仍需完成 1280×720 / 844×390 的 browser interaction QA 才能進 Phase 10。
+- Vercel build-rate limit 後改用 GitHub Pages。
+- Pages environment 已允許 `combat-refactor-v1`；使用者已確認 feature-flag 頁面可以載入、可以點擊並進行戰鬥。
+- 目前仍需完成完整尺寸與流程 QA。
+
+## Phase 9f — Auto Flow + Chinese Presentation
+
+狀態：`IMPLEMENTATION_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE9F_AUTO_FLOW_LOCALIZATION.md`
+
+目標：
+
+- 移除玩家手動「開始下一角色／執行敵方行動」的 QA step runner 操作。
+- `WAITING_FOR_NEXT_ACTOR` 與 enemy execution 改由 Scene presentation timer 自動推進。
+- 玩家只在選牌、選目標、確認、取消、調度時操作。
+- 玩家可見隊友名稱改為凜／千景／朧／紅葉，QA 敵人 `ghost-fire` 顯示為鬼火。
+- card category、target rule 與主要介面標題中文化；internal id / enum 不變。
 
 ## Deployment / Browser QA Gate
 
-狀態：`MIGRATING_TO_GITHUB_PAGES`
+狀態：`ACTIVE_ON_GITHUB_PAGES`
 
-- Vercel current-head status 因 `upgradeToPro=build-rate-limit` 失敗，舊 READY deployment 不可作 current-head QA 證據。
-- Phase 9e 改由 GitHub Pages 產出 current-head QA deployment，legacy `BootScene` 仍是無 flag 的預設入口。
-- 在 Pages deployment 與 browser QA 都有證據前，Phase 10 不啟動。
+- GitHub Pages 已可載入 feature-flag runtime 並操作戰鬥。
+- Phase 10 前仍需完成 1280×720 / 844×390 與 Phase 9f auto-flow/browser regression QA。
 
 ## 下一批
 
-建立 `combat-refactor-v1` 專用 GitHub Pages workflow，確認 Pages deployment 成功後，用 `?combat-refactor=1` 完成 1280×720 與 844×390 的實際 browser QA；只有 QA gate 通過後才評估 Phase 10 預設入口切換與 legacy removal。
+實作 Phase 9f auto-flow 與中文 presentation，跑 `npm run build` / `npm test`，再由 GitHub Pages 驗證玩家不需要手動推進非決策狀態，且中文角色名稱與介面正確。
