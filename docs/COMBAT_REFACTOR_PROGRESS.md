@@ -218,27 +218,31 @@ CI：run 247 build / test 通過。仍需 GitHub Pages 1280×720 / 844×390 實�
 
 ## Phase 10d — Action / Reaction Presentation Sequencing
 
-狀態：`IMPLEMENTATION_PENDING`
+狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10D_ACTION_PRESENTATION.md`
 
-目標：
+已實作：
 
-- 玩家確認後先播放 HOME -> ACTION / REACTION -> impact / target reaction -> HOME，再顯示 authoritative post-resolution state。
-- quick / heavy / break / disruption 接既有 ready / attack pose；guard 使用 REACTION 路徑，不播放攻擊型 slash。
-- 玩家被命中可使用既有 hit pose；rainfall-ridgeline enemy 目前只有 master visual，因此敵方演出先用 lunge / recoil / tint / FX。
-- enemy auto-flow 改成先演出再 resolve，不再 timer 到點瞬間跳數值。
-- 演出期間鎖 input、清 auto timer，避免雙重 resolution。
-- 所有 combat math 仍由 Controller / core resolver 決定，Scene 只播放結果。
+- 新增純 presentation `RefactorBattleAnimationPlan.ts`，由 `RefactorBattleView` 產生 ACTION / REACTION / ENEMY_ACTION plan，不 import resolver 或 legacy combat。
+- 玩家確認後先 commit card，角色 HOME -> ACTION / REACTION，切換既有 ready / attack pose、播放 slash / target reaction，再走既有 runtime resolution，最後回 HOME / idle。
+- guard 使用 REACTION 路徑且不播放 attack slash；no-target card 不虛構 target impact。
+- 玩家 target 可用現有 `hit-a / hit-b` pose；rainfall-ridgeline enemy 沒有正式 pose sheet，因此只用 tint / tween / FX reaction。
+- enemy auto-flow 改為 lunge -> impact / target reaction -> `resolveActiveEnemyAction()` -> 回位，不再 timer 到點直接跳數值。
+- 演出期間停用 input、清除 auto-advance timer；Scene shutdown / destroy 會清 presentation timer / tween，避免離場後重複提交。
+- 新增 plan tests，覆蓋一般攻擊、千景 guard、無目標卡與 enemy Intent target。
+
+CI：run 254 build / test 通過。仍需 GitHub Pages 實機檢查動作位移、角色 pivot、target reaction、敵方 lunge 與 input lock。
 
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10C_BROWSER_QA_AND_PHASE10D_IMPLEMENTATION_PENDING`
+狀態：`PHASE10C_AND_10D_BROWSER_QA_PENDING`
 
 - Phase 10 CI 已通過；default-entry / legacy rollback browser regression仍待確認。
 - Phase 10c CI run 247 已通過；full-canvas / 新 BG / 新 monster / perspective layout 仍需 Pages 實機 QA。
-- Phase 10d 先進行 presentation sequencing，但 legacy source 仍保留；browser gate 未完成前不做 legacy removal。
+- Phase 10d CI run 254 已通過；player / enemy action sequencing 仍需 Pages 實機 QA。
+- browser gate 未完成前不做 legacy removal。
 
 ## 下一批
 
-實作 Phase 10d action / reaction sequencing：先新增純 presentation animation plan 與測試，再把 player confirm / enemy auto action 改為演出後提交 resolution。CI 後回到 GitHub Pages 同時驗 Phase 10c 畫面與 Phase 10d 演出。
+等待 GitHub Pages current-head deployment 後，一次驗 Phase 10c + 10d：1280×720 / 844×390 的 BG、透視、站位、Timeline / Preview、玩家 ACTION / REACTION、敵方 lunge、hit reaction 與 input lock。依實機問題再拆 pivot/scale 微調、down/death、hit-stop / FX polish；legacy removal 仍後置。
