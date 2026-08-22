@@ -27,15 +27,16 @@ STATUS = AUTHORITATIVE_INDEX
 19. `COMBAT_REFACTOR_PHASE9F_AUTO_FLOW_LOCALIZATION.md`：Phase 9f 自動演進與中文 presentation 契約；非玩家決策 state 自動前進，玩家可見角色名／介面改為中文。
 20. `COMBAT_REFACTOR_PHASE10_DEFAULT_CUTOVER.md`：Phase 10 預設入口切換契約；新版成為 default，`?legacy-combat=1` 僅作短期 rollback，legacy source 本批不刪。
 21. `COMBAT_REFACTOR_PHASE10B_ASSET_RECONNECT.md`：Phase 10b 新戰鬥資產重新接入契約；新版 Scene 獨立 preload 現有角色 manifest、Timeline portrait、戰場背景與 QA enemy visual，不搬回 legacy combat。
-22. `COMBAT_REFACTOR_PHASE10C_BATTLEFIELD_TIMELINE_NORMALIZATION.md`：Phase 10c 戰場與上方行動序列正規化契約；修正 enemy runtime asset、Timeline 節點、active actor、Preview 資訊板與戰場 layout。
-23. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／deployment gate 狀態；只記進度，不取代規格與實作計畫。
-24. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-25. `art-bible.md`：角色、怪物、背景與透明素材規範。
-26. `characters/README.md`：角色母版與 runtime 對照。
-27. `areas/README.md`：區域背景與 runtime 狀態。
-28. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-29. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-30. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+22. `COMBAT_REFACTOR_PHASE10C_BATTLEFIELD_TIMELINE_NORMALIZATION.md`：Phase 10c 戰場與上方行動序列正規化契約；修正 enemy runtime asset、Timeline 節點、active actor、Preview 資訊板與 full-canvas 戰場 layout。
+23. `COMBAT_REFACTOR_PHASE10D_ACTION_PRESENTATION.md`：Phase 10d 行動／反應演出接線契約；把既有 player pose、ACTION／REACTION 位移、target reaction 與 enemy lunge 接到新版 runtime flow，不重算 combat 規則。
+24. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／deployment gate 狀態；只記進度，不取代規格與實作計畫。
+25. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+26. `art-bible.md`：角色、怪物、背景與透明素材規範。
+27. `characters/README.md`：角色母版與 runtime 對照。
+28. `areas/README.md`：區域背景與 runtime 狀態。
+29. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+30. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+31. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 
 ## combat-refactor-v1 分支規則
 
