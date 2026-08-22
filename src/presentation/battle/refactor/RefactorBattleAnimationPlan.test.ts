@@ -49,6 +49,8 @@ describe('RefactorBattleAnimationPlan', () => {
     expect(buildPlayerActionAnimationPlan(baseView())).toEqual({
       actorId: 'rin',
       targetId: 'ghost-fire',
+      targetIds: ['ghost-fire'],
+      hitCount: 1,
       motion: 'ACTION',
       profileId: 'quick-melee',
       useAttackPose: true,
@@ -83,6 +85,8 @@ describe('RefactorBattleAnimationPlan', () => {
     expect(buildPlayerActionAnimationPlan(view)).toEqual({
       actorId: 'chikage',
       targetId: 'rin',
+      targetIds: ['rin'],
+      hitCount: 1,
       motion: 'REACTION',
       profileId: 'guard',
       useAttackPose: false,
@@ -149,6 +153,8 @@ describe('RefactorBattleAnimationPlan', () => {
     expect(buildPlayerActionAnimationPlan(view)).toEqual({
       actorId: 'rin',
       targetId: undefined,
+      targetIds: [],
+      hitCount: 1,
       motion: 'ACTION',
       profileId: 'quick-melee',
       useAttackPose: true,
@@ -156,7 +162,7 @@ describe('RefactorBattleAnimationPlan', () => {
     });
   });
 
-  it('uses the active enemy intent target with the current enemy-light fallback profile', () => {
+  it('uses enemy-light when legacy intent presentation metadata is absent', () => {
     const view = baseView({
       phase: 'ENEMY_EXECUTING',
       activeActorId: 'ghost-fire',
@@ -164,28 +170,105 @@ describe('RefactorBattleAnimationPlan', () => {
       canResolveEnemy: true,
       hand: [],
       preview: undefined,
-      enemyIntents: [
-        {
-          enemyId: 'ghost-fire',
-          name: '鬼火疾走',
-          targetIds: ['rin'],
-          damage: 20,
-          delay: 5,
-          canDelay: false,
-          canInterrupt: false,
-          canGuard: true,
-          canRedirect: false,
-        },
-      ],
+      enemyIntents: [{
+        enemyId: 'ghost-fire',
+        name: '鬼火疾走',
+        targetIds: ['rin'],
+        damage: 20,
+        delay: 5,
+        canDelay: false,
+        canInterrupt: false,
+        canGuard: true,
+        canRedirect: false,
+      }],
     });
 
     expect(buildEnemyActionAnimationPlan(view)).toEqual({
       actorId: 'ghost-fire',
       targetId: 'rin',
+      targetIds: ['rin'],
+      hitCount: 1,
       motion: 'ENEMY_ACTION',
       profileId: 'enemy-light',
       useAttackPose: false,
       useSlashFx: true,
     });
+  });
+
+  it('preserves authored heavy profile, repeated contacts, and all explicit AoE targets', () => {
+    const view = baseView({
+      phase: 'ENEMY_EXECUTING',
+      activeActorId: 'rain-boss',
+      canConfirm: false,
+      canResolveEnemy: true,
+      hand: [],
+      preview: undefined,
+      enemyIntents: [{
+        enemyId: 'rain-boss',
+        name: '驟雨橫掃',
+        targetIds: ['rin', 'chikage', 'oboro', 'mo'],
+        damage: 8,
+        hitCount: 2,
+        delay: 7,
+        canDelay: true,
+        canInterrupt: true,
+        canGuard: true,
+        canRedirect: true,
+        presentationProfile: 'enemy-heavy',
+      }],
+    });
+
+    expect(buildEnemyActionAnimationPlan(view)).toMatchObject({
+      actorId: 'rain-boss',
+      targetId: 'rin',
+      targetIds: ['rin', 'chikage', 'oboro', 'mo'],
+      hitCount: 2,
+      profileId: 'enemy-heavy',
+    });
+  });
+
+  it('uses boss-signature when authored and suppresses hard-stagger attack choreography', () => {
+    const signature = baseView({
+      phase: 'ENEMY_EXECUTING',
+      activeActorId: 'rain-boss',
+      canConfirm: false,
+      canResolveEnemy: true,
+      hand: [],
+      preview: undefined,
+      enemyIntents: [{
+        enemyId: 'rain-boss',
+        name: '終雨',
+        targetIds: ['rin'],
+        damage: 18,
+        delay: 8,
+        canDelay: true,
+        canInterrupt: true,
+        canGuard: true,
+        canRedirect: true,
+        presentationProfile: 'boss-signature',
+      }],
+    });
+    expect(buildEnemyActionAnimationPlan(signature)?.profileId).toBe('boss-signature');
+
+    const stagger = baseView({
+      phase: 'ENEMY_EXECUTING',
+      activeActorId: 'rain-boss',
+      canConfirm: false,
+      canResolveEnemy: true,
+      hand: [],
+      preview: undefined,
+      enemyIntents: [{
+        enemyId: 'rain-boss',
+        name: '硬直',
+        targetIds: [],
+        delay: 8,
+        canDelay: false,
+        canInterrupt: false,
+        canGuard: false,
+        canRedirect: false,
+        presentationProfile: 'none',
+      }],
+    });
+    expect(buildEnemyActionAnimationPlan(stagger)).toBeUndefined();
   });
 });
