@@ -72,6 +72,8 @@ STATUS = AUTHORITATIVE_INDEX
 64. `COMBAT_REFACTOR_PHASE19_CLASH_PRESENTATION.md`：Phase 19 Clash presentation 契約；Presentation 只消費 authoritative Clash outcome，Scene 以雙方同步 approach／contact／hit-stop／result branch／return 呈現，不重算 Clash 或重複 enemy resolver。
 65. `COMBAT_REFACTOR_PHASE20_SELECTION_TARGETING_ZOOM_PRESENTATION.md`：Phase 20 selection/targeting zoom 契約；以 PEEK 1.05、FOCUS 1.08、TARGETING 1.12 的 battlefield camera 語言區分輪到誰、已選牌與已選目標，TARGETING 只使用 authoritative selected target midpoint，不使用常態 cut-in。
 66. `COMBAT_REFACTOR_PHASE21_DEMO_CARD_UPGRADE_PROGRESSION.md`：Phase 21 Demo progression 契約；Area 01 固定三個 family-upgrade reward checkpoint，維持同一 10-card shared kit，不加入抽卡、稀有度、商店或大型 deckbuilder 系統。
+67. `COMBAT_REFACTOR_PHASE21B_JOURNEY_UPGRADE_REWARD_STATE.md`：Phase 21b Journey reward state 契約；把三個里程碑做成 claim-once 的 pure progression state，兩條 battle-3 分支共用同一領取點。
+68. `COMBAT_REFACTOR_PHASE21C_JOURNEY_UPGRADE_REWARD_WIRING.md`：Phase 21c production wiring 契約；Journey registry 擁有升級狀態，戰後顯示 deterministic family choice，並透過 one-shot application handoff 把已擁有升級送入下一場 battle bootstrap。
 
 ## combat-refactor-v1 分支規則
 
