@@ -1,6 +1,6 @@
 # Combat Refactor Phase 11 — Route Cutover
 
-STATUS = IMPLEMENTED_PENDING_RUNTIME_QA
+STATUS = IMPLEMENTED_RUNTIME_QA_VERIFIED
 BRANCH = codex/combat-refactor-integration
 DATE = 2026-08-22
 
@@ -33,4 +33,7 @@ Replace the production combat runtime with the refactored controller and scene w
 - No old raster/SVG slash FX is loaded by `RefactorBattleScene`.
 - `npm run test`, `npm run build`, `git diff --check` pass.
 - 1280×720 and 844×390 captures render a non-empty battle with no missing canonical actors.
-- Full interactive victory/defeat return flow and all seven nodes remain required before merging to `main`.
+- Production Pages verification completed on bundle `index-2wQi0fNw.js`: every route encounter reached `PLAYER_IDLE`, accepted a real card click and actor-target click, and reached `TARGET_PREVIEW` with its canonical enemy roster.
+- Normal victory returned to `JourneyScene`; defeat restarted the same encounter; Boss victory returned to `JourneyScene` and set `journey-area01-cleared=true`.
+- Runtime QA found and fixed a shutdown-order defect where camera cleanup called `setZoom()` after Phaser had disposed the scene cameras, aborting the route transition.
+- The final seven-node, victory/defeat and Boss run completed with zero Console errors.

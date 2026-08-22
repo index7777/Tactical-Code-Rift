@@ -969,3 +969,12 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Preserved the pre-replacement design through tag `legacy-combat-pre-refactor-20260822` and `docs/LEGACY_COMBAT_ARCHIVE.md`.
 - Reused the live normal/Boss BGM and sword SFX paths. Existing visual FX remain available but are not wired into the replacement presentation batch.
 - Began system replacement by constructing the refactor controller from all seven canonical `EncounterCatalog` battle nodes.
+
+## 2026-08-22 — Phase 11 production route-flow verification
+
+- Added a pure battle exit policy and read-only runtime QA state for encounter id, phase, outcome, actor counts, battlefield and selected music; normal victory returns to the existing route, defeat retries the same node, and only Boss victory sets the Area 01 clear flag.
+- Production headless-Chrome QA exposed a real route-transition crash: `RefactorBattleScene` teardown attempted to reset the world camera after Phaser had already disposed scene cameras. Removed camera mutation from teardown and deployed fix `c0a85b7`.
+- Verified deployed bundle `index-2wQi0fNw.js`. All seven nodes reached `PLAYER_IDLE`, accepted a physical click on the first `截勢` card and a physical click on a legal enemy, then reached `TARGET_PREVIEW` against `wet-corpse`, `mountain-hound`, `wayfarer-umbrella`, `mountain-hound`, `wayfarer-umbrella`, `rain-warrior`, and `rain-boss` respectively.
+- Canonical enemy counts passed for all nodes: `battle-1=2`, `battle-2-upper=3`, `battle-2-lower=3`, `battle-3-upper=4`, `battle-3-lower=4`, `elite-1=3`, `boss-1=3`. Battlefield families and normal/Boss music keys also matched their encounter policy.
+- Normal victory returned to `JourneyScene` without setting Area clear; defeat restarted `battle-2-upper`; Boss victory returned to `JourneyScene` with `journey-area01-cleared=true`. Final production run reported zero Console errors.
+- Verification: integration branch 58 files／283 tests, Pages release branch 59 files／286 tests, both production builds and `git diff --check` passed.
