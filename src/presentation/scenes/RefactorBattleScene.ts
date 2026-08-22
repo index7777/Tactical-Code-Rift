@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
   PLAYER_HOME_POSITIONS,
   REFACTOR_BATTLE_LAYOUT,
+  perspectiveScaleForY,
 } from '../battle/refactor/BattleActorPresenter';
 import {
   REFACTOR_BATTLE_BACKGROUND_KEY,
@@ -51,12 +52,11 @@ export class RefactorBattleScene extends Phaser.Scene {
     const layout = REFACTOR_BATTLE_LAYOUT;
 
     this.addToContent(this.add.rectangle(640, 360, layout.width, layout.height, 0x07101a, 1));
-    this.drawPanel(layout.timeline, 0x0d1823, 0x7896a3);
-    this.drawPanel(layout.battlefield, 0x09141d, 0x6f8d96);
     this.drawBattlefieldBackground();
-    this.drawPanel(layout.partyRail, 0x0c1a22, 0x739aa2);
-    this.drawPanel(layout.intentPanel, 0x141b22, 0xb28f65);
-    this.drawPanel(layout.hand, 0x081018, 0x708b94);
+    this.drawOverlayPanel(layout.timeline, 0x07131d, 0x7896a3, 0.76);
+    this.drawOverlayPanel(layout.partyRail, 0x08151d, 0x739aa2, 0.72);
+    this.drawOverlayPanel(layout.intentPanel, 0x121820, 0xb28f65, 0.76);
+    this.drawOverlayPanel(layout.hand, 0x061019, 0x708b94, 0.8);
 
     if (!this.runtime) {
       this.addText(640, 336, '新版戰鬥執行環境未連接', '18px', '#e5c98d', 0.5);
@@ -74,39 +74,52 @@ export class RefactorBattleScene extends Phaser.Scene {
       this.dispatchSelection.clear();
     }
 
-    this.addText(32, 20, '行動序列', '12px', '#9fc5cd');
-    const actorLabel = view.activeActorId ? ` · ${actorDisplayName(view.activeActorId)}` : '';
-    this.addText(32, 44, `${phaseDisplayName(view.phase)}${actorLabel}`, '13px', '#d8e7e9');
+    this.addText(24, 16, phaseDisplayName(view.phase), '12px', '#d8e7e9');
+    if (view.activeActorId) {
+      this.addText(24, 38, `目前：${actorDisplayName(view.activeActorId)}`, '13px', '#e8ca7d');
+    }
 
     view.timeline.forEach((node, index) => {
-      const x = 230 + index * 118;
-      const y = 46;
+      const x = 210 + index * 146;
+      const y = 48;
+      const active = node.actorId === view.activeActorId;
       const fill = node.team === 'player' ? 0x17303d : 0x3a2325;
-      const stroke = node.team === 'player' ? 0x8fb9c3 : 0xc48c83;
-      const circle = this.add.circle(x, y, 25, fill, 0.98).setStrokeStyle(2, stroke, 0.75);
-      this.addToContent(circle);
+      const stroke = active ? 0xe6c96d : node.team === 'player' ? 0x8fb9c3 : 0xc48c83;
+      const card = this.add.rectangle(x, y, 110, 74, fill, active ? 0.98 : 0.9)
+        .setStrokeStyle(active ? 3 : 1, stroke, active ? 1 : 0.7);
+      this.addToContent(card);
+
       const portraitKey = actorTimelineTextureKey(node.actorId);
       if (portraitKey && this.textures.exists(portraitKey)) {
-        this.addFittedImage(x, y - 3, portraitKey, 42, 42, 0.96);
+        this.addFittedImage(x - 29, y - 6, portraitKey, 42, 42, active ? 1 : 0.92);
       } else {
-        this.addText(x, y - 6, actorDisplayName(node.actorId), '10px', '#eef5f3', 0.5);
+        this.addText(x - 29, y - 5, actorDisplayName(node.actorId), '10px', '#eef5f3', 0.5);
       }
-      this.addText(x, y + 35, `${actorDisplayName(node.actorId)} · ${node.nextActionAt}`, '9px', '#d8c98f', 0.5);
+      this.addText(x - 2, y - 17, actorDisplayName(node.actorId), '10px', '#eef5f3');
+      this.addText(x - 2, y + 4, `時點 ${node.nextActionAt}`, '10px', '#d8c98f');
+      if (active) this.addText(x - 2, y + 23, '行動中', '9px', '#f0d98d');
     });
 
-    this.addText(layout.partyRail.x + 14, layout.partyRail.y + 12, '隊伍', '11px', '#9fc5cd');
     const targetable = new Set(view.targetableActorIds);
     for (const position of PLAYER_HOME_POSITIONS) {
       const vitals = view.vitalsByActorId[position.actorId];
       const alive = Boolean(vitals && vitals.hp > 0);
       const isTargetable = targetable.has(position.actorId);
-      const ring = this.add.circle(position.x, position.y, 42, 0x0b1720, 0.18)
-        .setStrokeStyle(isTargetable ? 3 : 1, isTargetable ? 0xe1c371 : alive ? 0x9ebbc1 : 0x555d61, isTargetable ? 0.95 : 0.45);
+      const ringRadius = 43 * position.perspectiveScale;
+      const ring = this.add.circle(position.x, position.y, ringRadius, 0x0b1720, 0.12)
+        .setStrokeStyle(isTargetable ? 3 : 1, isTargetable ? 0xe1c371 : alive ? 0x9ebbc1 : 0x555d61, isTargetable ? 0.95 : 0.35);
       this.addToContent(ring);
 
       const textureKey = actorBattleTextureKey(position.actorId);
       if (textureKey && this.textures.exists(textureKey)) {
-        const actor = this.addFittedImage(position.x, position.y, textureKey, 96, 76, alive ? 1 : 0.42);
+        const actor = this.addFittedImage(
+          position.x,
+          position.y,
+          textureKey,
+          132 * position.perspectiveScale,
+          118 * position.perspectiveScale,
+          alive ? 1 : 0.42,
+        );
         if (isTargetable) {
           actor.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
             this.runtime?.previewTarget(position.actorId);
@@ -120,26 +133,30 @@ export class RefactorBattleScene extends Phaser.Scene {
         });
       }
 
-      this.addText(position.x + 54, position.y - 16, actorDisplayName(position.actorId), '11px', '#eef5f3');
-      this.addText(position.x + 54, position.y + 4, vitals ? `生命 ${vitals.hp}/${vitals.maxHp}` : '--', '10px', alive ? '#bcd9d7' : '#727c80');
+      const labelX = position.x + 54 * position.perspectiveScale;
+      this.addText(labelX, position.y - 17, actorDisplayName(position.actorId), '11px', '#eef5f3');
+      this.addText(labelX, position.y + 4, vitals ? `生命 ${vitals.hp}/${vitals.maxHp}` : '--', '10px', alive ? '#bcd9d7' : '#727c80');
     }
+
+    this.renderPartyStatus(view);
 
     const enemyIds = view.timeline
       .filter((node) => node.team === 'enemy')
       .map((node) => node.actorId)
       .filter((actorId, index, all) => all.indexOf(actorId) === index);
     enemyIds.forEach((enemyId, index) => {
-      const x = 850 + index * 150;
-      const y = 340 + (index % 2) * 90;
+      const x = 895 + index * 148;
+      const y = 370 + (index % 2) * 54;
+      const perspectiveScale = perspectiveScaleForY(y) * 1.08;
       const vitals = view.vitalsByActorId[enemyId];
       const isTargetable = targetable.has(enemyId);
-      const ring = this.add.circle(x, y, 58, 0x301a1d, 0.22)
-        .setStrokeStyle(isTargetable ? 3 : 2, isTargetable ? 0xe1c371 : 0xc18f86, isTargetable ? 0.95 : 0.65);
+      const ring = this.add.circle(x, y, 62 * perspectiveScale, 0x301a1d, 0.13)
+        .setStrokeStyle(isTargetable ? 3 : 1, isTargetable ? 0xe1c371 : 0xc18f86, isTargetable ? 0.95 : 0.45);
       this.addToContent(ring);
 
       const textureKey = actorBattleTextureKey(enemyId);
       if (textureKey && this.textures.exists(textureKey)) {
-        const actor = this.addFittedImage(x, y, textureKey, 118, 108, 1);
+        const actor = this.addFittedImage(x, y, textureKey, 172 * perspectiveScale, 154 * perspectiveScale, 1);
         if (isTargetable) {
           actor.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
             this.runtime?.previewTarget(enemyId);
@@ -153,32 +170,58 @@ export class RefactorBattleScene extends Phaser.Scene {
         });
       }
 
-      this.addText(x, y + 67, actorDisplayName(enemyId), '12px', '#f0dddd', 0.5);
-      this.addText(x, y + 85, vitals ? `生命 ${vitals.hp}/${vitals.maxHp}` : '--', '11px', '#dcb7af', 0.5);
+      this.addText(x, y + 76 * perspectiveScale, actorDisplayName(enemyId), '12px', '#f0dddd', 0.5);
+      this.addText(x, y + 95 * perspectiveScale, vitals ? `生命 ${vitals.hp}/${vitals.maxHp}` : '--', '11px', '#dcb7af', 0.5);
     });
 
-    this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 12, '敵方意圖', '11px', '#d8b98d');
+    this.addText(layout.intentPanel.x + 12, layout.intentPanel.y + 10, '敵方意圖', '10px', '#d8b98d');
     const intent = view.enemyIntents[0];
     if (intent) {
-      this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 38, intent.name, '15px', '#f0ded0');
+      this.addText(layout.intentPanel.x + 12, layout.intentPanel.y + 34, intent.name, '14px', '#f0ded0');
       const targets = intent.targetIds.map(actorDisplayName).join('、') || '—';
-      this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 66, `目標 ${targets}\n傷害 ${intent.damage ?? 0} · 延遲 ${intent.delay}`, '12px', '#c7d8d9');
+      this.addText(
+        layout.intentPanel.x + 12,
+        layout.intentPanel.y + 61,
+        `目標 ${targets}\n傷害 ${intent.damage ?? 0} · 延遲 ${intent.delay}`,
+        '11px',
+        '#c7d8d9',
+      );
     } else {
-      this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 42, '—', '14px', '#899da2');
+      this.addText(layout.intentPanel.x + 12, layout.intentPanel.y + 42, '—', '14px', '#899da2');
     }
 
     if (view.preview) {
-      this.addText(640, 188, `預覽 · ${view.preview.targetId ? actorDisplayName(view.preview.targetId) : '—'}`, '12px', '#e8ca7d', 0.5);
-      this.addText(640, 214, `傷害 ${view.preview.finalDamage} · 生命 ${view.preview.hpBefore ?? '—'}→${view.preview.hpAfter ?? '—'} · 延遲 +${view.preview.actualDelay} · 行動窗口 +${view.preview.crossedPlayerWindows}`, '13px', view.preview.lethal ? '#f29a8f' : '#dce9e7', 0.5);
+      const previewX = 650;
+      const previewY = 142;
+      this.addToContent(
+        this.add.rectangle(previewX, previewY, 430, 62, 0x071019, 0.82)
+          .setStrokeStyle(1, view.preview.lethal ? 0xc56d65 : 0xd1b969, 0.78),
+      );
+      this.addText(
+        previewX,
+        previewY - 17,
+        `預覽 · ${view.preview.targetId ? actorDisplayName(view.preview.targetId) : '—'}`,
+        '11px',
+        '#e8ca7d',
+        0.5,
+      );
+      this.addText(
+        previewX,
+        previewY + 8,
+        `傷害 ${view.preview.finalDamage} · 生命 ${view.preview.hpBefore ?? '—'}→${view.preview.hpAfter ?? '—'} · 延遲 +${view.preview.actualDelay} · 行動窗口 +${view.preview.crossedPlayerWindows}`,
+        '12px',
+        view.preview.lethal ? '#f29a8f' : '#dce9e7',
+        0.5,
+      );
     }
 
-    this.addText(32, layout.hand.y + 14, this.dispatchMode ? `調度選牌 ${this.dispatchSelection.size}/2` : '共享手牌', '11px', '#9fc5cd');
+    this.addText(24, layout.hand.y + 14, this.dispatchMode ? `調度選牌 ${this.dispatchSelection.size}/2` : '共享手牌', '11px', '#9fc5cd');
     view.hand.forEach((card, index) => {
       const x = 245 + index * 160;
       const y = layout.hand.y + 112;
       const dispatchSelected = this.dispatchSelection.has(card.instanceId);
       const highlighted = card.selected || dispatchSelected;
-      const rectangle = this.add.rectangle(x, y, 136, 138, highlighted ? 0x243b43 : 0x12222c, 1)
+      const rectangle = this.add.rectangle(x, y, 136, 138, highlighted ? 0x243b43 : 0x12222c, 0.94)
         .setStrokeStyle(highlighted ? 2 : 1, dispatchSelected ? 0xe1c371 : card.selected ? 0xd7bd78 : 0x8aa4ad, highlighted ? 0.95 : 0.5);
       this.addToContent(rectangle);
       this.addText(x, y - 34, card.name, '12px', '#edf3f2', 0.5);
@@ -240,6 +283,21 @@ export class RefactorBattleScene extends Phaser.Scene {
     this.scheduleAutoAdvance(view);
   }
 
+  private renderPartyStatus(view: RefactorBattleView): void {
+    const layout = REFACTOR_BATTLE_LAYOUT.partyRail;
+    this.addText(layout.x + 10, layout.y + 9, '隊伍', '10px', '#9fc5cd');
+    PLAYER_HOME_POSITIONS.forEach((position, index) => {
+      const vitals = view.vitalsByActorId[position.actorId];
+      this.addText(
+        layout.x + 10,
+        layout.y + 34 + index * 32,
+        `${actorDisplayName(position.actorId)}  ${vitals ? `${vitals.hp}/${vitals.maxHp}` : '--'}`,
+        '10px',
+        vitals && vitals.hp > 0 ? '#c8dcdc' : '#737d81',
+      );
+    });
+  }
+
   private drawBattlefieldBackground(): void {
     const layout = REFACTOR_BATTLE_LAYOUT.battlefield;
     if (!this.textures.exists(REFACTOR_BATTLE_BACKGROUND_KEY)) return;
@@ -247,7 +305,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       layout.x + layout.width / 2,
       layout.y + layout.height / 2,
       REFACTOR_BATTLE_BACKGROUND_KEY,
-    ).setDisplaySize(layout.width, layout.height).setAlpha(0.64);
+    ).setDisplaySize(layout.width, layout.height).setAlpha(0.86);
     this.addToContent(background);
   }
 
@@ -284,12 +342,20 @@ export class RefactorBattleScene extends Phaser.Scene {
     this.autoAdvanceTimer = undefined;
   }
 
-  private drawPanel(rect: { x: number; y: number; width: number; height: number }, fill: number, stroke: number): void {
-    this.addToContent(this.add.rectangle(rect.x + rect.width / 2, rect.y + rect.height / 2, rect.width, rect.height, fill, 0.96).setStrokeStyle(1, stroke, 0.35));
+  private drawOverlayPanel(
+    rect: { x: number; y: number; width: number; height: number },
+    fill: number,
+    stroke: number,
+    alpha: number,
+  ): void {
+    this.addToContent(
+      this.add.rectangle(rect.x + rect.width / 2, rect.y + rect.height / 2, rect.width, rect.height, fill, alpha)
+        .setStrokeStyle(1, stroke, 0.3),
+    );
   }
 
   private drawButton(x: number, y: number, width: number, height: number, label: string, action: () => void): void {
-    const button = this.add.rectangle(x, y, width, height, 0x2b251b, 1)
+    const button = this.add.rectangle(x, y, width, height, 0x2b251b, 0.96)
       .setStrokeStyle(1, 0xc4a361, 0.8)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', action);
@@ -298,7 +364,13 @@ export class RefactorBattleScene extends Phaser.Scene {
   }
 
   private addText(x: number, y: number, text: string, fontSize: string, color: string, origin = 0): Phaser.GameObjects.Text {
-    const label = this.add.text(x, y, text, { fontFamily: 'sans-serif', fontSize, color, lineSpacing: 4, align: origin === 0.5 ? 'center' : 'left' }).setOrigin(origin);
+    const label = this.add.text(x, y, text, {
+      fontFamily: 'sans-serif',
+      fontSize,
+      color,
+      lineSpacing: 4,
+      align: origin === 0.5 ? 'center' : 'left',
+    }).setOrigin(origin);
     this.addToContent(label);
     return label;
   }
