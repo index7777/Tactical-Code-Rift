@@ -43,16 +43,17 @@ STATUS = AUTHORITATIVE_INDEX
 35. `COMBAT_REFACTOR_PHASE10P_CARD_MASTER_ASSET_REUSE.md`：Phase 10p 過程紀錄；既有 SVG reuse 方向已被 Phase 10q 取代，只保留 fallback / semantic reference。
 36. `COMBAT_REFACTOR_PHASE10Q_GENERATED_BATTLE_UI_ASSET_PRODUCTION_PLAN.md`：Phase 10q 生成資產計畫；其中預設 G2 四張 HUD skin 的假設已由 `BATTLE_UI_VISUAL_HIERARCHY_ASSET_PRIORITY.md` 修正。
 37. `BATTLE_UI_VISUAL_HIERARCHY_ASSET_PRIORITY.md`：戰鬥 UI 視覺層級與資產優先級權威指南；華麗集中於 selected card、target preview 與關鍵 combat feedback，Timeline／Party 等常駐資訊維持極簡，並重新限制後續 generated asset 生產範圍。
-38. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／deployment gate 狀態；只記進度，不取代規格與實作計畫。
-39. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-40. `art-bible.md`：角色、怪物、背景與透明素材規範。
-41. `characters/README.md`：角色母版與 runtime 對照。
-42. `areas/README.md`：區域背景與 runtime 狀態。
-43. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-44. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-45. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
-46. `LEGACY_COMBAT_ARCHIVE.md`：舊戰鬥的歷史封存點與取回規則；不得作為 runtime 入口。
-47. `COMBAT_REFACTOR_PHASE11_ROUTE_CUTOVER.md`：新版戰鬥取代正式 runtime、七節點接線、音訊對齊與舊版封存契約。
+38. `COMBAT_DEMO_COMPLETION_BALANCE_PLAN.md`：Demo 完成度規劃；量化剩餘 deliverables、資產／母版缺口、EnemyActionDefinition 資料需求，以及 Normal／Elite／Boss 的 HP、Intent、phase 與平衡提案。
+39. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／deployment gate 狀態；只記進度，不取代規格與實作計畫。
+40. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+41. `art-bible.md`：角色、怪物、背景與透明素材規範。
+42. `characters/README.md`：角色母版與 runtime 對照。
+43. `areas/README.md`：區域背景與 runtime 狀態。
+44. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+45. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+46. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+47. `LEGACY_COMBAT_ARCHIVE.md`：舊戰鬥的歷史封存點與取回規則；不得作為 runtime 入口。
+48. `COMBAT_REFACTOR_PHASE11_ROUTE_CUTOVER.md`：新版戰鬥取代正式 runtime、七節點接線、音訊對齊與舊版封存契約。
 
 ## combat-refactor-v1 分支規則
 
