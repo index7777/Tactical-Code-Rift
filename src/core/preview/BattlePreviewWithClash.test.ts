@@ -84,10 +84,10 @@ describe('BattlePreviewWithClash', () => {
       enemyId: 'enemy',
       kind: 'hard-stagger',
       name: '硬直',
-      damage: undefined,
       targetIds: [],
       delay: 5,
     });
+    expect(result.clash?.enemyIntentAfter?.damage).toBeUndefined();
   });
 
   it('halves player damage and enemy damage on draw while suppressing statuses', () => {
