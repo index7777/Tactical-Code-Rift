@@ -38,6 +38,8 @@ export interface BattlePreviewInput {
   targetResilience?: ControlResilienceState;
   breakWindows: readonly BreakWindowState[];
   oboroDelayAlreadyUsed?: boolean;
+  damageMultiplier?: number;
+  allowBreakWindowConsumption?: boolean;
 }
 
 export interface CreatedBreakWindowPreview {
@@ -109,6 +111,12 @@ function validateVitals(vitals: PreviewActorVitals): void {
 function validateTarget(input: BattlePreviewInput): void {
   const active = findTimelineEntry(input.timeline, input.activeActorId);
   if (!active) throw new Error(`active actor not found: ${input.activeActorId}`);
+
+  if (input.damageMultiplier !== undefined) {
+    if (!Number.isFinite(input.damageMultiplier) || input.damageMultiplier < 0 || input.damageMultiplier > 1) {
+      throw new Error('damageMultiplier must be within 0..1');
+    }
+  }
 
   const rule = input.card.definition.targetRule;
   if (rule === 'none') {
@@ -188,7 +196,10 @@ export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewRe
   const targetEntry = targetId ? findTimelineEntry(input.timeline, targetId) : undefined;
   const effect = input.card.definition.effect;
   const baseDamage = effect.damage ?? 0;
-  const consumedWindow = matchingBreakWindow(input.breakWindows, targetId, input.card);
+  const allowBreakWindowConsumption = input.allowBreakWindowConsumption ?? true;
+  const consumedWindow = allowBreakWindowConsumption
+    ? matchingBreakWindow(input.breakWindows, targetId, input.card)
+    : undefined;
   const breakBonusDamage = consumedWindow?.kind === 'armor-break' && input.card.definition.category === 'heavy'
     ? Math.floor(baseDamage * 0.5)
     : 0;
@@ -202,7 +213,9 @@ export function resolveBattlePreview(input: BattlePreviewInput): BattlePreviewRe
     ? 4
     : 0;
   const specializationBonusDamage = rinBonus + moBonus;
-  const finalDamage = baseDamage + breakBonusDamage + specializationBonusDamage;
+  const rawFinalDamage = baseDamage + breakBonusDamage + specializationBonusDamage;
+  const damageMultiplier = input.damageMultiplier ?? 1;
+  const finalDamage = Math.floor(rawFinalDamage * damageMultiplier);
   const hpBefore = input.target?.hp;
   const hpAfter = hpBefore === undefined ? undefined : Math.max(0, hpBefore - finalDamage);
   const lethal = hpAfter !== undefined && hpAfter <= 0 && hpBefore! > 0;
