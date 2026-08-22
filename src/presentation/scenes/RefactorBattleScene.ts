@@ -3,15 +3,25 @@ import {
   PLAYER_HOME_POSITIONS,
   REFACTOR_BATTLE_LAYOUT,
 } from '../battle/refactor/BattleActorPresenter';
+import {
+  actorDisplayName,
+  autoAdvanceAction,
+  categoryDisplayName,
+  phaseDisplayName,
+  targetRuleDisplayName,
+} from '../battle/refactor/RefactorBattlePresentationPolicy';
 import type { RefactorBattleRuntime, RefactorBattleView } from '../battle/refactor/RefactorBattleRuntime';
 
 const RUNTIME_REGISTRY_KEY = 'refactor-battle-runtime';
+const NEXT_ACTOR_DELAY_MS = 420;
+const ENEMY_ACTION_DELAY_MS = 720;
 
 export class RefactorBattleScene extends Phaser.Scene {
   private runtime?: RefactorBattleRuntime;
   private content?: Phaser.GameObjects.Container;
   private dispatchMode = false;
   private readonly dispatchSelection = new Set<string>();
+  private autoAdvanceTimer?: Phaser.Time.TimerEvent;
 
   constructor() {
     super('RefactorBattleScene');
@@ -19,10 +29,13 @@ export class RefactorBattleScene extends Phaser.Scene {
 
   create(): void {
     this.runtime = this.registry.get(RUNTIME_REGISTRY_KEY) as RefactorBattleRuntime | undefined;
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.clearAutoAdvance());
+    this.events.once(Phaser.Scenes.Events.DESTROY, () => this.clearAutoAdvance());
     this.render();
   }
 
   private render(): void {
+    this.clearAutoAdvance();
     this.content?.destroy(true);
     this.content = this.add.container(0, 0);
     const layout = REFACTOR_BATTLE_LAYOUT;
@@ -35,8 +48,8 @@ export class RefactorBattleScene extends Phaser.Scene {
     this.drawPanel(layout.hand, 0x081018, 0x708b94);
 
     if (!this.runtime) {
-      this.addText(640, 336, 'REFACTOR BATTLE RUNTIME NOT ATTACHED', '18px', '#e5c98d', 0.5);
-      this.addText(640, 370, '此 Scene 保持 dormant；不建立 mock combat state。', '14px', '#a9c2c7', 0.5);
+      this.addText(640, 336, '新版戰鬥執行環境未連接', '18px', '#e5c98d', 0.5);
+      this.addText(640, 370, '此場景保持停用，不建立模擬戰鬥狀態。', '14px', '#a9c2c7', 0.5);
       return;
     }
 
@@ -50,8 +63,9 @@ export class RefactorBattleScene extends Phaser.Scene {
       this.dispatchSelection.clear();
     }
 
-    this.addText(32, 20, 'TIMELINE', '12px', '#9fc5cd');
-    this.addText(32, 44, `${view.phase}${view.activeActorId ? ` · ${view.activeActorId}` : ''}`, '13px', '#d8e7e9');
+    this.addText(32, 20, '行動序列', '12px', '#9fc5cd');
+    const actorLabel = view.activeActorId ? ` · ${actorDisplayName(view.activeActorId)}` : '';
+    this.addText(32, 44, `${phaseDisplayName(view.phase)}${actorLabel}`, '13px', '#d8e7e9');
 
     view.timeline.forEach((node, index) => {
       const x = 230 + index * 118;
@@ -60,11 +74,11 @@ export class RefactorBattleScene extends Phaser.Scene {
       const stroke = node.team === 'player' ? 0x8fb9c3 : 0xc48c83;
       const circle = this.add.circle(x, y, 24, fill, 0.98).setStrokeStyle(2, stroke, 0.75);
       this.addToContent(circle);
-      this.addText(x, y - 5, node.actorId, '10px', '#eef5f3', 0.5);
-      this.addText(x, y + 12, `@${node.nextActionAt}`, '10px', '#d8c98f', 0.5);
+      this.addText(x, y - 5, actorDisplayName(node.actorId), '10px', '#eef5f3', 0.5);
+      this.addText(x, y + 12, `時點 ${node.nextActionAt}`, '10px', '#d8c98f', 0.5);
     });
 
-    this.addText(layout.partyRail.x + 14, layout.partyRail.y + 12, 'PARTY', '11px', '#9fc5cd');
+    this.addText(layout.partyRail.x + 14, layout.partyRail.y + 12, '隊伍', '11px', '#9fc5cd');
     const targetable = new Set(view.targetableActorIds);
     for (const position of PLAYER_HOME_POSITIONS) {
       const vitals = view.vitalsByActorId[position.actorId];
@@ -73,8 +87,8 @@ export class RefactorBattleScene extends Phaser.Scene {
       const circle = this.add.circle(position.x, position.y, 29, alive ? 0x17303d : 0x1c2024, 0.96)
         .setStrokeStyle(isTargetable ? 3 : 2, isTargetable ? 0xe1c371 : alive ? 0x9ebbc1 : 0x555d61, isTargetable ? 0.95 : 0.7);
       this.addToContent(circle);
-      this.addText(position.x, position.y - 7, position.actorId, '11px', '#eef5f3', 0.5);
-      this.addText(position.x, position.y + 12, vitals ? `${vitals.hp}/${vitals.maxHp}` : '--', '10px', alive ? '#bcd9d7' : '#727c80', 0.5);
+      this.addText(position.x, position.y - 7, actorDisplayName(position.actorId), '11px', '#eef5f3', 0.5);
+      this.addText(position.x, position.y + 12, vitals ? `生命 ${vitals.hp}/${vitals.maxHp}` : '--', '10px', alive ? '#bcd9d7' : '#727c80', 0.5);
       if (isTargetable) {
         circle.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
           this.runtime?.previewTarget(position.actorId);
@@ -95,8 +109,8 @@ export class RefactorBattleScene extends Phaser.Scene {
       const target = this.add.circle(x, y, 40, 0x402629, 0.96)
         .setStrokeStyle(isTargetable ? 3 : 2, isTargetable ? 0xe1c371 : 0xc18f86, isTargetable ? 0.95 : 0.75);
       this.addToContent(target);
-      this.addText(x, y - 8, enemyId, '12px', '#f0dddd', 0.5);
-      this.addText(x, y + 13, vitals ? `${vitals.hp}/${vitals.maxHp}` : '--', '11px', '#dcb7af', 0.5);
+      this.addText(x, y - 8, actorDisplayName(enemyId), '12px', '#f0dddd', 0.5);
+      this.addText(x, y + 13, vitals ? `生命 ${vitals.hp}/${vitals.maxHp}` : '--', '11px', '#dcb7af', 0.5);
       if (isTargetable) {
         target.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
           this.runtime?.previewTarget(enemyId);
@@ -105,21 +119,22 @@ export class RefactorBattleScene extends Phaser.Scene {
       }
     });
 
-    this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 12, 'ENEMY INTENT', '11px', '#d8b98d');
+    this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 12, '敵方意圖', '11px', '#d8b98d');
     const intent = view.enemyIntents[0];
     if (intent) {
       this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 38, intent.name, '15px', '#f0ded0');
-      this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 66, `Target ${intent.targetIds.join(', ') || '—'}\nDamage ${intent.damage ?? 0} · Delay ${intent.delay}`, '12px', '#c7d8d9');
+      const targets = intent.targetIds.map(actorDisplayName).join('、') || '—';
+      this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 66, `目標 ${targets}\n傷害 ${intent.damage ?? 0} · 延遲 ${intent.delay}`, '12px', '#c7d8d9');
     } else {
       this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 42, '—', '14px', '#899da2');
     }
 
     if (view.preview) {
-      this.addText(640, 188, `PREVIEW · ${view.preview.targetId ?? '—'}`, '12px', '#e8ca7d', 0.5);
-      this.addText(640, 214, `DMG ${view.preview.finalDamage} · HP ${view.preview.hpBefore ?? '—'}→${view.preview.hpAfter ?? '—'} · Delay +${view.preview.actualDelay} · 窗口 +${view.preview.crossedPlayerWindows}`, '13px', view.preview.lethal ? '#f29a8f' : '#dce9e7', 0.5);
+      this.addText(640, 188, `預覽 · ${view.preview.targetId ? actorDisplayName(view.preview.targetId) : '—'}`, '12px', '#e8ca7d', 0.5);
+      this.addText(640, 214, `傷害 ${view.preview.finalDamage} · 生命 ${view.preview.hpBefore ?? '—'}→${view.preview.hpAfter ?? '—'} · 延遲 +${view.preview.actualDelay} · 行動窗口 +${view.preview.crossedPlayerWindows}`, '13px', view.preview.lethal ? '#f29a8f' : '#dce9e7', 0.5);
     }
 
-    this.addText(32, layout.hand.y + 14, this.dispatchMode ? `調度選牌 ${this.dispatchSelection.size}/2` : 'SHARED HAND', '11px', '#9fc5cd');
+    this.addText(32, layout.hand.y + 14, this.dispatchMode ? `調度選牌 ${this.dispatchSelection.size}/2` : '共享手牌', '11px', '#9fc5cd');
     view.hand.forEach((card, index) => {
       const x = 245 + index * 160;
       const y = layout.hand.y + 112;
@@ -129,9 +144,9 @@ export class RefactorBattleScene extends Phaser.Scene {
         .setStrokeStyle(highlighted ? 2 : 1, dispatchSelected ? 0xe1c371 : card.selected ? 0xd7bd78 : 0x8aa4ad, highlighted ? 0.95 : 0.5);
       this.addToContent(rectangle);
       this.addText(x, y - 34, card.name, '12px', '#edf3f2', 0.5);
-      this.addText(x, y - 8, card.category, '10px', '#9fc5cd', 0.5);
-      this.addText(x, y + 20, `Delay ${card.delay}`, '12px', '#e4c579', 0.5);
-      this.addText(x, y + 43, card.targetRule, '10px', '#aebfc2', 0.5);
+      this.addText(x, y - 8, categoryDisplayName(card.category), '10px', '#9fc5cd', 0.5);
+      this.addText(x, y + 20, `延遲 ${card.delay}`, '12px', '#e4c579', 0.5);
+      this.addText(x, y + 43, targetRuleDisplayName(card.targetRule), '10px', '#aebfc2', 0.5);
 
       if (this.dispatchMode && view.canDispatch) {
         rectangle.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
@@ -147,17 +162,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       }
     });
 
-    if (view.phase === 'WAITING_FOR_NEXT_ACTOR') {
-      this.drawButton(1110, layout.hand.y + 70, 150, 46, '開始下一角色', () => {
-        this.runtime?.startNextActor();
-        this.render();
-      });
-    } else if (view.canResolveEnemy) {
-      this.drawButton(1110, layout.hand.y + 70, 150, 46, '執行敵方行動', () => {
-        this.runtime?.resolveActiveEnemyAction();
-        this.render();
-      });
-    } else if (view.canDispatch && !this.dispatchMode) {
+    if (view.canDispatch && !this.dispatchMode) {
       this.drawButton(1110, layout.hand.y + 62, 144, 44, '調度', () => {
         this.dispatchMode = true;
         this.dispatchSelection.clear();
@@ -193,6 +198,25 @@ export class RefactorBattleScene extends Phaser.Scene {
         this.render();
       });
     }
+
+    this.scheduleAutoAdvance(view);
+  }
+
+  private scheduleAutoAdvance(view: RefactorBattleView): void {
+    const action = autoAdvanceAction(view.phase, view.canResolveEnemy);
+    if (action === 'NONE') return;
+    const delay = action === 'RESOLVE_ENEMY' ? ENEMY_ACTION_DELAY_MS : NEXT_ACTOR_DELAY_MS;
+    this.autoAdvanceTimer = this.time.delayedCall(delay, () => {
+      if (!this.runtime) return;
+      if (action === 'START_NEXT_ACTOR') this.runtime.startNextActor();
+      else this.runtime.resolveActiveEnemyAction();
+      this.render();
+    });
+  }
+
+  private clearAutoAdvance(): void {
+    this.autoAdvanceTimer?.remove(false);
+    this.autoAdvanceTimer = undefined;
   }
 
   private drawPanel(rect: { x: number; y: number; width: number; height: number }, fill: number, stroke: number): void {
