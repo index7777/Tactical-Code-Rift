@@ -1,3 +1,4 @@
+import type { ClashOutcome } from '../../../core/clash/ClashResolver';
 import type { RefactorBattleView } from './RefactorBattleRuntime';
 import {
   actionPresentationProfileForCardCategory,
@@ -5,6 +6,12 @@ import {
 } from './ActionPresentationSequencer';
 
 export type RefactorActionMotion = 'ACTION' | 'REACTION' | 'ENEMY_ACTION';
+
+export interface RefactorClashAnimationBranch {
+  enemyId: string;
+  outcome: ClashOutcome;
+  enemyProfileId: AnimatedActionPresentationProfile;
+}
 
 export interface RefactorBattleAnimationPlan {
   actorId: string;
@@ -15,6 +22,12 @@ export interface RefactorBattleAnimationPlan {
   profileId: AnimatedActionPresentationProfile;
   useAttackPose: boolean;
   useSlashFx: boolean;
+  clash?: RefactorClashAnimationBranch;
+}
+
+function animatedEnemyProfile(view: RefactorBattleView, enemyId: string): AnimatedActionPresentationProfile {
+  const authored = view.enemyIntents.find((intent) => intent.enemyId === enemyId)?.presentationProfile;
+  return authored && authored !== 'none' ? authored : 'enemy-light';
 }
 
 export function buildPlayerActionAnimationPlan(
@@ -26,6 +39,14 @@ export function buildPlayerActionAnimationPlan(
 
   const targetId = view.preview?.targetId;
   const targetIds = targetId ? [targetId] : [];
+  const clash = view.preview?.clash
+    ? {
+        enemyId: view.preview.clash.contestedEnemyId,
+        outcome: view.preview.clash.outcome,
+        enemyProfileId: animatedEnemyProfile(view, view.preview.clash.contestedEnemyId),
+      }
+    : undefined;
+
   if (selected.category === 'guard') {
     return {
       actorId: view.activeActorId,
@@ -36,6 +57,7 @@ export function buildPlayerActionAnimationPlan(
       profileId: 'guard',
       useAttackPose: false,
       useSlashFx: false,
+      clash,
     };
   }
 
@@ -49,6 +71,7 @@ export function buildPlayerActionAnimationPlan(
     profileId: actionPresentationProfileForCardCategory(selected.category),
     useAttackPose: !controlPresentation,
     useSlashFx: Boolean(targetId) && !controlPresentation,
+    clash,
   };
 }
 
