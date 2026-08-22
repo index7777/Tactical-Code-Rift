@@ -10,7 +10,9 @@ export function prepareDemoCardUpgradeEncounterHandoff(ids: readonly string[]): 
 }
 
 export function consumeDemoCardUpgradeEncounterHandoff(): DemoCardUpgradeId[] {
-  return [...preparedUpgradeIds];
+  const result = [...preparedUpgradeIds];
+  preparedUpgradeIds = [];
+  return result;
 }
 
 export function clearDemoCardUpgradeEncounterHandoff(): void {
