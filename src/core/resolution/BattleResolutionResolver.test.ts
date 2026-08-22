@@ -65,7 +65,7 @@ function makeState(overrides: Partial<BattleResolutionState> = {}): BattleResolu
 }
 
 describe('BattleResolutionResolver', () => {
-  it('commits normal damage and schedules the active actor by card Delay', () => {
+  it('commits Rin quick specialization damage and schedules the active actor by card Delay', () => {
     const state = makeState();
     const result = resolveBattleAction({
       state,
@@ -74,8 +74,9 @@ describe('BattleResolutionResolver', () => {
       targetId: 'ghost-fire',
     });
 
-    expect(result.damageDealt).toBe(8);
-    expect(result.state.vitalsByActorId['ghost-fire']?.hp).toBe(31);
+    expect(result.preview.specializationBonusDamage).toBe(3);
+    expect(result.damageDealt).toBe(11);
+    expect(result.state.vitalsByActorId['ghost-fire']?.hp).toBe(28);
     expect(result.state.timeline.entries.find((entry) => entry.actorId === 'rin')?.nextActionAt).toBe(3);
     expect(result.state.timeline.currentTime).toBe(0);
   });
