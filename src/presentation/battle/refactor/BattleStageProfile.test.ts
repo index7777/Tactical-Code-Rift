@@ -17,7 +17,7 @@ describe('BattleStageProfile', () => {
     expect(swapped[0].actorId).toBe('mo');
   });
 
-  it('keeps formation inside the player zone with compact monotonic depth', () => {
+  it('keeps the lowered formation inside the player zone with stronger monotonic depth', () => {
     const positions = formationPositions(['rin', 'chikage', 'oboro', 'mo']);
     const zone = RAIL_HALT_STAGE_PROFILE.playerZone;
 
@@ -28,18 +28,19 @@ describe('BattleStageProfile', () => {
       expect(position.y).toBeLessThanOrEqual(zone.y + zone.height);
     }
 
-    expect(positions.map((position) => position.perspectiveScale)).toEqual([0.9, 0.96, 1.03, 1.08]);
-    expect(positions[3].y - positions[0].y).toBeLessThanOrEqual(80);
+    expect(positions.map((position) => position.y)).toEqual([392, 420, 462, 492]);
+    expect(positions.map((position) => position.perspectiveScale)).toEqual([0.88, 0.96, 1.07, 1.16]);
     expect(positions[0].perspectiveScale).toBeLessThan(positions[1].perspectiveScale);
     expect(positions[1].perspectiveScale).toBeLessThan(positions[2].perspectiveScale);
     expect(positions[2].perspectiveScale).toBeLessThan(positions[3].perspectiveScale);
+    expect(positions[3].perspectiveScale / positions[0].perspectiveScale).toBeGreaterThanOrEqual(1.28);
   });
 
-  it('uses horizontal spread rather than large y offsets to separate the two formation rows', () => {
+  it('uses wider horizontal separation so front and rear silhouettes do not rely on y offsets', () => {
     const positions = formationPositions(['rin', 'chikage', 'oboro', 'mo']);
-    expect(positions[1].x - positions[0].x).toBeGreaterThanOrEqual(150);
-    expect(positions[3].x - positions[2].x).toBeGreaterThanOrEqual(150);
-    expect(positions[2].x - positions[0].x).toBeGreaterThanOrEqual(40);
+    expect(positions[1].x - positions[0].x).toBeGreaterThanOrEqual(175);
+    expect(positions[3].x - positions[2].x).toBeGreaterThanOrEqual(175);
+    expect(positions[2].x - positions[0].x).toBeGreaterThanOrEqual(45);
   });
 
   it('derives enemy placement and visual weight from the stage profile', () => {
@@ -66,7 +67,7 @@ describe('BattleStageProfile', () => {
   it('clamps camera focus to the stage safe bounds', () => {
     const topLeft = clampCameraTarget(-500, -500);
     const bottomRight = clampCameraTarget(5000, 5000);
-    expect(topLeft).toEqual({ x: 270, y: 260 });
-    expect(bottomRight).toEqual({ x: 1010, y: 550 });
+    expect(topLeft).toEqual({ x: 270, y: 280 });
+    expect(bottomRight).toEqual({ x: 1010, y: 560 });
   });
 });
