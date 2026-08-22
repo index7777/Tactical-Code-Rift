@@ -206,15 +206,29 @@ CI：run 228 build / test 通過。仍需 GitHub Pages default-entry / legacy-ro
 
 CI：run 234 執行中。
 
+## Phase 10c — Full-canvas Battlefield / Timeline Normalization
+
+狀態：`IMPLEMENTATION_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE10C_BATTLEFIELD_TIMELINE_NORMALIZATION.md`
+
+使用者實機回饋已確認：
+
+- Phase 10b QA enemy 誤用了舊 `kamaitachi.png`，本批改用 rainfall-ridgeline 新 runtime monster。
+- 目前上下 Timeline / hand 框架只是過渡 UI，後續會移除，因此 BG 與角色站位不再以 `y=112..500` 當永久世界裁切範圍。
+- BG 改用目前 Area 01 F1 `area01-rail-halt-bg-runtime-trial-v1.png`，完整鋪滿 1280×720。
+- 四名隊友與敵人要依場景地面線／透視重新配置，前後 y 差帶輕微 presentation scale 差；不建立 gameplay 前後排。
+- 上方行動序列同步整理 active actor、portrait、時間點與 target preview 資訊板。
+
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10_BROWSER_REGRESSION_AND_PHASE10B_PENDING`
+狀態：`PHASE10C_IMPLEMENTATION_PENDING`
 
 - Phase 10 CI 已通過。
 - default-entry / legacy rollback browser regression 尚待驗證。
-- 使用者要求先把現有資產接回新版戰鬥，再從真實畫面找問題；Phase 10b 已實作但尚待 CI / Pages browser QA。
-- Phase 10b CI 與 browser QA 完成前不進 legacy removal。
+- 使用者要求先把新 monster、新 BG、完整場景站位與上方 Timeline 一起調整，再從 Pages 真實畫面找問題。
+- Phase 10c CI 與 browser QA 完成前不進 legacy removal。
 
 ## 下一批
 
-Phase 10b CI 通過後，用 GitHub Pages 檢查 1280×720 / 844×390、資產 404、角色 scale / pivot、Timeline portrait、背景遮擋與 default/legacy 入口。依實際問題再拆 actor normalization / animation sequencing。
+實作 Phase 10c：移除新版對舊 kamaitachi / rooftop 主資產的依賴，接 rainfall-ridgeline monster 與 F1 rail-halt BG，將 BG 改為 full-canvas，依場景透視重排角色／敵人尺寸與站位，同步整理上方 Timeline / Preview。CI 後再用 GitHub Pages 找實際 scale、pivot、透視、overlay 問題。
