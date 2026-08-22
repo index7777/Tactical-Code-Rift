@@ -241,7 +241,7 @@ GitHub Pages 實機回饋：
 
 ## Phase 10e — Action Reach / Single-target Affordance
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10E_ACTION_REACH_TARGET_AFFORDANCE.md`
 
@@ -255,17 +255,17 @@ GitHub Pages 實機回饋：
 - 千景「護持」仍可指定任一存活友軍，但不再四人同時顯示像全隊生效的黃圈；enemy target card 套用同樣 affordance。
 - 新增 target-relative approach 與 affordance unit tests。
 
-實作 commit set 已完成；等待 current-head CI。
+CI：run 266 build / test 通過。仍需 GitHub Pages 實機確認接敵距離與單體目標提示。
 
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10E_CI_AND_BROWSER_QA_PENDING`
+狀態：`PHASE10E_BROWSER_QA_PENDING`
 
 - Phase 10 CI 已通過；default-entry / legacy rollback browser regression 仍待確認。
 - Phase 10c CI run 247 已通過；full-canvas / 新 BG / 新 monster / perspective layout 持續由 Pages 實機 QA。
 - Phase 10d CI run 254 已通過；browser QA 找到的 ACTION 接敵距離與單體 target affordance 已由 Phase 10e 修正。
-- Phase 10e CI / Pages 驗證完成前不做 legacy removal。
+- Phase 10e CI run 266 已通過；Pages 驗證完成前不做 legacy removal。
 
 ## 下一批
 
-等待 Phase 10e CI 與 GitHub Pages current-head：確認攻擊者會停在敵人面前、護持選牌時合法友軍只有弱候選提示且實際點選者才亮黃圈；同時回歸 1280×720 / 844×390 與 default / legacy 入口。通過後再處理 down/death、hit-stop、FX 對點與最終 floating HUD。
+等待 GitHub Pages current-head：確認攻擊者會停在敵人面前、護持選牌時合法友軍只有弱候選提示且實際點選者才亮黃圈；同時回歸 1280×720 / 844×390 與 default / legacy 入口。通過後再處理 down/death、hit-stop、FX 對點與最終 floating HUD。
