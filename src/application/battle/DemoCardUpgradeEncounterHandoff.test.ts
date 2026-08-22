@@ -15,9 +15,15 @@ describe('Demo card upgrade encounter handoff', () => {
     expect(consumeDemoCardUpgradeEncounterHandoff()).toEqual(['quick-v1', 'guard-v1']);
   });
 
-  it('is one-shot so stale run state cannot leak into a later direct battle', () => {
+  it('persists across repeated bootstrap reads so a battle retry keeps run upgrades', () => {
     prepareDemoCardUpgradeEncounterHandoff(['break-v1']);
     expect(consumeDemoCardUpgradeEncounterHandoff()).toEqual(['break-v1']);
+    expect(consumeDemoCardUpgradeEncounterHandoff()).toEqual(['break-v1']);
+  });
+
+  it('clears only through the explicit run handoff reset', () => {
+    prepareDemoCardUpgradeEncounterHandoff(['heavy-v1']);
+    clearDemoCardUpgradeEncounterHandoff();
     expect(consumeDemoCardUpgradeEncounterHandoff()).toEqual([]);
   });
 
