@@ -4,6 +4,7 @@ import {
   autoAdvanceAction,
   categoryDisplayName,
   phaseDisplayName,
+  targetAffordance,
   targetRuleDisplayName,
 } from './RefactorBattlePresentationPolicy';
 
@@ -26,6 +27,13 @@ describe('RefactorBattlePresentationPolicy', () => {
     expect(targetRuleDisplayName('enemy')).toBe('敵方');
     expect(targetRuleDisplayName('self')).toBe('自身');
     expect(targetRuleDisplayName('any-ally')).toBe('任一友方');
+  });
+
+  it('distinguishes legal single-target candidates from the selected preview target', () => {
+    expect(targetAffordance(true, true, false)).toBe('CANDIDATE');
+    expect(targetAffordance(true, true, true)).toBe('SELECTED');
+    expect(targetAffordance(true, false, false)).toBe('DEFAULT');
+    expect(targetAffordance(false, true, true)).toBe('DISABLED');
   });
 
   it('auto-advances only non-player-decision states', () => {
