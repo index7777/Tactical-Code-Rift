@@ -10,6 +10,8 @@ const RUNTIME_REGISTRY_KEY = 'refactor-battle-runtime';
 export class RefactorBattleScene extends Phaser.Scene {
   private runtime?: RefactorBattleRuntime;
   private content?: Phaser.GameObjects.Container;
+  private dispatchMode = false;
+  private readonly dispatchSelection = new Set<string>();
 
   constructor() {
     super('RefactorBattleScene');
@@ -43,6 +45,11 @@ export class RefactorBattleScene extends Phaser.Scene {
 
   private renderView(view: RefactorBattleView): void {
     const layout = REFACTOR_BATTLE_LAYOUT;
+    if (!view.canDispatch) {
+      this.dispatchMode = false;
+      this.dispatchSelection.clear();
+    }
+
     this.addText(32, 20, 'TIMELINE', '12px', '#9fc5cd');
     this.addText(32, 44, `${view.phase}${view.activeActorId ? ` · ${view.activeActorId}` : ''}`, '13px', '#d8e7e9');
 
@@ -58,21 +65,22 @@ export class RefactorBattleScene extends Phaser.Scene {
     });
 
     this.addText(layout.partyRail.x + 14, layout.partyRail.y + 12, 'PARTY', '11px', '#9fc5cd');
+    const targetable = new Set(view.targetableActorIds);
     for (const position of PLAYER_HOME_POSITIONS) {
       const vitals = view.vitalsByActorId[position.actorId];
       const alive = Boolean(vitals && vitals.hp > 0);
+      const isTargetable = targetable.has(position.actorId);
       const circle = this.add.circle(position.x, position.y, 29, alive ? 0x17303d : 0x1c2024, 0.96)
-        .setStrokeStyle(2, alive ? 0x9ebbc1 : 0x555d61, 0.7);
+        .setStrokeStyle(isTargetable ? 3 : 2, isTargetable ? 0xe1c371 : alive ? 0x9ebbc1 : 0x555d61, isTargetable ? 0.95 : 0.7);
       this.addToContent(circle);
       this.addText(position.x, position.y - 7, position.actorId, '11px', '#eef5f3', 0.5);
-      this.addText(
-        position.x,
-        position.y + 12,
-        vitals ? `${vitals.hp}/${vitals.maxHp}` : '--',
-        '10px',
-        alive ? '#bcd9d7' : '#727c80',
-        0.5,
-      );
+      this.addText(position.x, position.y + 12, vitals ? `${vitals.hp}/${vitals.maxHp}` : '--', '10px', alive ? '#bcd9d7' : '#727c80', 0.5);
+      if (isTargetable) {
+        circle.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+          this.runtime?.previewTarget(position.actorId);
+          this.render();
+        });
+      }
     }
 
     const enemyIds = view.timeline
@@ -83,12 +91,13 @@ export class RefactorBattleScene extends Phaser.Scene {
       const x = 870 + index * 135;
       const y = 300 + (index % 2) * 90;
       const vitals = view.vitalsByActorId[enemyId];
+      const isTargetable = targetable.has(enemyId);
       const target = this.add.circle(x, y, 40, 0x402629, 0.96)
-        .setStrokeStyle(2, 0xc18f86, 0.75);
+        .setStrokeStyle(isTargetable ? 3 : 2, isTargetable ? 0xe1c371 : 0xc18f86, isTargetable ? 0.95 : 0.75);
       this.addToContent(target);
       this.addText(x, y - 8, enemyId, '12px', '#f0dddd', 0.5);
       this.addText(x, y + 13, vitals ? `${vitals.hp}/${vitals.maxHp}` : '--', '11px', '#dcb7af', 0.5);
-      if (view.phase === 'CARD_SELECTED' || view.phase === 'TARGET_PREVIEW') {
+      if (isTargetable) {
         target.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
           this.runtime?.previewTarget(enemyId);
           this.render();
@@ -100,41 +109,37 @@ export class RefactorBattleScene extends Phaser.Scene {
     const intent = view.enemyIntents[0];
     if (intent) {
       this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 38, intent.name, '15px', '#f0ded0');
-      this.addText(
-        layout.intentPanel.x + 14,
-        layout.intentPanel.y + 66,
-        `Target ${intent.targetIds.join(', ') || '—'}\nDamage ${intent.damage ?? 0} · Delay ${intent.delay}`,
-        '12px',
-        '#c7d8d9',
-      );
+      this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 66, `Target ${intent.targetIds.join(', ') || '—'}\nDamage ${intent.damage ?? 0} · Delay ${intent.delay}`, '12px', '#c7d8d9');
     } else {
       this.addText(layout.intentPanel.x + 14, layout.intentPanel.y + 42, '—', '14px', '#899da2');
     }
 
     if (view.preview) {
       this.addText(640, 188, `PREVIEW · ${view.preview.targetId ?? '—'}`, '12px', '#e8ca7d', 0.5);
-      this.addText(
-        640,
-        214,
-        `DMG ${view.preview.finalDamage} · HP ${view.preview.hpBefore ?? '—'}→${view.preview.hpAfter ?? '—'} · Delay +${view.preview.actualDelay} · 窗口 +${view.preview.crossedPlayerWindows}`,
-        '13px',
-        view.preview.lethal ? '#f29a8f' : '#dce9e7',
-        0.5,
-      );
+      this.addText(640, 214, `DMG ${view.preview.finalDamage} · HP ${view.preview.hpBefore ?? '—'}→${view.preview.hpAfter ?? '—'} · Delay +${view.preview.actualDelay} · 窗口 +${view.preview.crossedPlayerWindows}`, '13px', view.preview.lethal ? '#f29a8f' : '#dce9e7', 0.5);
     }
 
-    this.addText(32, layout.hand.y + 14, 'SHARED HAND', '11px', '#9fc5cd');
+    this.addText(32, layout.hand.y + 14, this.dispatchMode ? `調度選牌 ${this.dispatchSelection.size}/2` : 'SHARED HAND', '11px', '#9fc5cd');
     view.hand.forEach((card, index) => {
       const x = 245 + index * 160;
       const y = layout.hand.y + 112;
-      const rectangle = this.add.rectangle(x, y, 136, 138, card.selected ? 0x243b43 : 0x12222c, 1)
-        .setStrokeStyle(card.selected ? 2 : 1, card.selected ? 0xd7bd78 : 0x8aa4ad, card.selected ? 0.95 : 0.5);
+      const dispatchSelected = this.dispatchSelection.has(card.instanceId);
+      const highlighted = card.selected || dispatchSelected;
+      const rectangle = this.add.rectangle(x, y, 136, 138, highlighted ? 0x243b43 : 0x12222c, 1)
+        .setStrokeStyle(highlighted ? 2 : 1, dispatchSelected ? 0xe1c371 : card.selected ? 0xd7bd78 : 0x8aa4ad, highlighted ? 0.95 : 0.5);
       this.addToContent(rectangle);
       this.addText(x, y - 34, card.name, '12px', '#edf3f2', 0.5);
       this.addText(x, y - 8, card.category, '10px', '#9fc5cd', 0.5);
       this.addText(x, y + 20, `Delay ${card.delay}`, '12px', '#e4c579', 0.5);
       this.addText(x, y + 43, card.targetRule, '10px', '#aebfc2', 0.5);
-      if (view.phase === 'PLAYER_IDLE' || view.phase === 'CARD_SELECTED' || view.phase === 'TARGET_PREVIEW') {
+
+      if (this.dispatchMode && view.canDispatch) {
+        rectangle.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+          if (dispatchSelected) this.dispatchSelection.delete(card.instanceId);
+          else if (this.dispatchSelection.size < 2) this.dispatchSelection.add(card.instanceId);
+          this.render();
+        });
+      } else if (view.phase === 'PLAYER_IDLE' || view.phase === 'CARD_SELECTED' || view.phase === 'TARGET_PREVIEW') {
         rectangle.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
           this.runtime?.selectCard(card.instanceId);
           this.render();
@@ -147,9 +152,29 @@ export class RefactorBattleScene extends Phaser.Scene {
         this.runtime?.startNextActor();
         this.render();
       });
-    } else if (view.canDispatch) {
-      this.drawButton(1110, layout.hand.y + 62, 144, 44, '調度 0 張', () => {
-        this.runtime?.dispatch([]);
+    } else if (view.canResolveEnemy) {
+      this.drawButton(1110, layout.hand.y + 70, 150, 46, '執行敵方行動', () => {
+        this.runtime?.resolveActiveEnemyAction();
+        this.render();
+      });
+    } else if (view.canDispatch && !this.dispatchMode) {
+      this.drawButton(1110, layout.hand.y + 62, 144, 44, '調度', () => {
+        this.dispatchMode = true;
+        this.dispatchSelection.clear();
+        this.render();
+      });
+    }
+
+    if (this.dispatchMode && view.canDispatch) {
+      this.drawButton(1110, layout.hand.y + 112, 144, 44, `提交調度 ${this.dispatchSelection.size} 張`, () => {
+        this.runtime?.dispatch([...this.dispatchSelection]);
+        this.dispatchSelection.clear();
+        this.dispatchMode = false;
+        this.render();
+      });
+      this.drawButton(1110, layout.hand.y + 164, 144, 34, '取消調度', () => {
+        this.dispatchSelection.clear();
+        this.dispatchMode = false;
         this.render();
       });
     }
@@ -162,7 +187,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       });
     }
 
-    if (view.phase === 'CARD_SELECTED' || view.phase === 'TARGET_PREVIEW') {
+    if (!this.dispatchMode && (view.phase === 'CARD_SELECTED' || view.phase === 'TARGET_PREVIEW')) {
       this.drawButton(1110, layout.hand.y + 168, 144, 36, '取消', () => {
         this.runtime?.cancel();
         this.render();
@@ -170,31 +195,11 @@ export class RefactorBattleScene extends Phaser.Scene {
     }
   }
 
-  private drawPanel(
-    rect: { x: number; y: number; width: number; height: number },
-    fill: number,
-    stroke: number,
-  ): void {
-    this.addToContent(
-      this.add.rectangle(
-        rect.x + rect.width / 2,
-        rect.y + rect.height / 2,
-        rect.width,
-        rect.height,
-        fill,
-        0.96,
-      ).setStrokeStyle(1, stroke, 0.35),
-    );
+  private drawPanel(rect: { x: number; y: number; width: number; height: number }, fill: number, stroke: number): void {
+    this.addToContent(this.add.rectangle(rect.x + rect.width / 2, rect.y + rect.height / 2, rect.width, rect.height, fill, 0.96).setStrokeStyle(1, stroke, 0.35));
   }
 
-  private drawButton(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    label: string,
-    action: () => void,
-  ): void {
+  private drawButton(x: number, y: number, width: number, height: number, label: string, action: () => void): void {
     const button = this.add.rectangle(x, y, width, height, 0x2b251b, 1)
       .setStrokeStyle(1, 0xc4a361, 0.8)
       .setInteractive({ useHandCursor: true })
@@ -203,21 +208,8 @@ export class RefactorBattleScene extends Phaser.Scene {
     this.addText(x, y, label, '12px', '#f0d69d', 0.5);
   }
 
-  private addText(
-    x: number,
-    y: number,
-    text: string,
-    fontSize: string,
-    color: string,
-    origin = 0,
-  ): Phaser.GameObjects.Text {
-    const label = this.add.text(x, y, text, {
-      fontFamily: 'sans-serif',
-      fontSize,
-      color,
-      lineSpacing: 4,
-      align: origin === 0.5 ? 'center' : 'left',
-    }).setOrigin(origin);
+  private addText(x: number, y: number, text: string, fontSize: string, color: string, origin = 0): Phaser.GameObjects.Text {
+    const label = this.add.text(x, y, text, { fontFamily: 'sans-serif', fontSize, color, lineSpacing: 4, align: origin === 0.5 ? 'center' : 'left' }).setOrigin(origin);
     this.addToContent(label);
     return label;
   }
