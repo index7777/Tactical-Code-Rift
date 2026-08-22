@@ -1,6 +1,6 @@
 # Combat Refactor Phase 18b — Sequencer Scene Wiring
 
-STATUS = IMPLEMENTATION_CONTRACT
+STATUS = CI_VERIFIED_BROWSER_QA_PENDING
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -12,7 +12,7 @@ Combat authority does not move. `BattleTurnController` / core resolvers remain t
 
 ## Runtime sequencing
 
-Player and enemy presentation must consume the same profile timing fields:
+Player and enemy presentation consume the same profile timing fields:
 
 ```text
 FOCUS
@@ -24,7 +24,7 @@ FOCUS
 -> RETURN
 ```
 
-The Scene may implement these phases as delayed calls and tweens, but it must not substitute unrelated fixed timing constants for profile-owned choreography.
+The Scene implements these phases with delayed calls and tweens, but no longer substitutes the old unrelated fixed player/enemy choreography durations for profile-owned timing.
 
 ### Player action
 
@@ -34,10 +34,10 @@ The Scene may implement these phases as delayed calls and tweens, but it must no
 4. Confirm the selected card through the runtime.
 5. Enter anticipation / ready pose and camera push.
 6. Approach target using the existing target-relative destination policy.
-7. Enter strike pose.
-8. At IMPACT, play the profile-appropriate existing procedural feedback and call `resolveConfirmedPlayerAction()` exactly once.
+7. Enter strike pose when applicable.
+8. At IMPACT, play existing procedural feedback and call `resolveConfirmedPlayerAction()` exactly once.
 9. Hold/recover according to the profile.
-10. Return actor to HOME, restore idle pose/camera/HUD/input, then render the authoritative post-resolution view.
+10. Return actor to HOME, restore original actor scale, idle pose/camera/HUD/input, then render the authoritative post-resolution view.
 
 ### Enemy action
 
@@ -54,7 +54,7 @@ This batch keeps the current production enemy-plan fallback at `enemy-light`; au
 - quick: shortest anticipation/contact/recovery; current slash feedback is retained.
 - heavy: longer anticipation, stronger scale/camera push and longer recovery.
 - guard: REACTION path; no attack slash and no fake target hit reaction.
-- disruption: control/non-contact path; no default melee slash or attack pose.
+- disruption: shallow non-contact approach; no default melee slash, attack pose or hit reaction.
 - break: melee contact path with its own timing profile; current generic procedural impact remains until later FX-language wiring.
 
 No new art asset is introduced in this batch.
@@ -73,7 +73,7 @@ No new art asset is introduced in this batch.
 At player IMPACT:
 
 - slash/impact FX as allowed by the plan;
-- target reaction except Guard/defensive REACTION;
+- target reaction except Guard/defensive REACTION and Disruption control language;
 - `resolveConfirmedPlayerAction()` exactly once.
 
 At enemy IMPACT:
@@ -95,16 +95,17 @@ The existing presentation lock remains authoritative:
 
 ## Verification
 
-Required automated evidence:
+Implemented evidence:
 
-- Quick / Heavy / Guard / Disruption / Break animation plans expose the correct Phase 18 profile ids;
-- Disruption does not request melee slash/attack pose;
-- Guard remains REACTION and does not request target-hit reaction semantics;
-- Scene source consumes `actionPresentationProfile()` rather than the previous fixed player `180/70/90/120/210` and enemy `190/140/220` choreography chain;
-- `npm run build`;
-- `npm run test`.
+- Quick / Heavy / Guard / Disruption / Break animation plans expose the approved Phase 18 profile ids;
+- Disruption does not request melee slash/attack pose and uses a shallow Scene approach;
+- Guard remains REACTION and does not request attack slash/target hit reaction;
+- `RefactorBattleScene` consumes `actionPresentationProfile()` for anticipation, approach, strike, impact hold, recovery, return, camera zoom and actor scale;
+- old player `180/70/90/120/210` and enemy `190/140/220` action choreography chains are no longer the action timing source;
+- CI run 462: `npm run build` passed;
+- CI run 462: `npm test` passed.
 
-Browser QA remains required after CI for visible timing contrast between Quick and Heavy and for Guard/Disruption non-melee readability at 1280×720 and 844×390.
+Browser QA is still required for visible timing contrast between Quick and Heavy and for Guard/Disruption non-melee readability at 1280×720 and 844×390.
 
 ## Out of scope
 
