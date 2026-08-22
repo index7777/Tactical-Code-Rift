@@ -33,6 +33,10 @@ import {
 import { actionPresentationProfile } from '../battle/refactor/ActionPresentationSequencer';
 import { enemyVisualContactSchedule } from '../battle/refactor/EnemyActionPresentationContacts';
 import {
+  clashPresentationTiming,
+  clashResultDisplacement,
+} from '../battle/refactor/ClashPresentationChoreography';
+import {
   focusCameraTarget,
   focusedActorPosition,
   focusedPlayerActorId,
@@ -577,6 +581,14 @@ export class RefactorBattleScene extends Phaser.Scene {
       return;
     }
 
+    if (plan.clash) {
+      const enemy = this.actorSprites.get(plan.clash.enemyId);
+      if (enemy) {
+        this.playPlayerClashAction(plan, actor, enemy);
+        return;
+      }
+    }
+
     const profile = actionPresentationProfile(plan.profileId);
     this.beginPresentationMotion();
     this.runtime.confirmCard();
@@ -632,6 +644,130 @@ export class RefactorBattleScene extends Phaser.Scene {
           });
         },
       });
+    });
+  }
+
+  private playPlayerClashAction(
+    plan: RefactorBattleAnimationPlan,
+    player: Phaser.GameObjects.Image,
+    enemy: Phaser.GameObjects.Image,
+  ): void {
+    if (!this.runtime || !plan.clash) return;
+
+    const playerProfile = actionPresentationProfile(plan.profileId);
+    const enemyProfile = actionPresentationProfile(plan.clash.enemyProfileId);
+    const timing = clashPresentationTiming(playerProfile, enemyProfile);
+    const displacement = clashResultDisplacement(plan.clash.outcome);
+    const direction = Math.sign(enemy.x - player.x) || 1;
+    const playerHome = homePositionFor(plan.actorId as 'rin' | 'chikage' | 'oboro' | 'mo');
+    const enemyHome = { x: enemy.x, y: enemy.y };
+    const contactX = (player.x + enemy.x) / 2;
+    const contactY = (player.y + enemy.y) / 2;
+    const playerContactX = contactX - direction * 54;
+    const enemyContactX = contactX + direction * 54;
+    const playerScaleX = player.scaleX;
+    const playerScaleY = player.scaleY;
+    const enemyScaleX = enemy.scaleX;
+    const enemyScaleY = enemy.scaleY;
+    const cameraZoom = Math.max(playerProfile.cameraZoom, enemyProfile.cameraZoom);
+
+    this.beginPresentationMotion();
+    this.runtime.confirmCard();
+    this.setPlayerPose(plan.actorId, 'ready');
+    this.cameras.main.pan(contactX, contactY, timing.approachMs, 'Sine.easeOut');
+    this.cameras.main.zoomTo(cameraZoom, timing.approachMs, 'Sine.easeOut');
+
+    this.tweens.add({
+      targets: player,
+      x: playerContactX,
+      y: contactY,
+      scaleX: playerScaleX * playerProfile.actorScale,
+      scaleY: playerScaleY * playerProfile.actorScale,
+      duration: timing.approachMs,
+      ease: 'Sine.easeOut',
+    });
+    this.tweens.add({
+      targets: enemy,
+      x: enemyContactX,
+      y: contactY,
+      scaleX: enemyScaleX * enemyProfile.actorScale,
+      scaleY: enemyScaleY * enemyProfile.actorScale,
+      duration: timing.approachMs,
+      ease: 'Sine.easeOut',
+      onComplete: () => {
+        this.queuePresentationDelay(timing.anticipationMs, () => {
+          if (plan.useAttackPose) this.setPlayerPose(plan.actorId, 'attack-a');
+          if (plan.useAttackPose && timing.strikeMs > 1) {
+            this.queuePresentationDelay(Math.max(1, Math.floor(timing.strikeMs / 2)), () => {
+              this.setPlayerPose(plan.actorId, 'attack-b');
+            });
+          }
+          this.queuePresentationDelay(timing.strikeMs, () => {
+            if (plan.useSlashFx) this.playSlashFx(plan.clash?.enemyId);
+            this.playImpactFx(plan.clash!.enemyId, false);
+            this.playImpactFx(plan.actorId, true);
+            this.runtime?.resolveConfirmedPlayerAction();
+            this.tweens.pauseAll();
+            this.queuePresentationDelay(timing.hitStopMs, () => {
+              this.tweens.resumeAll();
+              const playerResultX = plan.clash!.outcome === 'player-win'
+                ? playerContactX + direction * displacement.player
+                : playerContactX - direction * displacement.player;
+              const enemyResultX = plan.clash!.outcome === 'enemy-win'
+                ? enemyContactX - direction * displacement.enemy
+                : enemyContactX + direction * displacement.enemy;
+
+              this.tweens.add({
+                targets: player,
+                x: playerResultX,
+                duration: timing.resultHoldMs,
+                ease: 'Quad.easeOut',
+              });
+              this.tweens.add({
+                targets: enemy,
+                x: enemyResultX,
+                duration: timing.resultHoldMs,
+                ease: 'Quad.easeOut',
+                onComplete: () => {
+                  if (plan.clash?.outcome === 'player-win') this.playTargetReaction(plan.clash.enemyId);
+                  if (plan.clash?.outcome === 'enemy-win') this.playTargetReaction(plan.actorId);
+                  if (plan.clash?.outcome === 'draw') {
+                    this.playTargetReaction(plan.actorId);
+                    this.playTargetReaction(plan.clash.enemyId);
+                  }
+                  this.queuePresentationDelay(timing.recoveryMs, () => {
+                    this.focusedActorId = undefined;
+                    this.resetWorldCamera(timing.returnMs);
+                    this.tweens.add({
+                      targets: player,
+                      x: playerHome.x,
+                      y: playerHome.y,
+                      scaleX: playerScaleX,
+                      scaleY: playerScaleY,
+                      duration: timing.returnMs,
+                      ease: 'Sine.easeInOut',
+                    });
+                    this.tweens.add({
+                      targets: enemy,
+                      x: enemyHome.x,
+                      y: enemyHome.y,
+                      scaleX: enemyScaleX,
+                      scaleY: enemyScaleY,
+                      duration: timing.returnMs,
+                      ease: 'Sine.easeInOut',
+                      onComplete: () => {
+                        this.setPlayerPose(plan.actorId, 'idle-a');
+                        this.finishPresentationMotion();
+                        this.render();
+                      },
+                    });
+                  });
+                },
+              });
+            });
+          });
+        });
+      },
     });
   }
 
