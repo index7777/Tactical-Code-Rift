@@ -62,6 +62,8 @@ STATUS = AUTHORITATIVE_INDEX
 54. `COMBAT_REFACTOR_PHASE14B_CLASH_PREVIEW_CONSEQUENCE.md`：Phase 14b Clash 結果語意契約；把 win／draw／lose 映射為共用 consequence，先附著於 Preview，不在本批改寫 live damage 或 Intent resolution。
 55. `COMBAT_REFACTOR_PHASE14C_CLASH_AUTHORITATIVE_RESOLUTION.md`：Phase 14c Clash authoritative resolution 契約；把共用 consequence 套入 Preview／Execute，同一份結果決定玩家效果縮放與 contested enemy Intent 的 cancel／half／full。
 56. `COMBAT_REFACTOR_PHASE14D_CLASH_APPLICATION_WIRING.md`：Phase 14d Clash application wiring 契約；由選牌、明確 target、公開 Intent 與 Timeline 決定 contested enemy、timing／specialization modifier，QA bootstrap 首次接入 Controller，七節點 story encounter 暫不啟用。
+57. `COMBAT_REFACTOR_PHASE15_NORMAL_ENEMY_ACTION_MIGRATION.md`：Phase 15 Normal enemy migration 契約；六種 Area 01 普通敵人改用 authored ActionDefinition、正式 HP／resilience 與 deterministic cyclic Intent，保留目前 Intent runtime boundary。
+58. `COMBAT_REFACTOR_PHASE16_ELITE_RAIN_WARRIOR_MIGRATION.md`：Phase 16 Elite rain-warrior migration 契約；正式 HP 120／resilience 1，採踏込→崩し→居合 deterministic cadence，Boss 尚未遷移。
 
 ## combat-refactor-v1 分支規則
 
