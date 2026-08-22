@@ -158,6 +158,7 @@ describe('BattleTurnController authoritative resolution wiring', () => {
     expect(after.timeline.entries.some((entry) => entry.actorId === 'ghost-fire')).toBe(false);
     expect(after.intentByEnemyId['ghost-fire']).toBeUndefined();
     expect(after.breakWindows.some((window) => window.targetId === 'ghost-fire')).toBe(false);
+    expect(controller.turn().phase).toBe('BATTLE_ENDED');
   });
 
   it('creates a deterministic break window through the real resolution path', () => {
