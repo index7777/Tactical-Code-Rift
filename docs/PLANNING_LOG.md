@@ -1021,3 +1021,10 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Classified Timeline, Party HUD, enemy overhead, targeting, route lines, loading-train travel and control states as runtime/procedural; they must not expand into generated character-specific or state-specific skins.
 - Runtime evidence established that the five 1254×1254 transparent family cutouts use the wrong production scope for the neutral frame's approximately 1.44:1, mostly transparent illustration window. `DEMO_ASSET_REQUIREMENTS_V1.md` replaces the cutout assumption with five fully opaque full-bleed illustration plates, produced and reviewed one family at a time.
 - This batch changes authoritative asset planning only. It generates no image and does not promote any runtime-trial asset.
+
+## 2026-08-22 — Combat demo and asset handoff
+
+- Added `HANDOFF_2026-08-22_COMBAT_DEMO_ASSETS.md` as the current operational handoff for the refactored combat demo; the older `HANDOFF.md` remains historical and superseded.
+- The handoff records today's route cutover, seven-node flow, 2×2 formations, non-compacting enemy death slots, floating Timeline/hand presentation, neutral-frame card anatomy, audio preservation and asset gates.
+- It explicitly carries forward the Demo Asset Requirements V1 decision: retain the neutral card frame, reject the five square transparent family cutouts, and produce one opaque 1.44:1 family illustration plate at a time starting with quick.
+- No runtime behavior or art asset changed in this handoff batch. Verification is limited to document routes, referenced paths and Git whitespace integrity.
