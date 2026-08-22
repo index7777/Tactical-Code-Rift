@@ -67,12 +67,9 @@ describe('BattlePreviewWithClash', () => {
   });
 
   it('keeps full player damage and cancels the contested Intent on player win', () => {
-    const result = resolveBattlePreviewWithClash({
-      ...baseInput,
-      clash: clash('player-win'),
-    });
+    const result = resolveBattlePreviewWithClash({ ...baseInput, clash: clash('player-win') });
 
-    expect(result.finalDamage).toBe(11); // Rin quick specialization still uses the shared preview rules.
+    expect(result.finalDamage).toBe(11);
     expect(result.hpAfter).toBe(19);
     expect(result.clash?.consequence).toEqual({
       outcome: 'player-win',
@@ -90,16 +87,13 @@ describe('BattlePreviewWithClash', () => {
     expect(result.clash?.enemyIntentAfter?.damage).toBeUndefined();
   });
 
-  it('halves player damage and enemy damage on draw while suppressing statuses', () => {
-    const result = resolveBattlePreviewWithClash({
-      ...baseInput,
-      clash: clash('draw'),
-    });
+  it('halves final player damage after specialization and halves enemy damage on draw', () => {
+    const result = resolveBattlePreviewWithClash({ ...baseInput, clash: clash('draw') });
 
-    // 8 authored damage -> 4, then Rin quick specialization remains a normal preview modifier.
-    expect(result.baseDamage).toBe(4);
-    expect(result.finalDamage).toBe(7);
-    expect(result.hpAfter).toBe(23);
+    expect(result.baseDamage).toBe(8);
+    expect(result.specializationBonusDamage).toBe(3);
+    expect(result.finalDamage).toBe(5);
+    expect(result.hpAfter).toBe(25);
     expect(result.actorNextActionAt).toBe(3);
     expect(result.clash?.enemyIntentChange).toBe('halved');
     expect(result.clash?.enemyIntentAfter).toMatchObject({
@@ -111,10 +105,7 @@ describe('BattlePreviewWithClash', () => {
   });
 
   it('suppresses the player effect on enemy win but still pays action Delay', () => {
-    const result = resolveBattlePreviewWithClash({
-      ...baseInput,
-      clash: clash('enemy-win'),
-    });
+    const result = resolveBattlePreviewWithClash({ ...baseInput, clash: clash('enemy-win') });
 
     expect(result.baseDamage).toBe(0);
     expect(result.finalDamage).toBe(0);
@@ -152,7 +143,8 @@ describe('BattlePreviewWithClash', () => {
 
     const result = resolveBattlePreviewWithClash(controlInput);
 
-    expect(result.baseDamage).toBe(3);
+    expect(result.baseDamage).toBe(6);
+    expect(result.finalDamage).toBe(3);
     expect(result.requestedDelay).toBe(0);
     expect(result.actualDelay).toBe(0);
     expect(result.intentChange).toBe('none');
@@ -202,9 +194,7 @@ describe('BattlePreviewWithClash', () => {
   it('keeps unavailable Clash visible but produces no consequence', () => {
     const result = resolveBattlePreviewWithClash({
       ...baseInput,
-      clash: {
-        resolution: { eligible: false, reason: 'tag-incompatible' },
-      },
+      clash: { resolution: { eligible: false, reason: 'tag-incompatible' } },
     });
 
     expect(result.clash).toEqual({
