@@ -1,6 +1,6 @@
 # Combat Refactor Phase 18c — Enemy Profile / Multi-hit / AoE Presentation
 
-STATUS = IMPLEMENTATION_CONTRACT
+STATUS = CI_VERIFIED_BROWSER_QA_PENDING
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -14,7 +14,7 @@ This phase changes presentation metadata only. Damage, Guard, Delay, death, Boss
 
 `IntentState` may carry optional `presentationProfile` copied from the authored enemy ActionDefinition. It is presentation metadata only.
 
-`intentStateFromEnemyAction()` must copy:
+`intentStateFromEnemyAction()` copies:
 
 - `presentationProfile` exactly;
 - `hitCount` from authored repeated-hit metadata;
@@ -35,25 +35,25 @@ The presentation plan exposes:
 
 ## Multi-hit visual contract
 
-Multi-hit presentation must not alter authoritative damage semantics.
+Multi-hit presentation does not alter authoritative damage semantics.
 
 For `hitCount > 1`:
 
-- resolution still commits exactly once at the first IMPACT marker;
+- resolution commits exactly once at the first IMPACT marker;
 - the first contact occurs at IMPACT;
 - additional visual contacts are distributed deterministically inside the profile-owned impact/recovery window;
 - each visual contact may replay existing procedural impact/slash feedback;
 - no extra resolver call is permitted.
 
-For Area 01 Boss `山影連刃`, authored `hitCount = 2`, so the player sees two contacts while core resolution remains the existing 6 × 2 authoritative result.
+`EnemyActionPresentationContacts.ts` owns the pure deterministic additional-contact schedule. For Area 01 Boss `山影連刃`, authored `hitCount = 2`, so the player sees two contacts while core resolution remains the existing 6 × 2 authoritative result.
 
 ## AoE visual contract
 
 For explicit multi-target enemy Intents:
 
-- movement/focus may anchor on the first living target id;
+- movement/focus anchors on the first explicit target id;
 - at IMPACT, visual target reaction/impact feedback is applied to every explicit `targetId` supplied by the Intent;
-- presentation must not discover, expand, filter, or substitute targets by itself;
+- presentation does not discover, expand, filter, or substitute targets by itself;
 - resolver still commits once.
 
 For `驟雨橫掃`, the explicit living-player target list produced by the Boss provider is therefore also the presentation target list.
@@ -72,31 +72,31 @@ Phase 18c consumes those values rather than duplicating skill-name or archetype 
 
 ## Scene boundary
 
-`RefactorBattleScene` may use plan metadata only for choreography:
+`RefactorBattleScene` now uses plan metadata only for choreography:
 
 - first target for approach destination;
 - all targets for procedural reactions;
 - hit count for repeated visual contact;
 - profile id for Phase 18 Sequencer timings/zoom/scale.
 
-It must not inspect enemy action ids/names to decide damage, target count, Boss phase, or combat outcomes.
+The first enemy visual contact triggers `resolveActiveEnemyAction()` once. Later contacts scheduled from `hitCount` only replay presentation feedback. The Scene does not inspect enemy action ids/names to decide damage, target count, Boss phase, or combat outcomes.
 
 ## Verification
 
-Required automated evidence:
+Implemented automated evidence:
 
 - enemy ActionDefinition -> Intent preserves presentation profile and repeated-hit count;
 - hard-stagger carries `none` and does not generate an attack plan;
 - enemy plan selects authored `enemy-heavy` and `boss-signature` when present;
 - omitted profile falls back to `enemy-light`;
 - plan preserves all explicit target ids and hit count;
-- Boss `山影連刃` produces a 2-contact presentation plan;
-- Boss `驟雨橫掃` preserves all explicit AoE targets;
-- Scene resolves one authoritative enemy action regardless of visual hit count;
-- `npm run build`;
-- `npm run test`.
+- pure contact scheduling covers single-hit and repeated-hit timing without creating another primary impact;
+- Scene applies impact/reaction feedback to every explicit target id per visual contact;
+- Scene calls authoritative enemy resolution only at the first IMPACT, regardless of visual hit count;
+- CI run 472: `npm run build` passed;
+- CI run 472: `npm test` passed.
 
-Browser QA remains required after CI for readable enemy-light vs enemy-heavy vs boss-signature timing and for multi-hit/AoE visual clarity.
+Browser QA remains required for readable enemy-light vs enemy-heavy vs boss-signature timing and for multi-hit/AoE visual clarity at 1280×720 and 844×390.
 
 ## Out of scope
 
