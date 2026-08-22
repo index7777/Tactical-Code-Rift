@@ -32,12 +32,8 @@ import {
 } from '../battle/refactor/RefactorBattleAnimationPlan';
 import { actionPresentationProfile } from '../battle/refactor/ActionPresentationSequencer';
 import { enemyVisualContactSchedule } from '../battle/refactor/EnemyActionPresentationContacts';
+import { decisionCameraTarget } from '../battle/refactor/DecisionCameraPolicy';
 import {
-  clashPresentationTiming,
-  clashResultDisplacement,
-} from '../battle/refactor/ClashPresentationChoreography';
-import {
-  focusCameraTarget,
   focusedActorPosition,
   focusedPlayerActorId,
 } from '../battle/refactor/RefactorBattleFocusPolicy';
@@ -50,6 +46,7 @@ import { enemyOverheadLayout } from '../battle/refactor/EnemyOverheadLayoutPolic
 import {
   handLayoutMetrics,
   type RefactorHandLayoutMetrics,
+  type RefactorHandLayoutState,
 } from '../battle/refactor/RefactorHandLayoutPolicy';
 import {
   actorDisplayName,
@@ -59,6 +56,10 @@ import {
   targetAffordance,
 } from '../battle/refactor/RefactorBattlePresentationPolicy';
 import { RefactorBattleRuntime, type RefactorBattleView } from '../battle/refactor/RefactorBattleRuntime';
+import {
+  clashPresentationTiming,
+  clashResultDisplacement,
+} from '../battle/refactor/ClashPresentationChoreography';
 
 const NEXT_ACTOR_DELAY_MS = 420;
 const ENEMY_ACTION_DELAY_MS = 720;
@@ -170,7 +171,9 @@ export class RefactorBattleScene extends Phaser.Scene {
       return;
     }
 
-    const focusActorId = focusedPlayerActorId(view.phase, view.activeActorId, view.timeline);
+    const focusActorId = handLayout.state === 'DISPATCH'
+      ? undefined
+      : focusedPlayerActorId(view.phase, view.activeActorId, view.timeline);
     const enteringFocus = Boolean(focusActorId && focusActorId !== this.focusedActorId);
 
     this.addText(24, 32, phaseDisplayName(view.phase), '11px', '#d8e7e9');
@@ -327,7 +330,7 @@ export class RefactorBattleScene extends Phaser.Scene {
 
     this.drawSharedHand(view, handLayout);
 
-    this.updateActiveActorFocus(focusActorId, enteringFocus);
+    this.updateDecisionCamera(handLayout.state, focusActorId, selectedTargetId, enteringFocus);
     this.scheduleAutoAdvance(view);
   }
 
@@ -518,8 +521,20 @@ export class RefactorBattleScene extends Phaser.Scene {
     });
   }
 
-  private updateActiveActorFocus(focusActorId: string | undefined, enteringFocus: boolean): void {
+  private updateDecisionCamera(
+    handState: RefactorHandLayoutState,
+    focusActorId: string | undefined,
+    selectedTargetId: string | undefined,
+    enteringFocus: boolean,
+  ): void {
     if (!focusActorId) {
+      const neutralTarget = decisionCameraTarget({ handState });
+      if (neutralTarget) {
+        this.focusedActorId = undefined;
+        this.cameras.main.pan(neutralTarget.x, neutralTarget.y, neutralTarget.durationMs, 'Sine.easeOut');
+        this.cameras.main.zoomTo(neutralTarget.zoom, neutralTarget.durationMs, 'Sine.easeOut');
+        return;
+      }
       if (this.focusedActorId) this.resetWorldCamera(ACTIVE_FOCUS_DURATION_MS);
       this.focusedActorId = undefined;
       return;
@@ -529,7 +544,6 @@ export class RefactorBattleScene extends Phaser.Scene {
     const ring = this.actorRings.get(focusActorId);
     if (!actor) return;
 
-    const cameraTarget = focusCameraTarget(actor.x, actor.y);
     if (enteringFocus) {
       const home = homePositionFor(focusActorId as 'rin' | 'chikage' | 'oboro' | 'mo');
       const stepped = focusedActorPosition(home.x, home.y, true);
@@ -540,11 +554,24 @@ export class RefactorBattleScene extends Phaser.Scene {
         duration: ACTIVE_FOCUS_DURATION_MS,
         ease: 'Sine.easeOut',
       });
-      this.cameras.main.pan(cameraTarget.x, cameraTarget.y, ACTIVE_FOCUS_DURATION_MS, 'Sine.easeOut');
-      this.cameras.main.zoomTo(cameraTarget.zoom, ACTIVE_FOCUS_DURATION_MS, 'Sine.easeOut');
-    } else if (Math.abs(this.cameras.main.zoom - cameraTarget.zoom) > 0.001) {
-      this.cameras.main.centerOn(cameraTarget.x, cameraTarget.y);
-      this.cameras.main.setZoom(cameraTarget.zoom);
+    }
+
+    const selectedTarget = selectedTargetId ? this.actorSprites.get(selectedTargetId) : undefined;
+    const cameraTarget = decisionCameraTarget({
+      handState,
+      activeActor: { x: actor.x, y: actor.y },
+      selectedTarget: selectedTarget ? { x: selectedTarget.x, y: selectedTarget.y } : undefined,
+    });
+    if (cameraTarget) {
+      const camera = this.cameras.main;
+      const centerDelta = Math.hypot(
+        camera.midPoint.x - cameraTarget.x,
+        camera.midPoint.y - cameraTarget.y,
+      );
+      if (centerDelta > 1 || Math.abs(camera.zoom - cameraTarget.zoom) > 0.001) {
+        camera.pan(cameraTarget.x, cameraTarget.y, cameraTarget.durationMs, 'Sine.easeOut');
+        camera.zoomTo(cameraTarget.zoom, cameraTarget.durationMs, 'Sine.easeOut');
+      }
     }
 
     this.focusedActorId = focusActorId;
