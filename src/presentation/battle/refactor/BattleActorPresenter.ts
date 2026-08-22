@@ -17,6 +17,13 @@ export interface RefactorBattleLayout {
   reactionPosition: { x: number; y: number };
 }
 
+export interface BattleVisualBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export const REFACTOR_BATTLE_LAYOUT: RefactorBattleLayout = {
   width: 1280,
   height: 720,
@@ -45,4 +52,21 @@ export function homePositionFor(actorId: BattleActorPosition['actorId']): Battle
 export function perspectiveScaleForY(y: number): number {
   const normalized = 0.9 + (y - 315) * 0.00165;
   return Math.min(1.16, Math.max(0.86, normalized));
+}
+
+export function actionApproachPosition(
+  actor: BattleVisualBounds,
+  target: BattleVisualBounds,
+  gap = 14,
+): { x: number; y: number } {
+  const direction = target.x >= actor.x ? 1 : -1;
+  const desiredCenterDistance = actor.width / 2 + target.width / 2 + gap;
+  const currentCenterDistance = Math.abs(target.x - actor.x);
+
+  return {
+    x: currentCenterDistance <= desiredCenterDistance
+      ? actor.x
+      : target.x - direction * desiredCenterDistance,
+    y: target.y,
+  };
 }
