@@ -255,6 +255,8 @@ GitHub Pages 實機回饋：
 - 千景「護持」仍可指定任一存活友軍，但不再四人同時顯示像全隊生效的黃圈；enemy target card 套用同樣 affordance。
 - 新增 target-relative approach 與 affordance unit tests。
 
+實作 commit set 已完成；等待 current-head CI。
+
 ## Deployment / Browser QA Gate
 
 狀態：`PHASE10E_CI_AND_BROWSER_QA_PENDING`
