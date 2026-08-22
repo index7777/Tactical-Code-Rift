@@ -59,6 +59,7 @@ STATUS = AUTHORITATIVE_INDEX
 51. `HANDOFF_2026-08-22_COMBAT_DEMO_ASSETS.md`：2026-08-22 新戰鬥、七節點、隊形／手牌重構、Demo 資產判定、驗證限制與下一批工作的當前交接紀錄。
 52. `COMBAT_REFACTOR_PHASE13_ACTION_DATA_CONTRACT.md`：Phase 13 行動資料契約；統一 player/enemy action 語意欄位，保留 Clash、Boss phase、multi-hit／AoE 與 presentation profile 的資料槽位，先不改 runtime resolver。
 53. `COMBAT_REFACTOR_PHASE14_CLASH_CORE.md`：Phase 14 Clash 純 core 契約；定義 eligibility、score breakdown 與 player-win／draw／enemy-win，要求 Preview／Execute 共用同一計算且不恢復 legacy clashPower。
+54. `COMBAT_REFACTOR_PHASE14B_CLASH_PREVIEW_CONSEQUENCE.md`：Phase 14b Clash 結果語意契約；把 win／draw／lose 映射為共用 consequence，先附著於 Preview，不在本批改寫 live damage 或 Intent resolution。
 
 ## combat-refactor-v1 分支規則
 
