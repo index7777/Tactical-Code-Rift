@@ -1,6 +1,6 @@
 # Combat Refactor Phase 23 — Final Browser QA / Asset Unlock Gate
 
-STATUS = RUNTIME_VISUAL_EVIDENCE_REQUIRED
+STATUS = AUTOMATED_RUNTIME_EVIDENCE_HARNESS_ADDED_REVIEW_PENDING
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -117,6 +117,22 @@ The accepted run must have:
 
 Autoplay-policy warnings before user input are not treated as application failures.
 
+## Automated evidence harness
+
+Phase 23 now includes `tools/phase23_browser_qa.mjs` plus `.github/workflows/phase23-browser-qa.yml`.
+
+The harness launches a production Vite preview in headless Chromium and runs both canonical viewport sizes. It physically clicks the route map, battle result CTA, family-upgrade reward choices, one card, one authoritative target, and the confirm CTA. It records PNG evidence plus JSON reports under `artifacts/phase23-browser-qa`.
+
+The automated path checks:
+
+- `depart → battle-1 → battle-2-upper → battle-3-upper → elite-1 → boss-1`;
+- reward after battle-1 / battle-3 / elite and no reward after battle-2 / boss;
+- exactly three upgrades before Boss and Area 01 clear after Boss victory;
+- PEEK → FOCUS → TARGETING → action handoff / return on a legal player turn;
+- application console/page errors as workflow failures.
+
+This harness does not replace manual visual judgment for rhythm, silhouette clarity, camera feel, Clash outcome readability, Boss multi-hit/AoE readability, or overlap quality. Those remain the final asset-unlock review.
+
 ## Asset unlock condition
 
 Only after all required checks above pass may the next phase begin generated family-plate production.
@@ -133,7 +149,6 @@ The governing plate specification remains `DEMO_ASSET_REQUIREMENTS_V1.md`: opaqu
 ## Current evidence / blocker
 
 - Phase 22 CI run 515 passed build/test for both route branches, upgrade handoff, Boss entry, and viewport policy regression.
-- Phase 23 cannot be marked passed from unit tests or code inspection alone.
-- The current ChatGPT runtime in this conversation does not expose a browser-rendering/screenshot surface for the project deployment, so no visual pass is claimed here.
-
-No generated asset is produced by this phase.
+- Phase 23 browser-QA harness commits compile under the normal CI path; CI run 528 passed `npm ci`, `npm run build`, and `npm test` on the workflow/harness head.
+- Browser-QA screenshot artifacts still require workflow-result inspection and visual review before this gate can be marked passed.
+- No generated asset is produced by this phase.
