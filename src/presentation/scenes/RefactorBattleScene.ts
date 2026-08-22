@@ -6,10 +6,17 @@ import {
 } from '../battle/refactor/BattleActorPresenter';
 import {
   REFACTOR_BATTLE_BACKGROUND_KEY,
+  REFACTOR_SLASH_FX_KEY,
   actorBattleTextureKey,
   actorTimelineTextureKey,
+  playerPoseTextureKey,
   queueRefactorBattleAssets,
 } from '../battle/refactor/RefactorBattleAssets';
+import {
+  buildEnemyActionAnimationPlan,
+  buildPlayerActionAnimationPlan,
+  type RefactorBattleAnimationPlan,
+} from '../battle/refactor/RefactorBattleAnimationPlan';
 import {
   actorDisplayName,
   autoAdvanceAction,
@@ -29,6 +36,9 @@ export class RefactorBattleScene extends Phaser.Scene {
   private dispatchMode = false;
   private readonly dispatchSelection = new Set<string>();
   private autoAdvanceTimer?: Phaser.Time.TimerEvent;
+  private readonly actorSprites = new Map<string, Phaser.GameObjects.Image>();
+  private readonly presentationTimers: Phaser.Time.TimerEvent[] = [];
+  private animationBusy = false;
 
   constructor() {
     super('RefactorBattleScene');
@@ -40,13 +50,14 @@ export class RefactorBattleScene extends Phaser.Scene {
 
   create(): void {
     this.runtime = this.registry.get(RUNTIME_REGISTRY_KEY) as RefactorBattleRuntime | undefined;
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.clearAutoAdvance());
-    this.events.once(Phaser.Scenes.Events.DESTROY, () => this.clearAutoAdvance());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.clearPresentationMotion());
+    this.events.once(Phaser.Scenes.Events.DESTROY, () => this.clearPresentationMotion());
     this.render();
   }
 
   private render(): void {
     this.clearAutoAdvance();
+    this.actorSprites.clear();
     this.content?.destroy(true);
     this.content = this.add.container(0, 0);
     const layout = REFACTOR_BATTLE_LAYOUT;
@@ -120,6 +131,7 @@ export class RefactorBattleScene extends Phaser.Scene {
           118 * position.perspectiveScale,
           alive ? 1 : 0.42,
         );
+        this.actorSprites.set(position.actorId, actor);
         if (isTargetable) {
           actor.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
             this.runtime?.previewTarget(position.actorId);
@@ -157,6 +169,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       const textureKey = actorBattleTextureKey(enemyId);
       if (textureKey && this.textures.exists(textureKey)) {
         const actor = this.addFittedImage(x, y, textureKey, 172 * perspectiveScale, 154 * perspectiveScale, 1);
+        this.actorSprites.set(enemyId, actor);
         if (isTargetable) {
           actor.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
             this.runtime?.previewTarget(enemyId);
@@ -267,9 +280,7 @@ export class RefactorBattleScene extends Phaser.Scene {
 
     if (view.canConfirm) {
       this.drawButton(1110, layout.hand.y + 118, 144, 44, '確認執行', () => {
-        this.runtime?.confirmCard();
-        this.runtime?.resolveConfirmedPlayerAction();
-        this.render();
+        this.playPlayerAction(view);
       });
     }
 
@@ -296,6 +307,214 @@ export class RefactorBattleScene extends Phaser.Scene {
         vitals && vitals.hp > 0 ? '#c8dcdc' : '#737d81',
       );
     });
+  }
+
+  private playPlayerAction(view: RefactorBattleView): void {
+    if (!this.runtime || this.animationBusy) return;
+    const plan = buildPlayerActionAnimationPlan(view);
+    if (!plan) {
+      this.runtime.confirmCard();
+      this.runtime.resolveConfirmedPlayerAction();
+      this.render();
+      return;
+    }
+
+    const actor = this.actorSprites.get(plan.actorId);
+    if (!actor) {
+      this.runtime.confirmCard();
+      this.runtime.resolveConfirmedPlayerAction();
+      this.render();
+      return;
+    }
+
+    this.beginPresentationMotion();
+    this.runtime.confirmCard();
+
+    const originX = actor.x;
+    const originY = actor.y;
+    const destination = this.presentationDestination(plan);
+    this.setPlayerPose(plan.actorId, 'ready');
+
+    this.tweens.add({
+      targets: actor,
+      x: destination.x,
+      y: destination.y,
+      duration: 180,
+      ease: 'Sine.easeOut',
+      onComplete: () => {
+        if (plan.useAttackPose) this.setPlayerPose(plan.actorId, 'attack-a');
+        this.queuePresentationDelay(70, () => {
+          if (plan.useAttackPose) this.setPlayerPose(plan.actorId, 'attack-b');
+          this.queuePresentationDelay(90, () => {
+            if (plan.useSlashFx) this.playSlashFx(plan.targetId);
+            if (plan.motion !== 'REACTION') this.playTargetReaction(plan.targetId);
+            this.runtime?.resolveConfirmedPlayerAction();
+            this.queuePresentationDelay(120, () => {
+              this.tweens.add({
+                targets: actor,
+                x: originX,
+                y: originY,
+                duration: 210,
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                  this.setPlayerPose(plan.actorId, 'idle-a');
+                  this.finishPresentationMotion();
+                  this.render();
+                },
+              });
+            });
+          });
+        });
+      },
+    });
+  }
+
+  private playEnemyAction(view: RefactorBattleView): void {
+    if (!this.runtime || this.animationBusy) return;
+    const plan = buildEnemyActionAnimationPlan(view);
+    if (!plan) {
+      this.runtime.resolveActiveEnemyAction();
+      this.render();
+      return;
+    }
+
+    const actor = this.actorSprites.get(plan.actorId);
+    if (!actor) {
+      this.runtime.resolveActiveEnemyAction();
+      this.render();
+      return;
+    }
+
+    this.beginPresentationMotion();
+    const originX = actor.x;
+    const originY = actor.y;
+    const originScaleX = actor.scaleX;
+    const originScaleY = actor.scaleY;
+    const target = plan.targetId ? this.actorSprites.get(plan.targetId) : undefined;
+    const destinationX = target ? Math.max(610, target.x + 165) : Math.max(640, originX - 150);
+    const destinationY = target ? target.y : originY;
+
+    this.tweens.add({
+      targets: actor,
+      x: destinationX,
+      y: destinationY,
+      scaleX: originScaleX * 1.04,
+      scaleY: originScaleY * 1.04,
+      duration: 190,
+      ease: 'Sine.easeOut',
+      onComplete: () => {
+        if (plan.useSlashFx) this.playSlashFx(plan.targetId);
+        this.playTargetReaction(plan.targetId);
+        this.runtime?.resolveActiveEnemyAction();
+        this.queuePresentationDelay(140, () => {
+          this.tweens.add({
+            targets: actor,
+            x: originX,
+            y: originY,
+            scaleX: originScaleX,
+            scaleY: originScaleY,
+            duration: 220,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+              this.finishPresentationMotion();
+              this.render();
+            },
+          });
+        });
+      },
+    });
+  }
+
+  private presentationDestination(plan: RefactorBattleAnimationPlan): { x: number; y: number } {
+    if (plan.motion === 'REACTION' && plan.targetId) {
+      const target = this.actorSprites.get(plan.targetId);
+      if (target) {
+        return {
+          x: Math.min(720, target.x + 92),
+          y: target.y - 8,
+        };
+      }
+    }
+    return plan.motion === 'REACTION'
+      ? { ...REFACTOR_BATTLE_LAYOUT.reactionPosition }
+      : { ...REFACTOR_BATTLE_LAYOUT.actionPosition };
+  }
+
+  private setPlayerPose(
+    actorId: string,
+    pose: 'idle-a' | 'ready' | 'attack-a' | 'attack-b' | 'hit-a' | 'hit-b',
+  ): void {
+    const image = this.actorSprites.get(actorId);
+    const textureKey = playerPoseTextureKey(actorId, pose);
+    if (!image || !textureKey || !this.textures.exists(textureKey)) return;
+    const width = image.displayWidth;
+    const height = image.displayHeight;
+    image.setTexture(textureKey).setDisplaySize(width, height);
+  }
+
+  private playTargetReaction(targetId?: string): void {
+    if (!targetId) return;
+    const target = this.actorSprites.get(targetId);
+    if (!target) return;
+
+    const hitA = playerPoseTextureKey(targetId, 'hit-a');
+    const hitB = playerPoseTextureKey(targetId, 'hit-b');
+    if (hitA && this.textures.exists(hitA)) {
+      this.setPlayerPose(targetId, 'hit-a');
+      if (hitB && this.textures.exists(hitB)) {
+        this.queuePresentationDelay(90, () => this.setPlayerPose(targetId, 'hit-b'));
+      }
+      this.queuePresentationDelay(190, () => this.setPlayerPose(targetId, 'idle-a'));
+      return;
+    }
+
+    target.setTint(0xffb0a8);
+    this.queuePresentationDelay(150, () => {
+      if (target.active) target.clearTint();
+    });
+  }
+
+  private playSlashFx(targetId?: string): void {
+    if (!this.textures.exists(REFACTOR_SLASH_FX_KEY)) return;
+    const target = targetId ? this.actorSprites.get(targetId) : undefined;
+    const x = target?.x ?? REFACTOR_BATTLE_LAYOUT.actionPosition.x + 70;
+    const y = target?.y ?? REFACTOR_BATTLE_LAYOUT.actionPosition.y;
+    const fx = this.addFittedImage(x, y, REFACTOR_SLASH_FX_KEY, 128, 96, 0.92)
+      .setRotation(-0.2);
+    this.tweens.add({
+      targets: fx,
+      alpha: 0,
+      scaleX: fx.scaleX * 1.18,
+      scaleY: fx.scaleY * 1.18,
+      duration: 180,
+      ease: 'Quad.easeOut',
+      onComplete: () => fx.destroy(),
+    });
+  }
+
+  private beginPresentationMotion(): void {
+    this.clearAutoAdvance();
+    this.animationBusy = true;
+    this.input.enabled = false;
+  }
+
+  private finishPresentationMotion(): void {
+    for (const timer of this.presentationTimers.splice(0)) timer.remove(false);
+    this.animationBusy = false;
+    this.input.enabled = true;
+  }
+
+  private clearPresentationMotion(): void {
+    this.clearAutoAdvance();
+    for (const timer of this.presentationTimers.splice(0)) timer.remove(false);
+    this.tweens.killAll();
+    this.animationBusy = false;
+    if (this.input) this.input.enabled = true;
+  }
+
+  private queuePresentationDelay(delay: number, callback: () => void): void {
+    const timer = this.time.delayedCall(delay, callback);
+    this.presentationTimers.push(timer);
   }
 
   private drawBattlefieldBackground(): void {
@@ -326,14 +545,18 @@ export class RefactorBattleScene extends Phaser.Scene {
   }
 
   private scheduleAutoAdvance(view: RefactorBattleView): void {
+    if (this.animationBusy) return;
     const action = autoAdvanceAction(view.phase, view.canResolveEnemy);
     if (action === 'NONE') return;
     const delay = action === 'RESOLVE_ENEMY' ? ENEMY_ACTION_DELAY_MS : NEXT_ACTOR_DELAY_MS;
     this.autoAdvanceTimer = this.time.delayedCall(delay, () => {
-      if (!this.runtime) return;
-      if (action === 'START_NEXT_ACTOR') this.runtime.startNextActor();
-      else this.runtime.resolveActiveEnemyAction();
-      this.render();
+      if (!this.runtime || this.animationBusy) return;
+      if (action === 'START_NEXT_ACTOR') {
+        this.runtime.startNextActor();
+        this.render();
+      } else {
+        this.playEnemyAction(view);
+      }
     });
   }
 
