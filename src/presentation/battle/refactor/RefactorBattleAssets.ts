@@ -4,6 +4,7 @@ import {
   queuePlayerAssets,
   type PlayerAssetEntry,
 } from '../../assets/PlayerAssetManifest';
+import { cardFamilyAssetSlots } from './CardFamilyAssetPolicy';
 
 export const REFACTOR_BATTLE_BACKGROUND_KEY = 'refactor-bg-area01-rail-halt-hd2d-v2';
 export const REFACTOR_QA_ENEMY_KEY = 'refactor-enemy-lantern-child';
@@ -47,6 +48,9 @@ export function queueRefactorBattleAssets(load: Phaser.Loader.LoaderPlugin): voi
     'assets/battle/generated/monsters/rainfall-ridgeline/lantern-child-master-runtime-v1.png',
   );
   load.image(REFACTOR_SLASH_FX_KEY, 'assets/battle/fx/p9a-arc-slash-1.png');
+  for (const slot of cardFamilyAssetSlots()) {
+    load.image(slot.textureKey, slot.path);
+  }
   load.audio(REFACTOR_BATTLE_MUSIC_KEY, 'assets/battle/battle-music.ogg');
   load.audio(REFACTOR_SWISH_SFX_KEY, 'assets/battle/sword-swish.wav');
   load.audio(REFACTOR_IMPACT_SFX_KEY, 'assets/battle/sword-impact.wav');
