@@ -130,7 +130,7 @@ describe('BattleTurnController authoritative resolution wiring', () => {
 
     controller.beginResolution();
     const after = controller.completeResolution();
-    expect(after.vitalsByActorId['ghost-fire']?.hp).toBe(31);
+    expect(after.vitalsByActorId['ghost-fire']?.hp).toBe(28);
     expect(after.timeline.entries.find((entry) => entry.actorId === 'rin')?.nextActionAt).toBe(3);
   });
 
