@@ -156,21 +156,32 @@ CI：run 192 build / test 全數通過，因此 Phase 9c 升為 `VERIFIED`。
 CI 記錄：
 
 - run 201：`npm run build` 通過；`npm test` 235 個測試中 234 通過、1 個失敗。
-- 唯一失敗是 `RefactorBattleRuntimePhase9d.test.ts` 把 `any-ally` target list 順序寫死成 `['chikage', 'rin']`，實際 runtime 依 authoritative vitals insertion order 回傳 `['rin', 'chikage']`。
+- 唯一失敗是 `RefactorBattleRuntimePhase9d.test.ts` 把 `any-ally` target list 順序寫死成 `['chikage', 'rin']`，實際 runtime 依 authoritative vitals insertion order回傳 `['rin', 'chikage']`。
 - 此失敗不代表 target routing 規則錯誤；修正測試、不改 production target logic 後，run 205 build / test 全數通過，因此 Phase 9d 升為 `VERIFIED`。
 
 流程紀錄：Phase 9d contract 已先建立；本次 source/tests 寫入後才補齊 progress 狀態，未完全符合索引要求的「contract + progress 皆先於 source/tests」順序。此偏差已在本文件明確記錄，不視為完整流程合規證據。
 
+## Phase 9e — GitHub Pages QA Hosting
+
+狀態：`IMPLEMENTATION_PENDING_WORKFLOW`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE9E_GITHUB_PAGES_QA.md`
+
+- 因 Vercel Hobby build-rate limit 阻塞 current-head preview，QA hosting 改用 GitHub Pages。
+- 只新增 branch-scoped Pages deployment workflow，不改 combat domain / application / presentation 規則。
+- Pages build 沿用 `npm ci` + `npm run build` 與既有 `build/web` output。
+- Vite `base: './'` 保持不變，避免另建 Pages 專用 asset path。
+- 預定 QA 入口：`https://index7777.github.io/Tactical-Code-Rift/?combat-refactor=1`。
+- GitHub Pages deployment 成功只解除 hosting blocker；仍需完成 1280×720 / 844×390 的 browser interaction QA 才能進 Phase 10。
+
 ## Deployment / Browser QA Gate
 
-狀態：`BLOCKED_BY_VERCEL_BUILD_RATE_LIMIT`
+狀態：`MIGRATING_TO_GITHUB_PAGES`
 
-- GitHub current head 的 Vercel status context 明確回報 `failure`，target 指向 `upgradeToPro=build-rate-limit`；目前不是程式 build/test 失敗，而是 Vercel Hobby 專案的 deployment build rate limit。
-- Vercel branch alias 目前仍解析到 READY deployment `dpl_GwVvKnDYhfokD2jb7EfsvTAbJyyb`，commit `87fcf42d62587144d9d7cb5ad4e31eb814486861`，早於已通過 run 205 的 Phase 9d 實作。
-- 因此即使 branch alias 可取得，也不是 current verified code，不能拿來當 1280×720 / 844×390 的正式 browser QA 證據。
-- 現有工具也沒有可直接繞過此 Vercel rate limit、指定 git ref 建立 preview 的安全部署接口；不得用舊 deployment 冒充 current-head QA。
-- 在 fresh READY preview 出現前，production 預設入口保持 legacy `BootScene`，Phase 10 不啟動。
+- Vercel current-head status 因 `upgradeToPro=build-rate-limit` 失敗，舊 READY deployment 不可作 current-head QA 證據。
+- Phase 9e 改由 GitHub Pages 產出 current-head QA deployment，legacy `BootScene` 仍是無 flag 的預設入口。
+- 在 Pages deployment 與 browser QA 都有證據前，Phase 10 不啟動。
 
 ## 下一批
 
-需要先解除 Vercel deployment build rate limit（等待 rate window 恢復或由專案方調整方案／部署配額），讓 current verified head 產生新的 READY preview。之後才能用 `?combat-refactor=1` 完成 1280×720 與 844×390 的實際 browser QA，驗證 Timeline、選牌、友軍／敵軍 Target Preview、Confirm、enemy action、調度 0～2 與下一 actor 循環。只有這個 QA gate 有證據通過後，才評估 Phase 10 預設入口切換與 legacy removal。
+建立 `combat-refactor-v1` 專用 GitHub Pages workflow，確認 Pages deployment 成功後，用 `?combat-refactor=1` 完成 1280×720 與 844×390 的實際 browser QA；只有 QA gate 通過後才評估 Phase 10 預設入口切換與 legacy removal。
