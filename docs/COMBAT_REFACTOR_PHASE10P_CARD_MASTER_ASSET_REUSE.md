@@ -95,6 +95,13 @@ Runtime wiring 後確認：
 - 同一 family 不因出牌角色不同而換圖；
 - 1280×720 與 844×390 都不得因 art zone 造成卡面不可讀。
 
+## 實作狀態
+
+- 已建立 `CardFamilyAssetPolicy.ts` 與 regression tests。
+- `RefactorBattleAssets` 已 preload 五個共用 family visual。
+- `CardMasterPresentation` 已從 asset policy 取得穩定 texture key。
+- Scene card art zone 尚未接圖；下一個小批次只做 runtime wiring，不新增任何素材。
+
 ## 非目標
 
 - 不生成新圖。
