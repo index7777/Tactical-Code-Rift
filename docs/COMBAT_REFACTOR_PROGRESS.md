@@ -271,28 +271,33 @@ CI：run 266 build / test 通過。仍需 GitHub Pages 實機確認接敵距離�
 
 ## Phase 10k — Adaptive Battle Stage / Hand Layout
 
-狀態：`IMPLEMENTATION_IN_PROGRESS`
+狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10K_ADAPTIVE_BATTLE_STAGE_HAND_LAYOUT.md`
 
-本批將 presentation 改為可重用舞台架構：
+已實作：
 
-- 建立 `BattleStageProfile`，描述 player/enemy/action zone、depth bands、BG focal point、safe crop / HUD safe bounds。
-- 角色 HOME 改由 formation slots + depth band 推導；actor identity 不再綁固定 x/y。
-- BG runtime framing 改為保持 aspect ratio 的 cover + focal anchor，不再直接拉伸到 1280×720。
-- Shared Hand 改為 collapsed / expanded metrics，由 phase / dispatch presentation state 決定；一般狀態讓出更多 battlefield 高度。
-- camera focus 改讀 stage safe bounds，保留 1.05 + 前踏，但不直接把 actor 當無限制 pan target。
-- rail-halt BG binary 保持 current-head，不因本批重構替換或升級資產。
-- 本批不混入 audio policy、canonical enemy mapping、EncounterCatalog 多敵人或額外 card/foreground 資產。
+- 新增 pure presentation `BattleStageProfile`：player/enemy/action zone、depth bands、BG focal point、HUD/camera safe bounds。
+- 四名玩家 HOME 由 formation slots + depth band 推導；角色 identity 不再保存自己的固定 x/y。
+- enemy QA position 也改走 stage slot，而不是 Scene 內 `950 + index * ...`。
+- BG framing 改用保持來源 aspect ratio 的 cover + focal anchor，不再 `setDisplaySize(1280,720)` 拉伸。
+- 新增 `RefactorHandLayoutPolicy`：`PLAYER_IDLE` 使用 82px collapsed cards；CARD_SELECTED / TARGET_PREVIEW / dispatch 使用 116px expanded cards。
+- preview / confirm / dispatch controls 隨 hand layout state 移動，不再綁固定 172px hand strip。
+- camera focus target 經 stage safe bounds clamp；Phase 10i 的 1.05 + 前踏保留。
+- 新增 profile / hand policy tests；formation identity independence、depth scale、BG cover aspect、camera clamp 均有 regression coverage。
+- rail-halt BG binary 未修改；沒有新增角色 pose、card art、foreground 或其他資產。
+
+CI：run 333 build 通過、test 因 Phase 10j 舊 `x >= 320` layout assertion 與新 slot 第一版 `x=312.5` 衝突而失敗；調整 slot 回到 legacy safe bound 後，run 334 build / test 全部通過。
 
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10K_IMPLEMENTATION_IN_PROGRESS`
+狀態：`PHASE10K_BROWSER_QA_PENDING`
 
-- Phase 10j CI run 323 已通過，但 browser QA 暴露 stage/hand architecture 仍需重構。
-- Phase 10k 完成自動驗證後，必須以 rail-halt 先驗證 1280×720 / 844×390，再用至少一個不同 profile 的純單元測試證明 Scene layout 不依賴單一 BG 座標。
+- Phase 10k CI run 334 已通過。
+- 下一個必要證據是 Pages 1280×720 / 844×390：角色腳點與景深是否像站在同一地面、collapsed hand 是否真的讓出戰場、expanded hand/preview 是否仍可操作、camera focus 是否不裁地面與角色。
+- 後續不同 BG 只應新增／選擇 stage profile，不再回到 Scene 內逐角色手調座標。
 - Legacy combat removal 仍 blocked。
 
 ## 下一批
 
-完成 Phase 10k adaptive stage / hand layout 後，再獨立處理正式 audio policy 與 QA enemy canonical asset/portrait mapping。資產庫是可選來源，不因存在就全部接入。
+先做 Phase 10k browser QA；通過後再獨立處理正式 audio policy 與 QA enemy canonical asset/portrait mapping。資產庫是可選來源，不因存在就全部接入。
