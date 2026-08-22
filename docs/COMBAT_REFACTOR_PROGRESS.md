@@ -190,45 +190,55 @@ CI：run 228 build / test 通過。仍需 GitHub Pages default-entry / legacy-ro
 
 ## Phase 10b — Asset Reconnect
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`SUPERSEDED_BY_PHASE10C`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10B_ASSET_RECONNECT.md`
 
-已實作：
-
-- 新增 `RefactorBattleAssets.ts`，沿用唯一角色 runtime manifest 與 `queuePlayerAssets()`，不依賴 `BootScene.preload()`。
-- 新版 Scene 自己 preload 四名隊友 pose / portrait、World 01 rooftop candidate、QA yokai visual 與基礎 slash FX。
-- 四名隊友 battlefield 顯示改用實際 `idle-a` texture；保留 target ring、HP 與 texture 缺失 fallback。
-- 單 Timeline player node 優先顯示 timeline portrait；`ghost-fire` 使用 QA yokai visual；文字名稱與 `nextActionAt` 保留。
-- battlefield 接回既有 rooftop candidate 背景，party rail / intent panel / hand 仍由新版 layout 疊在上層。
-- `ghost-fire` 的 yokai 圖只作 QA visual，不視為正式 enemy identity master。
-- 新增 `RefactorBattleAssets.test.ts` 覆蓋四角色 manifest mapping、pose / timeline key 與 QA enemy mapping。
-
-CI：run 234 執行中。
+- 先把四名隊友 pose / portrait、Timeline portrait 與既有 BG / QA enemy visual 接回新版 Scene。
+- 實機後發現 QA enemy 與 rooftop asset 選擇不符合目前資產方向，已由 Phase 10c 取代。
+- 此批保留作 migration 紀錄，不把舊 `kamaitachi.png` / rooftop composite 視為新版主資產。
 
 ## Phase 10c — Full-canvas Battlefield / Timeline Normalization
 
-狀態：`IMPLEMENTATION_PENDING`
+狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10C_BATTLEFIELD_TIMELINE_NORMALIZATION.md`
 
-使用者實機回饋已確認：
+已實作：
 
-- Phase 10b QA enemy 誤用了舊 `kamaitachi.png`，本批改用 rainfall-ridgeline 新 runtime monster。
-- 目前上下 Timeline / hand 框架只是過渡 UI，後續會移除，因此 BG 與角色站位不再以 `y=112..500` 當永久世界裁切範圍。
-- BG 改用目前 Area 01 F1 `area01-rail-halt-bg-runtime-trial-v1.png`，完整鋪滿 1280×720。
-- 四名隊友與敵人要依場景地面線／透視重新配置，前後 y 差帶輕微 presentation scale 差；不建立 gameplay 前後排。
-- 上方行動序列同步整理 active actor、portrait、時間點與 target preview 資訊板。
+- `ghost-fire` 僅保留 internal QA id，玩家可見名稱／visual 改為 rainfall-ridgeline `lantern-child` / 提燈童子。
+- 移除 refactor battle 對舊 `kamaitachi.png` 與 rooftop composite 主資產的依賴。
+- BG 改用 Area 01 F1 `area01-rail-halt-bg-runtime-trial-v1.png` 並完整鋪滿 1280×720。
+- battlefield world 改為 full-canvas；上方 Timeline / 下方 hand 視為過渡 overlay，不再決定世界裁切。
+- 四名隊友改成前後錯位舞台隊形，依 y 做輕微 perspective scale；敵人尺寸／位置同步正規化。
+- Timeline 節點改為 portrait + 名稱 + 時點卡片，active actor 有明確 highlight。
+- Target Preview 改為獨立半透明資訊板；party / intent overlay 縮小，不再主導場景構圖。
+
+CI：run 247 build / test 通過。仍需 GitHub Pages 1280×720 / 844×390 實機確認 scale、pivot、透視、overlay 與 default/legacy 入口。
+
+## Phase 10d — Action / Reaction Presentation Sequencing
+
+狀態：`IMPLEMENTATION_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE10D_ACTION_PRESENTATION.md`
+
+目標：
+
+- 玩家確認後先播放 HOME -> ACTION / REACTION -> impact / target reaction -> HOME，再顯示 authoritative post-resolution state。
+- quick / heavy / break / disruption 接既有 ready / attack pose；guard 使用 REACTION 路徑，不播放攻擊型 slash。
+- 玩家被命中可使用既有 hit pose；rainfall-ridgeline enemy 目前只有 master visual，因此敵方演出先用 lunge / recoil / tint / FX。
+- enemy auto-flow 改成先演出再 resolve，不再 timer 到點瞬間跳數值。
+- 演出期間鎖 input、清 auto timer，避免雙重 resolution。
+- 所有 combat math 仍由 Controller / core resolver 決定，Scene 只播放結果。
 
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10C_IMPLEMENTATION_PENDING`
+狀態：`PHASE10C_BROWSER_QA_AND_PHASE10D_IMPLEMENTATION_PENDING`
 
-- Phase 10 CI 已通過。
-- default-entry / legacy rollback browser regression 尚待驗證。
-- 使用者要求先把新 monster、新 BG、完整場景站位與上方 Timeline 一起調整，再從 Pages 真實畫面找問題。
-- Phase 10c CI 與 browser QA 完成前不進 legacy removal。
+- Phase 10 CI 已通過；default-entry / legacy rollback browser regression仍待確認。
+- Phase 10c CI run 247 已通過；full-canvas / 新 BG / 新 monster / perspective layout 仍需 Pages 實機 QA。
+- Phase 10d 先進行 presentation sequencing，但 legacy source 仍保留；browser gate 未完成前不做 legacy removal。
 
 ## 下一批
 
-實作 Phase 10c：移除新版對舊 kamaitachi / rooftop 主資產的依賴，接 rainfall-ridgeline monster 與 F1 rail-halt BG，將 BG 改為 full-canvas，依場景透視重排角色／敵人尺寸與站位，同步整理上方 Timeline / Preview。CI 後再用 GitHub Pages 找實際 scale、pivot、透視、overlay 問題。
+實作 Phase 10d action / reaction sequencing：先新增純 presentation animation plan 與測試，再把 player confirm / enemy auto action 改為演出後提交 resolution。CI 後回到 GitHub Pages 同時驗 Phase 10c 畫面與 Phase 10d 演出。
