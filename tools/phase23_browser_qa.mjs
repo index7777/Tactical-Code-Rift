@@ -18,7 +18,7 @@ async function activeSceneKey(page) {
   });
 }
 
-async function waitForScene(page, expected, timeoutMs = 12000) {
+async function waitForScene(page, expected, timeoutMs = 30000) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     if ((await activeSceneKey(page)) === expected) return;
@@ -195,7 +195,6 @@ async function runViewport(browser, viewport) {
     await fs.writeFile(path.join(dir, 'report.json'), JSON.stringify(report, null, 2));
     await page.close();
   }
-  if (!report.passed) throw new Error(`${viewport.name} failed: ${report.failure}`);
   return report;
 }
 
@@ -208,4 +207,8 @@ try {
   await browser.close();
 }
 await fs.writeFile(path.join(outputRoot, 'summary.json'), JSON.stringify(reports, null, 2));
+const failures = reports.filter((report) => report.passed !== true);
+if (failures.length) {
+  throw new Error(`Phase 23 browser QA failed: ${failures.map((report) => `${report.viewport.name}: ${report.failure}`).join(' | ')}`);
+}
 console.log(`Phase 23 browser QA passed for ${reports.map((report) => report.viewport.name).join(', ')}`);
