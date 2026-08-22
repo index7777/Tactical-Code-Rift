@@ -163,13 +163,14 @@ CI 記錄：
 
 ## Deployment / Browser QA Gate
 
-狀態：`BLOCKED_PENDING_FRESH_PREVIEW_AND_BROWSER_EVIDENCE`
+狀態：`BLOCKED_BY_VERCEL_BUILD_RATE_LIMIT`
 
-- Vercel project 已確認存在 `combat-refactor-v1` preview branch alias。
-- 目前可列出的最新 READY preview 仍停在較早的 Phase 9d contract commit `87fcf42d62587144d9d7cb5ad4e31eb814486861`，不是已通過 run 205 的 current head `243f3dd8a08cdbef3443a26c9a23cd2f1b86b65b`。
-- 直接探測 branch alias `?combat-refactor=1` 目前會被 Vercel authentication 302 攔截；現有工具無法提供 Phaser canvas 的實際 1280×720 / 844×390 互動式瀏覽器證據。
-- 因此目前不能宣稱 feature-flag browser QA 已完成，也不能切 production 預設入口。
+- GitHub current head 的 Vercel status context 明確回報 `failure`，target 指向 `upgradeToPro=build-rate-limit`；目前不是程式 build/test 失敗，而是 Vercel Hobby 專案的 deployment build rate limit。
+- Vercel branch alias 目前仍解析到 READY deployment `dpl_GwVvKnDYhfokD2jb7EfsvTAbJyyb`，commit `87fcf42d62587144d9d7cb5ad4e31eb814486861`，早於已通過 run 205 的 Phase 9d 實作。
+- 因此即使 branch alias 可取得，也不是 current verified code，不能拿來當 1280×720 / 844×390 的正式 browser QA 證據。
+- 現有工具也沒有可直接繞過此 Vercel rate limit、指定 git ref 建立 preview 的安全部署接口；不得用舊 deployment 冒充 current-head QA。
+- 在 fresh READY preview 出現前，production 預設入口保持 legacy `BootScene`，Phase 10 不啟動。
 
 ## 下一批
 
-先取得 current head 對應的 READY preview，並完成 `?combat-refactor=1` 的實際瀏覽器 QA：1280×720 與 844×390 下驗證 Timeline、選牌、友軍／敵軍 Target Preview、Confirm、enemy action、調度 0～2 與下一 actor 循環。只有這個 QA gate 有證據通過後，才評估 Phase 10 預設入口切換與 legacy removal。
+需要先解除 Vercel deployment build rate limit（等待 rate window 恢復或由專案方調整方案／部署配額），讓 current verified head 產生新的 READY preview。之後才能用 `?combat-refactor=1` 完成 1280×720 與 844×390 的實際 browser QA，驗證 Timeline、選牌、友軍／敵軍 Target Preview、Confirm、enemy action、調度 0～2 與下一 actor 循環。只有這個 QA gate 有證據通過後，才評估 Phase 10 預設入口切換與 legacy removal。
