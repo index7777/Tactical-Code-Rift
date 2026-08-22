@@ -257,15 +257,31 @@ GitHub Pages 實機回饋：
 
 CI：run 266 build / test 通過。仍需 GitHub Pages 實機確認接敵距離與單體目標提示。
 
+## Phase 10j — Viewport / Battlefield / Floating HUD Cleanup
+
+狀態：`IMPLEMENTATION_IN_PROGRESS`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE10J_VIEWPORT_HUD_CLEANUP.md`
+
+本批依 current-head 截圖處理：
+
+- 寬螢幕左右黑柱：一般桌面／中寬橫向採 cover/envelop；超寬仍保留 FIT 以保護操作區。
+- 重新拉開四名我方 HOME silhouette 與 enemy x 基準，依目前 HD-2D BG 校正舞台腳點。
+- DEFAULT actor 不再常駐 ring；只在 active focus、合法候選、已選目標顯示 ring。
+- Party rail、Intent panel、Shared Hand 收斂成 compact floating UI。
+- Intent target 必須顯示公開 target name。
+- Phase 10i active actor camera focus / 前踏語意保留。
+- 本批不更換 BG、不增加角色／卡牌／foreground 資產；音訊 policy 另批處理。
+
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10E_BROWSER_QA_PENDING`
+狀態：`PHASE10J_IMPLEMENTATION_IN_PROGRESS`
 
 - Phase 10 CI 已通過；default-entry / legacy rollback browser regression 仍待確認。
-- Phase 10c CI run 247 已通過；full-canvas / 新 BG / 新 monster / perspective layout 持續由 Pages 實機 QA。
-- Phase 10d CI run 254 已通過；browser QA 找到的 ACTION 接敵距離與單體 target affordance 已由 Phase 10e 修正。
-- Phase 10e CI run 266 已通過；Pages 驗證完成前不做 legacy removal。
+- Phase 10e CI run 266 已通過；後續 Phase 10f–10i 已進入 current-head presentation QA。
+- 使用者提供 current-head 截圖確認：新 HD-2D BG 已顯示，但左右黑柱、角色擁擠、常駐 actor rings 與過大的 Party／Intent／Hand 仍需修正。
+- Phase 10j 完成 CI 與 Pages browser QA 前不做 legacy removal。
 
 ## 下一批
 
-等待 GitHub Pages current-head：確認攻擊者會停在敵人面前、護持選牌時合法友軍只有弱候選提示且實際點選者才亮黃圈；同時回歸 1280×720 / 844×390 與 default / legacy 入口。通過後再處理 down/death、hit-stop、FX 對點與最終 floating HUD。
+先完成 Phase 10j viewport / battlefield composition / floating HUD cleanup；再做正式 audio policy 與 QA enemy canonical asset/portrait mapping。資產目錄只作可選來源，不因存在就全部接入。
