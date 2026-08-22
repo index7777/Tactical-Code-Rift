@@ -20,7 +20,7 @@ const TARGET_RULE_LABELS: Readonly<Record<string, string>> = {
   enemy: '敵方',
   self: '自身',
   ally: '友方',
-  'any-ally': '任一友方',
+  'any-ally': '友方',
   none: '無需指定',
 };
 
@@ -48,6 +48,17 @@ export function categoryDisplayName(category: string): string {
 
 export function targetRuleDisplayName(targetRule: string): string {
   return TARGET_RULE_LABELS[targetRule] ?? targetRule;
+}
+
+export function cardTargetDisplayName(
+  targetRule: string,
+  category: string,
+  activeActorId?: string,
+): string {
+  if (category === 'guard' && targetRule === 'any-ally') {
+    return activeActorId === 'chikage' ? '友方' : '自身';
+  }
+  return targetRuleDisplayName(targetRule);
 }
 
 export function phaseDisplayName(phase: BattleTurnPhase): string {
