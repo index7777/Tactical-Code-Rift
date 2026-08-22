@@ -1,9 +1,14 @@
 import type { BattleTurnController } from '../../../application/battle/BattleTurnController';
+import type { RefactorCardInstance } from '../../../core/cards/RefactorCardTypes';
+import type { IntentState } from '../../../core/intents/IntentState';
+import type { BattleResolutionState } from '../../../core/resolution/BattleResolutionResolver';
 import type { BattleTurnPhase } from '../../../core/turns/BattleTurnState';
 import { buildEnemyIntent, type EnemyIntentView } from './EnemyIntentPresenter';
 import { buildHandCards, type HandCardView } from './HandPresenter';
 import { buildTargetPreview, type TargetPreviewView } from './TargetPreviewPresenter';
 import { buildTimelineNodes, type TimelineNodeView } from './TimelinePresenter';
+
+export type RefactorEnemyIntentProvider = (enemyId: string) => IntentState;
 
 export interface RefactorActorVitalsView {
   actorId: string;
@@ -19,8 +24,10 @@ export interface RefactorBattleView {
   preview?: TargetPreviewView;
   enemyIntents: EnemyIntentView[];
   vitalsByActorId: Record<string, RefactorActorVitalsView | undefined>;
+  targetableActorIds: string[];
   canConfirm: boolean;
   canDispatch: boolean;
+  canResolveEnemy: boolean;
 }
 
 function cloneVitals(
@@ -34,8 +41,32 @@ function cloneVitals(
   );
 }
 
+function livingActorIds(
+  battle: BattleResolutionState,
+  team: 'player' | 'enemy',
+): string[] {
+  return battle.timeline.entries
+    .filter((entry) => entry.team === team)
+    .filter((entry) => (battle.vitalsByActorId[entry.actorId]?.hp ?? 0) > 0)
+    .map((entry) => entry.actorId);
+}
+
+function targetableActorIds(
+  battle: BattleResolutionState,
+  selectedCard: RefactorCardInstance | undefined,
+): string[] {
+  if (!selectedCard) return [];
+  const rule = selectedCard.definition.targetRule;
+  if (rule === 'enemy') return livingActorIds(battle, 'enemy');
+  if (rule === 'ally' || rule === 'any-ally') return livingActorIds(battle, 'player');
+  return [];
+}
+
 export class RefactorBattleRuntime {
-  constructor(private readonly controller: BattleTurnController) {}
+  constructor(
+    private readonly controller: BattleTurnController,
+    private readonly enemyIntentProvider?: RefactorEnemyIntentProvider,
+  ) {}
 
   view(): RefactorBattleView {
     const turn = this.controller.turn();
@@ -58,9 +89,11 @@ export class RefactorBattleRuntime {
         .filter((intent): intent is NonNullable<typeof intent> => Boolean(intent))
         .map((intent) => buildEnemyIntent(intent)),
       vitalsByActorId: cloneVitals(battle.vitalsByActorId),
+      targetableActorIds: targetableActorIds(battle, selectedCard),
       canConfirm: (turn.phase === 'TARGET_PREVIEW' && Boolean(preview))
         || (turn.phase === 'CARD_SELECTED' && Boolean(selectedNeedsNoExplicitTarget)),
       canDispatch: turn.phase === 'PLAYER_IDLE' && turn.activeActor?.team === 'player',
+      canResolveEnemy: turn.phase === 'ENEMY_EXECUTING' && Boolean(this.enemyIntentProvider),
     };
   }
 
@@ -75,6 +108,10 @@ export class RefactorBattleRuntime {
   }
 
   previewTarget(targetId: string): RefactorBattleView {
+    const view = this.view();
+    if (!view.targetableActorIds.includes(targetId)) {
+      throw new Error(`actor is not a legal presentation target: ${targetId}`);
+    }
     this.controller.previewPlayerTarget(targetId);
     return this.view();
   }
@@ -92,6 +129,19 @@ export class RefactorBattleRuntime {
   resolveConfirmedPlayerAction(): RefactorBattleView {
     this.controller.beginResolution();
     this.controller.completeResolution();
+    return this.view();
+  }
+
+  resolveActiveEnemyAction(): RefactorBattleView {
+    const turn = this.controller.turn();
+    const actor = turn.activeActor;
+    if (turn.phase !== 'ENEMY_EXECUTING' || !actor || actor.team !== 'enemy') {
+      throw new Error(`cannot resolve enemy action during ${turn.phase}`);
+    }
+    if (!this.enemyIntentProvider) throw new Error('enemy intent provider is not attached');
+    const nextIntent = this.enemyIntentProvider(actor.actorId);
+    this.controller.beginResolution();
+    this.controller.completeResolution(nextIntent);
     return this.view();
   }
 
