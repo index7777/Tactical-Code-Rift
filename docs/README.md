@@ -20,14 +20,15 @@ STATUS = AUTHORITATIVE_INDEX
 12. `COMBAT_REFACTOR_PHASE7_ENEMY_ACTION.md`：Phase 7 Enemy Action Resolver 契約；定義公開 Intent 執行、成功行動後韌性／破勢窗口清理、下一 Intent 公開與 enemy 重新排程。
 13. `COMBAT_REFACTOR_PHASE8_SPECIALIZATION_GUARD.md`：Phase 8 四角色軟專精與守勢／反應契約；凜／千景／朧／紅葉的收益必須進 Preview / Execute 共用規則管線。
 14. `COMBAT_REFACTOR_PHASE9_PRESENTATION_FOUNDATION.md`：Phase 9 新 Presentation 基礎契約；定義單 Timeline、共享手牌、Target Preview、Actor／Intent presenter 與平行 `RefactorBattleScene` 骨架。
-15. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
-16. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-17. `art-bible.md`：角色、怪物、背景與透明素材規範。
-18. `characters/README.md`：角色母版與 runtime 對照。
-19. `areas/README.md`：區域背景與 runtime 狀態。
-20. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-21. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-22. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+15. `COMBAT_REFACTOR_PHASE9B_PRESENTATION_WIRING.md`：Phase 9b Controller / Presentation wiring 契約；定義 `RefactorBattleRuntime`、Scene registry 注入與互動邊界。
+16. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
+17. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+18. `art-bible.md`：角色、怪物、背景與透明素材規範。
+19. `characters/README.md`：角色母版與 runtime 對照。
+20. `areas/README.md`：區域背景與 runtime 狀態。
+21. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+22. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+23. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 
 ## combat-refactor-v1 分支規則
 
