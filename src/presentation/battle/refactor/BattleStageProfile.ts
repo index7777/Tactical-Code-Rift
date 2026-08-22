@@ -17,6 +17,7 @@ export interface BattleStageProfile {
   enemyZone: BattleStageRect;
   actionZone: BattleStageRect;
   depthBands: readonly BattleStageDepthBand[];
+  enemyVisualScaleMultiplier: number;
   backgroundFocalPoint: { x: number; y: number };
   hudSafeTop: number;
   hudSafeBottom: number;
@@ -48,15 +49,16 @@ export interface BackgroundFrame {
 export const RAIL_HALT_STAGE_PROFILE: BattleStageProfile = {
   width: 1280,
   height: 720,
-  playerZone: { x: 300, y: 330, width: 250, height: 150 },
-  enemyZone: { x: 865, y: 350, width: 180, height: 120 },
-  actionZone: { x: 560, y: 350, width: 280, height: 130 },
+  playerZone: { x: 310, y: 350, width: 300, height: 120 },
+  enemyZone: { x: 830, y: 360, width: 200, height: 120 },
+  actionZone: { x: 550, y: 365, width: 300, height: 120 },
   depthBands: [
-    { y: 350, scale: 0.92 },
-    { y: 392, scale: 1.0 },
-    { y: 436, scale: 1.08 },
-    { y: 474, scale: 1.14 },
+    { y: 370, scale: 0.9 },
+    { y: 390, scale: 0.96 },
+    { y: 425, scale: 1.03 },
+    { y: 445, scale: 1.08 },
   ],
+  enemyVisualScaleMultiplier: 1.14,
   backgroundFocalPoint: { x: 0.51, y: 0.53 },
   hudSafeTop: 112,
   hudSafeBottom: 584,
@@ -66,10 +68,10 @@ export const RAIL_HALT_STAGE_PROFILE: BattleStageProfile = {
 };
 
 export const FOUR_PLAYER_FORMATION_SLOTS: readonly FormationSlot[] = [
-  { xRatio: 0.16, depthBandIndex: 0 },
-  { xRatio: 0.68, depthBandIndex: 1 },
-  { xRatio: 0.08, depthBandIndex: 2 },
-  { xRatio: 0.76, depthBandIndex: 3 },
+  { xRatio: 0.1, depthBandIndex: 0 },
+  { xRatio: 0.63, depthBandIndex: 1 },
+  { xRatio: 0.24, depthBandIndex: 2 },
+  { xRatio: 0.78, depthBandIndex: 3 },
 ];
 
 export const DEFAULT_PLAYER_ACTOR_ORDER = ['rin', 'chikage', 'oboro', 'mo'] as const;
@@ -102,11 +104,11 @@ export function enemyStagePosition(
   const safeIndex = Math.max(0, index);
   const bandIndex = Math.min(profile.depthBands.length - 1, 1 + (safeIndex % 2));
   const band = profile.depthBands[bandIndex];
-  const xStep = Math.min(profile.enemyZone.width * 0.42, 86);
+  const xStep = Math.min(profile.enemyZone.width * 0.38, 82);
   return {
-    x: profile.enemyZone.x + profile.enemyZone.width * 0.52 + safeIndex * xStep,
+    x: profile.enemyZone.x + profile.enemyZone.width * 0.48 + safeIndex * xStep,
     y: clamp(band.y, profile.enemyZone.y, profile.enemyZone.y + profile.enemyZone.height),
-    perspectiveScale: band.scale * 1.06,
+    perspectiveScale: band.scale * profile.enemyVisualScaleMultiplier,
   };
 }
 
