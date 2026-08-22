@@ -4,6 +4,7 @@ import { createRefactorDeck } from '../../core/cards/RefactorDeck';
 import {
   RAIN_BOSS_BASE_RESILIENCE,
   RAIN_BOSS_HP,
+  selectRainBossAction,
 } from '../../core/enemy/BossEnemyActionCatalog';
 import {
   RAIN_WARRIOR_BASE_RESILIENCE,
@@ -51,6 +52,13 @@ function targetFor(enemyIndex: number): (typeof PLAYER_IDS)[number] {
   return PLAYER_IDS[enemyIndex % PLAYER_IDS.length];
 }
 
+function livingPlayerIds(battle: BattleResolutionState): string[] {
+  return battle.timeline.entries
+    .filter((entry) => entry.team === 'player')
+    .filter((entry) => (battle.vitalsByActorId[entry.actorId]?.hp ?? 0) > 0)
+    .map((entry) => entry.actorId);
+}
+
 function enemyHp(archetype: EnemyArchetype): number {
   if (isNormalEnemyArchetype(archetype)) return NORMAL_ENEMY_HP[archetype];
   if (archetype === 'rain-warrior') return RAIN_WARRIOR_HP;
@@ -63,6 +71,24 @@ function enemyBaseResilience(archetype: EnemyArchetype): number {
   if (archetype === 'rain-warrior') return RAIN_WARRIOR_BASE_RESILIENCE;
   if (archetype === 'rain-boss') return RAIN_BOSS_BASE_RESILIENCE;
   return 0;
+}
+
+function rainBossIntent(
+  sequence: number,
+  hp: number,
+  maxHp: number,
+  recentActionIds: readonly string[],
+  livingTargets: readonly string[],
+): { intent: IntentState; actionId: string } {
+  if (!livingTargets.length) throw new Error('rain-boss requires at least one living player target');
+  const action = selectRainBossAction({ hp, maxHp, sequence, recentActionIds });
+  const targets = action.targetMode === 'all-enemies'
+    ? livingTargets
+    : [livingTargets[sequence % livingTargets.length]!];
+  return {
+    intent: intentStateFromEnemyAction(action, 'rain-boss', targets, sequence),
+    actionId: action.id,
+  };
 }
 
 export function createEncounterEnemyIntent(enemyId: string, sequence = 0): IntentState {
@@ -86,6 +112,10 @@ export function createEncounterEnemyIntent(enemyId: string, sequence = 0): Inten
     );
   }
 
+  if (archetype === 'rain-boss') {
+    return rainBossIntent(sequence, RAIN_BOSS_HP, RAIN_BOSS_HP, [], PLAYER_IDS).intent;
+  }
+
   const pool = enemyArchetypePools[archetype];
   if (!pool?.length) throw new Error(`unknown encounter enemy: ${enemyId}`);
   const skill = pool[sequence % pool.length]!;
@@ -107,7 +137,7 @@ export function createEncounterEnemyIntent(enemyId: string, sequence = 0): Inten
 
 export interface EncounterBattleBootstrap {
   controller: BattleTurnController;
-  enemyIntentProvider: (enemyId: string) => IntentState;
+  enemyIntentProvider: (enemyId: string, battle: BattleResolutionState) => IntentState;
 }
 
 export function createEncounterBattleBootstrap(
@@ -126,16 +156,29 @@ export function createEncounterBattleBootstrap(
     vitalsByActorId[enemyId] = { actorId: enemyId, hp, maxHp: hp };
   }
 
+  const timelineEntries = [
+    ...PLAYER_IDS.map((actorId, index) => ({ actorId, team: 'player' as const, nextActionAt: index * 3, tieBreaker: index })),
+    ...encounter.enemies.map((actorId, index) => ({ actorId, team: 'enemy' as const, nextActionAt: 4 + index * 3, tieBreaker: 10 + index })),
+  ];
+  const initialTimeline = createBattleTimeline(timelineEntries);
   const intentSequence = new Map<string, number>();
-  const nextIntent = (enemyId: string): IntentState => {
-    const sequence = (intentSequence.get(enemyId) ?? 0) + 1;
-    intentSequence.set(enemyId, sequence);
-    return createEncounterEnemyIntent(enemyId, sequence);
-  };
+  const bossRecentActionIds: string[] = [];
 
   const intentByEnemyId = Object.fromEntries(
     encounter.enemies.map((enemyId, index) => {
       intentSequence.set(enemyId, index);
+      if (enemyId === 'rain-boss') {
+        const bossVitals = vitalsByActorId[enemyId]!;
+        const selected = rainBossIntent(
+          index,
+          bossVitals.hp,
+          bossVitals.maxHp,
+          bossRecentActionIds,
+          PLAYER_IDS,
+        );
+        bossRecentActionIds.push(selected.actionId);
+        return [enemyId, selected.intent];
+      }
       return [enemyId, createEncounterEnemyIntent(enemyId, index)];
     }),
   );
@@ -145,12 +188,8 @@ export function createEncounterBattleBootstrap(
       createControlResilience(enemyBaseResilience(enemyId), 0),
     ]),
   );
-  const timelineEntries = [
-    ...PLAYER_IDS.map((actorId, index) => ({ actorId, team: 'player' as const, nextActionAt: index * 3, tieBreaker: index })),
-    ...encounter.enemies.map((actorId, index) => ({ actorId, team: 'enemy' as const, nextActionAt: 4 + index * 3, tieBreaker: 10 + index })),
-  ];
   const state: BattleResolutionState = {
-    timeline: createBattleTimeline(timelineEntries),
+    timeline: initialTimeline,
     vitalsByActorId,
     intentByEnemyId,
     resilienceByEnemyId,
@@ -158,6 +197,26 @@ export function createEncounterBattleBootstrap(
     nextBreakWindowSequence: 1,
     guardByTargetId: {},
     oboroDelayUsedByEnemyId: {},
+  };
+
+  const nextIntent = (enemyId: string, battle: BattleResolutionState): IntentState => {
+    const sequence = (intentSequence.get(enemyId) ?? 0) + 1;
+    intentSequence.set(enemyId, sequence);
+    if (enemyId === 'rain-boss') {
+      const bossVitals = battle.vitalsByActorId[enemyId];
+      if (!bossVitals || bossVitals.hp <= 0) throw new Error('rain-boss is not alive');
+      const selected = rainBossIntent(
+        sequence,
+        bossVitals.hp,
+        bossVitals.maxHp,
+        bossRecentActionIds,
+        livingPlayerIds(battle),
+      );
+      bossRecentActionIds.push(selected.actionId);
+      if (bossRecentActionIds.length > 3) bossRecentActionIds.splice(0, bossRecentActionIds.length - 3);
+      return selected.intent;
+    }
+    return createEncounterEnemyIntent(enemyId, sequence);
   };
 
   return {
