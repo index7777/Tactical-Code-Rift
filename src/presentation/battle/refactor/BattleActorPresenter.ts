@@ -57,10 +57,12 @@ export function perspectiveScaleForY(y: number): number {
 export function actionApproachPosition(
   actor: BattleVisualBounds,
   target: BattleVisualBounds,
-  gap = 14,
+  gap = 2,
 ): { x: number; y: number } {
   const direction = target.x >= actor.x ? 1 : -1;
-  const desiredCenterDistance = actor.width / 2 + target.width / 2 + gap;
+  const actorContactHalfWidth = Math.max(12, actor.width * 0.2);
+  const targetContactHalfWidth = Math.max(14, target.width * 0.2);
+  const desiredCenterDistance = actorContactHalfWidth + targetContactHalfWidth + gap;
   const currentCenterDistance = Math.abs(target.x - actor.x);
 
   return {
