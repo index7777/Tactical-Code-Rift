@@ -1,6 +1,6 @@
 # Combat Refactor Phase 24 — Quick Family Illustration Plate Production
 
-STATUS = IMPLEMENTATION_CONTRACT
+STATUS = GENERATION_ATTEMPT_REJECTED_RETRY_QUICK_ONLY
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -49,6 +49,21 @@ Before any later family is generated, verify:
 7. desktop and compact selected-card composites remain readable.
 
 If any gate fails, register the candidate as rejected and iterate Quick only. Do not continue to Heavy.
+
+## 2026-08-23 generation attempt
+
+The first Phase 24 generation attempt did not produce a Quick-family illustration plate. The generated output was a documentation/progress-dashboard composition containing extensive text and UI framing.
+
+This fails the Phase 24 gate immediately:
+
+- forbidden text/UI content is present;
+- the semantic read is not fast travel / cutting trajectory;
+- the output is not a reusable card-family illustration plate;
+- it cannot be evaluated as a neutral-frame art-window candidate.
+
+Disposition: `REJECTED_SPEC_BEFORE_REPO_INTEGRATION`.
+
+The failed output is not copied into runtime, candidates, provenance, or card assets. Heavy / Guard / Disruption / Break remain locked. The only allowed next asset action is another Quick-only generation attempt that satisfies this contract.
 
 ## Out of scope
 
