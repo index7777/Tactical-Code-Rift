@@ -23,11 +23,12 @@ import type {
 import { resolveEnemyAction } from '../../core/enemy/EnemyActionResolver';
 import type { IntentState } from '../../core/intents/IntentState';
 import {
-  resolveBattlePreview,
-  type BattlePreviewResult,
-} from '../../core/preview/BattlePreviewResolver';
+  resolveBattlePreviewWithClash,
+  type BattlePreviewWithClashResult,
+} from '../../core/preview/BattlePreviewWithClash';
 import {
   resolveBattleAction,
+  type BattleResolutionClashInput,
   type BattleResolutionState,
 } from '../../core/resolution/BattleResolutionResolver';
 import {
@@ -35,6 +36,10 @@ import {
   scheduleAfterAction,
 } from '../../core/timeline/BattleTimeline';
 import type { BattleTimelineState } from '../../core/timeline/TimelineTypes';
+import {
+  planPlayerClash,
+  type ClashApplicationCatalog,
+} from './ClashApplicationPlanner';
 
 const DISPATCH_ACTION_ID = '__dispatch__';
 
@@ -88,8 +93,28 @@ function cloneBattleState(state: BattleResolutionState): BattleResolutionState {
   };
 }
 
-function clonePreviewResult(preview: BattlePreviewResult | undefined): BattlePreviewResult | undefined {
+function clonePreviewResult(
+  preview: BattlePreviewWithClashResult | undefined,
+): BattlePreviewWithClashResult | undefined {
   if (!preview) return undefined;
+  const clash = preview.clash
+    ? {
+        resolution: preview.clash.resolution.eligible
+          ? {
+              eligible: true as const,
+              playerScore: { ...preview.clash.resolution.playerScore },
+              enemyScore: { ...preview.clash.resolution.enemyScore },
+              outcome: preview.clash.resolution.outcome,
+            }
+          : { ...preview.clash.resolution },
+        consequence: preview.clash.consequence ? { ...preview.clash.consequence } : undefined,
+        contestedEnemyId: preview.clash.contestedEnemyId,
+        enemyIntentBefore: cloneIntent(preview.clash.enemyIntentBefore),
+        enemyIntentAfter: cloneIntent(preview.clash.enemyIntentAfter),
+        enemyIntentChange: preview.clash.enemyIntentChange,
+      }
+    : undefined;
+
   return {
     ...preview,
     targetResilienceAfter: preview.targetResilienceAfter
@@ -105,21 +130,29 @@ function clonePreviewResult(preview: BattlePreviewResult | undefined): BattlePre
       currentTime: preview.predictedTimeline.currentTime,
       entries: preview.predictedTimeline.entries.map((entry) => ({ ...entry })),
     },
+    clash,
   };
 }
 
 export class BattleTurnController {
   private battleState: BattleResolutionState;
   private deckState: RefactorDeckState;
-  private previewResult?: BattlePreviewResult;
+  private previewResult?: BattlePreviewWithClashResult;
   private turnState: BattleTurnState = waitingForNextActor();
   private committedCard?: RefactorCardInstance;
   private committedTargetId?: string;
+  private committedClash?: BattleResolutionClashInput;
   private pendingDispatch = false;
+  private readonly clashCatalog?: ClashApplicationCatalog;
 
-  constructor(battle: BattleResolutionState, deck: RefactorDeckState) {
+  constructor(
+    battle: BattleResolutionState,
+    deck: RefactorDeckState,
+    clashCatalog?: ClashApplicationCatalog,
+  ) {
     this.battleState = cloneBattleState(battle);
     this.deckState = cloneRefactorDeckState(deck);
+    this.clashCatalog = clashCatalog;
   }
 
   battle(): BattleResolutionState {
@@ -145,7 +178,7 @@ export class BattleTurnController {
     };
   }
 
-  preview(): BattlePreviewResult | undefined {
+  preview(): BattlePreviewWithClashResult | undefined {
     return clonePreviewResult(this.previewResult);
   }
 
@@ -200,12 +233,26 @@ export class BattleTurnController {
     const targetId = card.definition.targetRule === 'self'
       ? this.requireActivePlayerActorId()
       : this.turnState.previewTargetId;
+    const previewClash = this.previewResult?.clash;
 
     this.turnState = confirmPlayerAction(this.turnState);
     const result = playOneCard(this.deckState, card.instanceId);
     this.deckState = result.state;
     this.committedCard = cloneCard(result.played);
     this.committedTargetId = targetId;
+    this.committedClash = previewClash?.contestedEnemyId
+      ? {
+          resolution: previewClash.resolution.eligible
+            ? {
+                eligible: true,
+                playerScore: { ...previewClash.resolution.playerScore },
+                enemyScore: { ...previewClash.resolution.enemyScore },
+                outcome: previewClash.resolution.outcome,
+              }
+            : { ...previewClash.resolution },
+          contestedEnemyId: previewClash.contestedEnemyId,
+        }
+      : undefined;
     this.pendingDispatch = false;
     this.clearPreview();
     return this.turn();
@@ -261,6 +308,7 @@ export class BattleTurnController {
           activeActorId: actor.actorId,
           card,
           targetId: this.committedTargetId,
+          clash: this.committedClash,
         });
         this.battleState = resolved.state;
       }
@@ -287,12 +335,21 @@ export class BattleTurnController {
     return this.battle();
   }
 
-  private resolvePreview(card: RefactorCardInstance, targetId: string): BattlePreviewResult {
+  private resolvePreview(card: RefactorCardInstance, targetId: string): BattlePreviewWithClashResult {
     const target = this.battleState.vitalsByActorId[targetId];
     if (!target) throw new Error(`preview vitals not found: ${targetId}`);
 
-    return resolveBattlePreview({
-      activeActorId: this.requireActivePlayerActorId(),
+    const activeActorId = this.requireActivePlayerActorId();
+    const plannedClash = planPlayerClash({
+      battle: this.battleState,
+      activeActorId,
+      card,
+      targetId,
+      catalog: this.clashCatalog,
+    });
+
+    return resolveBattlePreviewWithClash({
+      activeActorId,
       card,
       target: { ...target },
       timeline: this.battleState.timeline,
@@ -302,6 +359,13 @@ export class BattleTurnController {
         : undefined,
       breakWindows: this.battleState.breakWindows.map((window) => ({ ...window })),
       oboroDelayAlreadyUsed: Boolean(this.battleState.oboroDelayUsedByEnemyId?.[targetId]),
+      clash: plannedClash
+        ? {
+            resolution: plannedClash.resolution,
+            contestedEnemyId: plannedClash.contestedEnemyId,
+            enemyIntent: plannedClash.enemyIntent,
+          }
+        : undefined,
     });
   }
 
@@ -318,6 +382,7 @@ export class BattleTurnController {
   private clearPendingAction(): void {
     this.committedCard = undefined;
     this.committedTargetId = undefined;
+    this.committedClash = undefined;
     this.pendingDispatch = false;
   }
 
