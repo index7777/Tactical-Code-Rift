@@ -1,6 +1,6 @@
 # Combat Refactor Phase 23 — Final Browser QA / Asset Unlock Gate
 
-STATUS = AUTOMATED_ROUTE_DECISION_QA_PASS_PRESENTATION_HARNESS_RERUN_PENDING
+STATUS = ACCEPTED_ASSET_PRODUCTION_UNLOCKED
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -10,7 +10,7 @@ Phase 23 is the final presentation acceptance gate before the first replacement 
 
 Phases 11–22 have code-level and CI evidence for the Area 01 route, combat runtime, bounded family upgrades, action presentation, Clash presentation, Boss multi-hit/AoE, and responsive geometry. This gate does not add combat rules or visual features. It requires runtime evidence that those systems remain readable together in the two canonical viewport classes.
 
-Asset production remains locked until this gate passes. This preserves the approved order: gameplay/data/presentation first, full Demo QA second, generated card-family plates last.
+Generated family-plate production is unlocked only after this gate passes. This preserves the approved order: gameplay/data/presentation first, full Demo QA second, generated card-family plates last.
 
 ## Required viewports
 
@@ -119,59 +119,42 @@ Autoplay-policy warnings before user input are not treated as application failur
 
 ## Automated evidence harness
 
-Phase 23 includes `tools/phase23_browser_qa.mjs` plus `.github/workflows/phase23-browser-qa.yml`.
+Phase 23 includes the production-route browser harness plus a presentation-motion harness. Both run headless Chromium in the two canonical viewport sizes and upload PNG/JSON evidence; the presentation harness also records WebM motion evidence.
 
-The harness launches a production Vite preview in headless Chromium and runs both canonical viewport sizes. It physically clicks the route map, battle result CTA, family-upgrade reward choices, one card, one authoritative target, and the confirm CTA. It records PNG evidence plus JSON reports under `artifacts/phase23-browser-qa`.
+The automated evidence covers:
 
-The automated path checks:
+- the full upper canonical route through Boss and all three family-upgrade milestones;
+- no reward on battle-2 or Boss and exactly three upgrades before Boss;
+- PEEK → FOCUS → TARGETING → HIDDEN / return ownership;
+- all five player action profiles plus enemy-light / enemy-heavy / boss-signature;
+- deterministic player-win / draw / enemy-win Clash cases;
+- Boss `山影連刃` two-contact presentation and `驟雨橫掃` explicit living-target reactions;
+- immutable enemy formation slots after death;
+- console/page error capture.
 
-- `depart → battle-1 → battle-2-upper → battle-3-upper → elite-1 → boss-1`;
-- reward after battle-1 / battle-3 / elite and no reward after battle-2 / boss;
-- exactly three upgrades before Boss and Area 01 clear after Boss victory;
-- PEEK → FOCUS → TARGETING → action handoff / return on a legal player turn;
-- all five player action presentation profiles plus enemy-light / enemy-heavy / boss-signature;
-- deterministic player-win / draw / enemy-win Clash presentation cases;
-- Boss `山影連刃` two-contact presentation, `驟雨橫掃` explicit living-target reactions, and boss-signature profile selection;
-- immutable enemy formation slots after a forced death;
-- application console/page errors as workflow failures.
+Automated evidence supports review but does not replace visual judgment for motion feel, silhouette clarity, contact readability, and overlap quality.
 
-The harness uses the inherited Phaser scene key `JourneyScene` for `DemoProgressionJourneyScene`, allows up to 30 seconds for battle-scene preload on CI, runs both viewports even if one fails, and writes `summary.json` before surfacing a combined failure. These behaviors keep runtime failures distinguishable from harness timing/key errors.
-
-Automated screenshots support review but do not replace human judgment for motion feel, silhouette clarity, contact readability, and overlap quality. The asset-unlock decision must still distinguish deterministic semantic evidence from subjective visual acceptance.
-
-## Workflow result bridge
-
-Because the Browser-QA workflow runs from a branch push while the normal CI check is PR-triggered, Phase 23 requires one discoverable result bridge for review tooling:
-
-- after every Browser-QA run, the workflow posts the GitHub Actions run id and run URL to the open pull request associated with the tested commit;
-- when `summary.json` exists, the comment also reports the per-viewport automated pass/fail state;
-- the comment step runs with `always()` so a failed browser test still exposes the run id needed to inspect job logs and uploaded screenshot artifacts;
-- failure to produce a visual report must never be converted into a pass by the reporting step.
-
-The bridge is observability only. It does not alter the browser assertions, gameplay, presentation, or the asset-unlock criteria.
-
-## Current evidence / blocker
+## Accepted evidence
 
 - Phase 22 CI run 515 passed build/test for both route branches, upgrade handoff, Boss entry, and viewport policy regression.
-- The first Phase 23 Browser-QA run (`32592527157`) failed because the harness expected a non-existent Phaser scene key `DemoProgressionJourneyScene`; the subclass inherits `JourneyScene`. This was a harness defect, not a runtime failure.
-- The second Browser-QA run (`32592809366`) passed the corrected journey-key check but exposed that a 12-second active-scene wait was too short for the CI route-transition plus battle preload; no page or console error was recorded.
-- Commit `1663565b95a659e01babe3d1599324580ae92d2d` hardened scene waits to 30 seconds and guarantees per-viewport reports / `summary.json` on failure.
-- Browser-QA run `32593020524` passed the complete automated route/progression + normal decision path at both `1280×720` and `844×390`; later route/decision reruns also remained green.
-- Manual review of the automated PEEK / FOCUS / TARGETING / HIDDEN screenshots confirms the normal decision hierarchy is visible at both viewports, with FIT side bars expected on compact landscape and no obvious selected-card / enemy-overhead collision in the captured path.
-- The harness was then extended to exercise all eight presentation profiles, deterministic Clash outcomes, Boss multi-hit/AoE, and dead-slot preservation. Browser-QA run `32593707854` reached that extended section but failed in the harness with `ReferenceError: dir is not defined` inside `forceEnemyPresentation`; build/preload and the earlier route/decision stages succeeded. The failure is test-harness plumbing, not evidence of a combat/runtime defect.
-- Commit `72db61d971e38a8611602464a3647039568a4882` threads the viewport evidence directory into every `forceEnemyPresentation` call. Normal CI run 537 passed `npm ci`, `npm run build`, and `npm test` on this fix.
-- A fresh Phase 23 Browser-QA run on the fixed harness is now the blocking automated evidence. After it passes, the remaining task is manual review of the generated profile/Clash/Boss/dead-slot screenshots for readability and overlap quality.
-- Asset generation remains locked. No generated asset is produced by this phase.
+- Browser-QA run `32593020524` passed the full route/progression + normal decision path at both `1280×720` and `844×390`.
+- Later route/decision reruns remained green after harness-hardening fixes.
+- Presentation-QA run `32595186104` passed both `desktop-1280x720` and `compact-844x390` on commit `73dcbb141fac7e3fa6e1dde84e8b01fd9d405e85`.
+- The presentation report confirms all eight authored profile paths were exercised, all three Clash outcomes returned input control, Boss double-hit produced exactly two visual contacts, Boss AoE reacted only on explicit living targets, and dead enemy formation slots did not compact.
+- The presentation reports contain zero application console errors and zero page errors in both viewports.
+- Manual review of the captured screenshots and recorded motion found no blocking overlap or clipping in the tested desktop/compact compositions. Rear/front formations remain readable, enemy overheads stay separated, compact FIT side bars behave as expected, Clash contact remains centered/readable, and Boss multi-hit/AoE frames preserve target legibility.
+- Quick/heavy/guard/disruption/break and enemy-light/enemy-heavy/boss-signature remain semantically distinguishable in the recorded choreography. Fine-grained feel can still be tuned later, but no blocking presentation defect remains for card-family art production.
+- Normal CI run 544 passed `npm ci`, `npm run build`, and `npm test` on the accepted presentation-evidence head.
 
-## Asset unlock condition
+## Asset unlock decision
 
-Only after all required checks above pass may the next phase begin generated family-plate production.
+Phase 23 is accepted. Generated card-family illustration production is now unlocked.
 
-The first asset phase is deliberately one-file-at-a-time:
+The asset phase remains deliberately one-file-at-a-time:
 
 1. Quick illustration plate only;
 2. validate size/aspect/opacity/crop and runtime composite;
 3. obtain review before Heavy / Guard / Disruption / Break;
-4. generated output starts as candidate and is never auto-approved.
+4. generated output starts as a candidate and is never auto-approved.
 
 The governing plate specification remains `DEMO_ASSET_REQUIREMENTS_V1.md`: opaque full-bleed ~1.44:1 illustration plate, no card frame, card text, numbers, character identity, target icon, Delay badge, or HUD baked into the image.
