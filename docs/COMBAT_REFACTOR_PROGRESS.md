@@ -341,3 +341,15 @@ CI：run 353 build 通過，但 Phase 10j 遺留 `max player x <= 500` assertion
 ## 下一批
 
 先完成 Phase 10m browser QA。畫面構圖通過後，再獨立處理正式 audio policy 與 QA enemy canonical asset/portrait mapping；不因資產存在就批量接入。
+
+## Phase 11 — Route Cutover
+
+狀態：`CI_VERIFIED_RUNTIME_QA_PARTIAL`
+
+- `combat-refactor-v1` 已重放到最新 `origin/main`，不再落後主線。
+- production composition root 已移除 legacy runtime flag；公開流程改為 Journey → RefactorBattleScene。
+- 七個 `EncounterCatalog` 戰鬥節點已能建立 canonical enemy roster、Intent、mixed Timeline 與 shared deck。
+- 一般／精英、Boss BGM 及 sword WAV 已對齊上線 `main`；舊 visual FX 保留但不載入。
+- 57 個 test files／278 tests 與 production build 通過。
+- 1280×720 `battle-1` 與 844×390 `boss-1` 已成功渲染；內建 Browser 因 trusted-path 設定不可用，改用使用者先前授權的本機 Chrome headless。
+- 尚需逐節點互動打完、勝敗返回路線與 Console/404 完整證據，完成前不得合併 `main`。

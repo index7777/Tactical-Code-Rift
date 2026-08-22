@@ -47,6 +47,8 @@ STATUS = AUTHORITATIVE_INDEX
 39. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
 40. `PLANNING_LOG.md`：採用決策與驗證紀錄。
 41. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+42. `LEGACY_COMBAT_ARCHIVE.md`：舊戰鬥的歷史封存點與取回規則；不得作為 runtime 入口。
+43. `COMBAT_REFACTOR_PHASE11_ROUTE_CUTOVER.md`：新版戰鬥取代正式 runtime、七節點接線、音訊對齊與舊版封存契約。
 
 ## combat-refactor-v1 分支規則
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  REFACTOR_BATTLE_BACKGROUND_KEY,
+  REFACTOR_BATTLE_BACKGROUND_KEYS,
+  REFACTOR_BOSS_MUSIC_KEY,
   REFACTOR_BATTLE_MUSIC_KEY,
   REFACTOR_IMPACT_SFX_KEY,
-  REFACTOR_QA_ENEMY_KEY,
   REFACTOR_SWISH_SFX_KEY,
   actorBattleTextureKey,
   actorTimelineTextureKey,
@@ -26,16 +26,21 @@ describe('RefactorBattleAssets', () => {
     expect(playerTimelinePortraitKey('chikage')).toBe('portrait-player-chikage-timeline');
   });
 
-  it('maps the QA enemy id to the current rainfall-ridgeline runtime texture key', () => {
-    expect(actorBattleTextureKey('ghost-fire')).toBe(REFACTOR_QA_ENEMY_KEY);
-    expect(actorTimelineTextureKey('ghost-fire')).toBe(REFACTOR_QA_ENEMY_KEY);
-    expect(REFACTOR_QA_ENEMY_KEY).toBe('refactor-enemy-lantern-child');
+  it('maps canonical encounter enemies to battle and timeline textures', () => {
+    expect(actorBattleTextureKey('lantern-child')).toBe('refactor-enemy-lantern-child');
+    expect(actorTimelineTextureKey('rain-boss')).toBe('refactor-enemy-rain-boss-timeline');
     expect(actorBattleTextureKey('unknown-enemy')).toBeUndefined();
   });
 
-  it('uses the committed hd2d rail-halt candidate and existing combat audio assets', () => {
-    expect(REFACTOR_BATTLE_BACKGROUND_KEY).toBe('refactor-bg-area01-rail-halt-hd2d-v2');
-    expect(REFACTOR_BATTLE_MUSIC_KEY).toBe('refactor-battle-music');
+  it('keeps the approved Boss master reusable when no separate timeline portrait exists', () => {
+    expect(actorTimelineTextureKey('rain-boss')).toBe('refactor-enemy-rain-boss-timeline');
+  });
+
+  it('uses encounter backgrounds and the live combat audio keys', () => {
+    expect(REFACTOR_BATTLE_BACKGROUND_KEYS['rail-halt']).toBe('refactor-bg-area01-rail-halt-hd2d-v2');
+    expect(REFACTOR_BATTLE_BACKGROUND_KEYS['terminal-platform']).toBe('refactor-bg-area01-terminal-platform-v1');
+    expect(REFACTOR_BATTLE_MUSIC_KEY).toBe('battle-music');
+    expect(REFACTOR_BOSS_MUSIC_KEY).toBe('boss-battle-music');
     expect(REFACTOR_SWISH_SFX_KEY).toBe('refactor-sfx-sword-swish');
     expect(REFACTOR_IMPACT_SFX_KEY).toBe('refactor-sfx-sword-impact');
   });

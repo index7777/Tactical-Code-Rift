@@ -961,3 +961,11 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - 根因是 Phaser 返回路線後重用同一個 `BootScene` instance；上一場勝利路徑保留 `busy=true`，下一節點 `rebuild()` 因此提前返回。
 - `BootScene.init()` 現在會重置所有 per-battle 狀態，再依新節點建立 encounter。此修正不更動、核准或升級任何背景／怪物素材。
 - 正式站逐節點實打仍是 open gate；必須部署此修正後重新從 `battle-1` 走到 `boss-1` 才能關閉。
+
+## 2026-08-22 — Combat refactor integration baseline
+
+- Adopted `combat-refactor-v1` as the only production combat direction and rebased its 266 commits onto current `origin/main`.
+- Removed the runtime legacy-combat entry policy; public flow is `JourneyScene → RefactorBattleScene`.
+- Preserved the pre-replacement design through tag `legacy-combat-pre-refactor-20260822` and `docs/LEGACY_COMBAT_ARCHIVE.md`.
+- Reused the live normal/Boss BGM and sword SFX paths. Existing visual FX remain available but are not wired into the replacement presentation batch.
+- Began system replacement by constructing the refactor controller from all seven canonical `EncounterCatalog` battle nodes.

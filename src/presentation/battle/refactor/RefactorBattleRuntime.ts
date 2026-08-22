@@ -28,6 +28,7 @@ export interface RefactorBattleView {
   canConfirm: boolean;
   canDispatch: boolean;
   canResolveEnemy: boolean;
+  outcome?: 'victory' | 'defeat';
 }
 
 function cloneVitals(
@@ -86,6 +87,8 @@ export class RefactorBattleRuntime {
       : undefined;
     const selectedNeedsNoExplicitTarget = selectedCard?.definition.targetRule === 'self'
       || selectedCard?.definition.targetRule === 'none';
+    const livingPlayers = livingActorIds(battle, 'player');
+    const livingEnemies = livingActorIds(battle, 'enemy');
 
     return {
       phase: turn.phase,
@@ -102,6 +105,13 @@ export class RefactorBattleRuntime {
         || (turn.phase === 'CARD_SELECTED' && Boolean(selectedNeedsNoExplicitTarget)),
       canDispatch: turn.phase === 'PLAYER_IDLE' && turn.activeActor?.team === 'player',
       canResolveEnemy: turn.phase === 'ENEMY_EXECUTING' && Boolean(this.enemyIntentProvider),
+      outcome: turn.phase === 'BATTLE_ENDED'
+        ? livingEnemies.length === 0
+          ? 'victory'
+          : livingPlayers.length === 0
+            ? 'defeat'
+            : undefined
+        : undefined,
     };
   }
 
