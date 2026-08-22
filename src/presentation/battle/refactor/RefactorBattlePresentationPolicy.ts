@@ -76,6 +76,13 @@ export function targetAffordance(
   return 'DEFAULT';
 }
 
+export function shouldShowActorRing(
+  affordance: RefactorTargetAffordance,
+  isFocused: boolean,
+): boolean {
+  return isFocused || affordance === 'CANDIDATE' || affordance === 'SELECTED';
+}
+
 export function autoAdvanceAction(
   phase: BattleTurnPhase,
   canResolveEnemy: boolean,
