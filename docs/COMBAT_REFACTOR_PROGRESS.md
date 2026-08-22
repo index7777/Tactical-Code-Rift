@@ -366,3 +366,52 @@ CI：run 353 build 通過，但 Phase 10j 遺留 `max player x <= 500` assertion
 - enemy Intent 正式方向改為 actor-anchored overhead modules；Timeline／Party 維持低權重，不生成厚重 HUD skin。
 - 規劃 8 個工作包、3 個停止點、約 12–16 個 source/test 檔新增或修改；先完成 pure policy＋灰盒，再接 runtime presenters，最後跑七節點回歸。
 - 本 Phase 不生成或自行核准任何資產；Batch B 預定非破壞性接入 `tactical-code-rift-card-assets-v1` 的 1 張 neutral frame/body 與 5 張 family visual 作 runtime trial，並補 provenance／alpha／crop／實機 composite gate。combat core、音樂、音效、數值與敵人 AI不變。
+
+## Phase 13 / 13b — Action Data Contract + Adapters
+
+狀態：`CI_VERIFIED`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE13_ACTION_DATA_CONTRACT.md`
+
+- 新增 `ActionDefinition`，能描述 player/enemy action、multi-hit、AoE、typed status、Clash metadata、telegraph、AI phase/cooldown 與 presentation profile。
+- 新增 current refactor card / Intent -> ActionDefinition adapter；不讀 legacy `clashPower / tempo`，不改目前 resolver。
+- 多目標 legacy Intent 在缺少 authored semantics 時明確拒絕轉換，不猜 AoE/random 規則。
+
+CI：Phase 13 run 387、Phase 13b run 391 build / test 通過。
+
+## Phase 14 — Clash Core
+
+狀態：`CI_VERIFIED`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE14_CLASH_CORE.md`
+
+- 新增純 core `ClashResolver`：same-target relationship、mode compatibility、tag compatibility、base + timing + specialization + state 分數與 player-win/draw/enemy-win。
+- Clash 不是第六 card family，不恢復 legacy `clashPower` 最終判定。
+- 本批不接 Controller、不改現行 card/Intent metadata。
+
+CI：run 395 build / test 通過。
+
+## Phase 14b — Clash Preview Consequence
+
+狀態：`CI_VERIFIED`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE14B_CLASH_PREVIEW_CONSEQUENCE.md`
+
+- 將 Clash outcome 映射為共用 consequence：player-win = full/cancel、draw = half/half、enemy-win = none/full。
+- `BattlePreviewWithClash` 可附帶 Clash resolution/consequence，但本批不改 live battle math。
+- Preview 與後續 Execute 必須消費同一 consequence object，presentation 不得重新判斷。
+
+CI：run 401 build / test 通過。
+
+## Phase 14c — Clash Authoritative Resolution
+
+狀態：`CI_FIX_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE14C_CLASH_AUTHORITATIVE_RESOLUTION.md`
+
+- `BattlePreviewWithClash` 已開始真正套用 consequence：player full/half/none、enemy Intent cancel/half/full。
+- draw：玩家 integer damage floor half；Guard ratio/cap half；Delay/Interrupt/Break creation suppressed；enemy integer damage floor half 並移除 status effects。
+- player-win：contested Intent 使用現有 hard-stagger semantic；enemy-win：玩家效果 suppressed、Intent 保留 full。
+- `BattleResolutionResolver` 接受 explicit `contestedEnemyId`，提交同一份 Clash-adjusted Preview；guard-intercept 可 target ally 並另外修改 contested enemy Intent。
+- current production cards/enemy actions 尚未 opt in Clash，因此正常無 Clash 路徑保持原結果。
+- CI run 406：build 通過；test 333 中 331 通過，2 個失敗都只是 hard-stagger 物件「欄位不存在」與測試期待 `damage: undefined` 的 shape 差異，非規則錯誤；已提交測試修正，等待下一個 CI。
