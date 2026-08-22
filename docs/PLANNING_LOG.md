@@ -995,3 +995,9 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Runtime depth now follows foot-baseline Y: ground/rings render below rear actors, rear actors below front actors, and actor-anchored overhead HUD/target feedback above all sprites. Enemy visual scale multiplier was reduced from 1.14 to 1.06 to protect silhouettes.
 - Hand choreography now uses `PEEK`, `FOCUS`, `TARGETING`, `HIDDEN`, and `DISPATCH`; idle cards expose exactly half height, selected cards pull into the battlefield, and decision UI hides during action presentation.
 - Verification passed: 59 Vitest files / 287 tests, production build, and 1280×720 Chrome runtime composite for `battle-3-upper`. Physical click on the first half-hidden card changed runtime phase to `CARD_SELECTED`; 844×390 landscape capture preserved the 2×2 enemy formation. No application Console error occurred; Chrome reported only expected autoplay AudioContext warnings before a user gesture.
+
+## 2026-08-22 — Phase 12 card anatomy and target-marker correction
+
+- Replaced Scene-local card text offsets with one scalable `CardContentLayout`: family badge and title occupy the header, family visual is clipped to the art slot, effect copy occupies the lower text panel, and family／Delay share the footer.
+- Removed target-candidate body circles. Legal candidates now use only a restrained overhead-HUD border; a confirmed target uses one small diamond marker. Active-actor focus uses a shallow underfoot ellipse instead of a character-enclosing circle.
+- Runtime composite review confirms the four simultaneous enemy circles are gone and selected-card text no longer collides with the art or footer. Enemy intent copy above the overhead panel remains a separate HUD-anatomy follow-up.

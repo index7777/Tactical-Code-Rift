@@ -84,10 +84,10 @@ export function targetAffordance(
 }
 
 export function shouldShowActorRing(
-  affordance: RefactorTargetAffordance,
+  _affordance: RefactorTargetAffordance,
   isFocused: boolean,
 ): boolean {
-  return isFocused || affordance === 'CANDIDATE' || affordance === 'SELECTED';
+  return isFocused;
 }
 
 export function autoAdvanceAction(

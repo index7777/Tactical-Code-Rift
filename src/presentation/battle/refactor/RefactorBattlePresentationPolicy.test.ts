@@ -45,12 +45,12 @@ describe('RefactorBattlePresentationPolicy', () => {
     expect(targetAffordance(false, true, true)).toBe('DISABLED');
   });
 
-  it('shows actor rings only for focus or target interaction feedback', () => {
+  it('reserves the underfoot marker for active-actor focus, not target candidates', () => {
     expect(shouldShowActorRing('DEFAULT', false)).toBe(false);
     expect(shouldShowActorRing('DISABLED', false)).toBe(false);
     expect(shouldShowActorRing('DEFAULT', true)).toBe(true);
-    expect(shouldShowActorRing('CANDIDATE', false)).toBe(true);
-    expect(shouldShowActorRing('SELECTED', false)).toBe(true);
+    expect(shouldShowActorRing('CANDIDATE', false)).toBe(false);
+    expect(shouldShowActorRing('SELECTED', false)).toBe(false);
   });
 
   it('auto-advances only non-player-decision states', () => {

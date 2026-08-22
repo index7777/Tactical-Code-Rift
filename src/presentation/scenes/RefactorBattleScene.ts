@@ -39,6 +39,7 @@ import {
   cardFamilyStyle,
   cardSelectionPresentation,
 } from '../battle/refactor/CardMasterPresentation';
+import { cardContentLayout } from '../battle/refactor/CardContentLayout';
 import {
   handLayoutMetrics,
   type RefactorHandLayoutMetrics,
@@ -69,7 +70,7 @@ export class RefactorBattleScene extends Phaser.Scene {
   private readonly dispatchSelection = new Set<string>();
   private autoAdvanceTimer?: Phaser.Time.TimerEvent;
   private readonly actorSprites = new Map<string, Phaser.GameObjects.Image>();
-  private readonly actorRings = new Map<string, Phaser.GameObjects.Arc>();
+  private readonly actorRings = new Map<string, Phaser.GameObjects.Ellipse>();
   private readonly presentationTimers: Phaser.Time.TimerEvent[] = [];
   private focusedActorId?: string;
   private animationBusy = false;
@@ -200,25 +201,25 @@ export class RefactorBattleScene extends Phaser.Scene {
       const isFocused = focusActorId === position.actorId;
       const displayPosition = focusedActorPosition(position.x, position.y, isFocused && !enteringFocus);
       const affordance = targetAffordance(alive, isTargetable, selectedTargetId === position.actorId);
-      let ring: Phaser.GameObjects.Arc | undefined;
+      let ring: Phaser.GameObjects.Ellipse | undefined;
 
       if (shouldShowActorRing(affordance, isFocused)) {
-        const ringRadius = 42 * position.perspectiveScale;
-        const ringWidth = affordance === 'SELECTED' ? 3 : 2;
-        const ringColor = affordance === 'SELECTED'
-          ? 0xe1c371
-          : affordance === 'CANDIDATE'
-            ? 0x86b9c4
-            : 0xe0cf92;
-        const ringAlpha = affordance === 'SELECTED'
-          ? 0.98
-          : affordance === 'CANDIDATE'
-            ? 0.56
-            : 0.68;
-        ring = this.add.circle(displayPosition.x, displayPosition.y, ringRadius, 0x0b1720, 0.06)
-          .setStrokeStyle(ringWidth, ringColor, ringAlpha);
-        this.addToWorld(ring);
-        this.actorRings.set(position.actorId, ring);
+        const focusMarker = this.add.ellipse(
+          displayPosition.x,
+          displayPosition.y + 3,
+          58 * position.perspectiveScale,
+          14 * position.perspectiveScale,
+          0xe0cf92,
+          0.08,
+        ).setStrokeStyle(1, 0xe0cf92, 0.58);
+        ring = focusMarker;
+        this.addToWorld(focusMarker);
+        this.actorRings.set(position.actorId, focusMarker);
+      }
+
+      if (affordance === 'SELECTED') {
+        this.addText(displayPosition.x, displayPosition.y - 66 * position.perspectiveScale, '◆', '14px', '#f0d477', 0.5, 'world')
+          .setDepth(2100 + Math.round(displayPosition.y));
       }
 
       const textureKey = actorBattleTextureKey(position.actorId);
@@ -246,11 +247,6 @@ export class RefactorBattleScene extends Phaser.Scene {
             this.render();
           });
         }
-      } else if (isTargetable && ring) {
-        ring.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
-          this.runtime?.previewTarget(position.actorId);
-          this.render();
-        });
       }
     }
 
@@ -264,23 +260,10 @@ export class RefactorBattleScene extends Phaser.Scene {
       const alive = Boolean(vitals && vitals.hp > 0);
       const isTargetable = targetable.has(enemyId);
       const affordance = targetAffordance(alive, isTargetable, selectedTargetId === enemyId);
-      let ring: Phaser.GameObjects.Arc | undefined;
-
-      if (shouldShowActorRing(affordance, false)) {
-        ring = this.add.circle(x, y, 60 * perspectiveScale, 0x301a1d, 0.06)
-          .setStrokeStyle(
-            affordance === 'SELECTED' ? 3 : 2,
-            affordance === 'SELECTED' ? 0xe1c371 : 0xc59b92,
-            affordance === 'SELECTED' ? 0.98 : 0.56,
-          );
-        this.addToWorld(ring);
-      }
-
       const textureKey = actorBattleTextureKey(enemyId);
       if (textureKey && this.textures.exists(textureKey)) {
         const actor = this.addFittedImage(x, y, textureKey, 172 * perspectiveScale, 154 * perspectiveScale, 1, 'world');
         actor.setDepth(Math.round(y));
-        ring?.setDepth(Math.round(y) - 2);
         this.actorSprites.set(enemyId, actor);
         if (isTargetable) {
           actor.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
@@ -288,17 +271,17 @@ export class RefactorBattleScene extends Phaser.Scene {
             this.render();
           });
         }
-      } else if (isTargetable && ring) {
-        ring.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
-          this.runtime?.previewTarget(enemyId);
-          this.render();
-        });
       }
 
       const overheadY = y - 92 * perspectiveScale;
       const intent = view.enemyIntents.find((candidate) => candidate.enemyId === enemyId);
       const overheadDepth = 2000 + Math.round(y);
-      this.addToWorld(this.add.rectangle(x, overheadY, 132, 42, 0x100b10, 0.82).setStrokeStyle(1, 0xb65d69, 0.7).setDepth(overheadDepth));
+      const overheadStroke = affordance === 'SELECTED' ? 0xe1c371 : affordance === 'CANDIDATE' ? 0xc87984 : 0xb65d69;
+      const overheadStrokeAlpha = affordance === 'SELECTED' ? 1 : affordance === 'CANDIDATE' ? 0.86 : 0.7;
+      this.addToWorld(this.add.rectangle(x, overheadY, 132, 42, 0x100b10, 0.82).setStrokeStyle(affordance === 'SELECTED' ? 2 : 1, overheadStroke, overheadStrokeAlpha).setDepth(overheadDepth));
+      if (affordance === 'SELECTED') {
+        this.addText(x, overheadY - 29, '◆', '14px', '#f0d477', 0.5, 'world').setDepth(overheadDepth + 2);
+      }
       this.addText(x - 60, overheadY - 15, actorDisplayName(enemyId), '9px', '#f0dddd', 0, 'world').setDepth(overheadDepth + 1);
       this.addText(x + 60, overheadY - 15, intent?.name ?? '—', '8px', '#e1b6aa', 1, 'world').setDepth(overheadDepth + 1);
       this.addToWorld(this.add.rectangle(x, overheadY + 4, 116, 7, 0x2b1b20, 1).setDepth(overheadDepth + 1));
@@ -364,6 +347,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       const height = handLayout.cardHeight * focusScale;
       const y = selectedFocus ? 500 : handLayout.cardY;
       const cardAlpha = selectedFocus ? 1 : anySkillSelected ? 0.42 : presentation.alpha;
+      const content = cardContentLayout(x, y, width, height);
 
       if (card.selected) {
         this.addToHud(
@@ -381,7 +365,15 @@ export class RefactorBattleScene extends Phaser.Scene {
         this.addToHud(this.add.image(x, y, REFACTOR_CARD_FRAME_KEY).setDisplaySize(width, height).setAlpha(cardAlpha));
       }
       if (this.textures.exists(familyKey)) {
-        this.addFittedImage(x, y - height * 0.23, familyKey, width * 0.84, height * 0.43, cardAlpha, 'hud');
+        this.addFittedImage(
+          content.art.x,
+          content.art.y,
+          familyKey,
+          content.art.width,
+          content.art.height,
+          cardAlpha,
+          'hud',
+        );
       }
 
       const accentBar = this.add.rectangle(
@@ -394,32 +386,64 @@ export class RefactorBattleScene extends Phaser.Scene {
       );
       this.addToHud(accentBar);
 
-      const markY = y - height * 0.38;
-      const mark = this.add.rectangle(x, markY, 22, 22, family.accent, card.selected ? 0.24 : 0.12)
+      const mark = this.add.rectangle(
+        content.familyBadge.x,
+        content.familyBadge.y,
+        content.familyBadge.size,
+        content.familyBadge.size,
+        family.accent,
+        card.selected ? 0.24 : 0.12,
+      )
         .setRotation(Math.PI / 4)
         .setStrokeStyle(1, family.accent, card.selected ? 0.9 : 0.55);
       this.addToHud(mark);
-      this.addText(x, markY, family.label.slice(0, 1), '8px', family.text, 0.5);
-      this.addText(x, y - height * 0.39, card.name, selectedFocus ? '14px' : '10px', '#f4f5f2', 0.5);
-      this.addText(x, y - height * 0.30, `Delay ${card.delay} · ${family.label}`, '8px', family.text, 0.5);
+      this.addText(
+        content.familyBadge.x,
+        content.familyBadge.y,
+        family.label.slice(0, 1),
+        selectedFocus ? '9px' : '7px',
+        family.text,
+        0.5,
+      );
+      this.addText(
+        content.title.x,
+        content.title.y,
+        card.name,
+        selectedFocus ? '14px' : '10px',
+        '#f4f5f2',
+        0.5,
+      ).setWordWrapWidth(content.title.maxWidth, true);
 
       const effectLines = selectedFocus || handLayout.state === 'DISPATCH' ? card.effectLines : [];
       effectLines.forEach((line, lineIndex) => {
         this.addText(
-          x,
-          y + height * 0.15 + lineIndex * 16,
+          content.effect.x,
+          content.effect.firstLineY + lineIndex * content.effect.lineGap,
           line,
-          '9px',
+          selectedFocus ? '11px' : '9px',
           card.selected ? '#edf1ef' : '#b8c7c8',
           0.5,
-        );
+        ).setWordWrapWidth(content.effect.maxWidth, true);
       });
 
-      const footerY = y + height / 2 - 16;
-      const footer = this.add.rectangle(x, footerY, width - 12, 22, 0x070c12, 0.9)
+      const footer = this.add.rectangle(
+        content.footer.x,
+        content.footer.y,
+        content.footer.width,
+        content.footer.height,
+        0x070c12,
+        0.9,
+      )
         .setStrokeStyle(1, family.stroke, card.selected ? 0.86 : 0.42);
       this.addToHud(footer);
-      this.addText(x, footerY, `Delay ${card.delay}`, card.selected ? '11px' : '10px', '#f1d687', 0.5);
+      this.addText(
+        content.footer.x,
+        content.footer.y,
+        `${family.label}  ·  Delay ${card.delay}`,
+        selectedFocus ? '11px' : '8px',
+        '#f1d687',
+        0.5,
+      );
 
       if (dispatchSelected) {
         this.addText(x + width / 2 - 7, y - height / 2 + 13, '調度', '8px', '#f4d98b', 1);
