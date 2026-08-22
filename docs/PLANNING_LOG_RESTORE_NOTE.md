@@ -1,0 +1,1 @@
+This transient note will be removed after restoring the append-only planning log to its pre-edit blob. No design authority.
