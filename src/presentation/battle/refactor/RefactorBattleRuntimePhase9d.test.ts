@@ -105,7 +105,7 @@ describe('RefactorBattleRuntime Phase 9d', () => {
     runtime.startNextActor();
     const cardId = runtime.view().hand[0]!.instanceId;
     let view = runtime.selectCard(cardId);
-    expect(view.targetableActorIds).toEqual(['chikage', 'rin']);
+    expect(view.targetableActorIds).toEqual(['rin', 'chikage']);
     view = runtime.previewTarget('rin');
     expect(view.phase).toBe('TARGET_PREVIEW');
     expect(view.preview?.targetId).toBe('rin');
