@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
   PLAYER_HOME_POSITIONS,
   REFACTOR_BATTLE_LAYOUT,
+  actionApproachPosition,
   perspectiveScaleForY,
 } from '../battle/refactor/BattleActorPresenter';
 import {
@@ -22,6 +23,7 @@ import {
   autoAdvanceAction,
   categoryDisplayName,
   phaseDisplayName,
+  targetAffordance,
   targetRuleDisplayName,
 } from '../battle/refactor/RefactorBattlePresentationPolicy';
 import type { RefactorBattleRuntime, RefactorBattleView } from '../battle/refactor/RefactorBattleRuntime';
@@ -112,13 +114,25 @@ export class RefactorBattleScene extends Phaser.Scene {
     });
 
     const targetable = new Set(view.targetableActorIds);
+    const selectedTargetId = view.preview?.targetId;
     for (const position of PLAYER_HOME_POSITIONS) {
       const vitals = view.vitalsByActorId[position.actorId];
       const alive = Boolean(vitals && vitals.hp > 0);
       const isTargetable = targetable.has(position.actorId);
+      const affordance = targetAffordance(alive, isTargetable, selectedTargetId === position.actorId);
       const ringRadius = 43 * position.perspectiveScale;
       const ring = this.add.circle(position.x, position.y, ringRadius, 0x0b1720, 0.12)
-        .setStrokeStyle(isTargetable ? 3 : 1, isTargetable ? 0xe1c371 : alive ? 0x9ebbc1 : 0x555d61, isTargetable ? 0.95 : 0.35);
+        .setStrokeStyle(
+          affordance === 'SELECTED' ? 3 : affordance === 'CANDIDATE' ? 2 : 1,
+          affordance === 'SELECTED'
+            ? 0xe1c371
+            : affordance === 'CANDIDATE'
+              ? 0x86b9c4
+              : alive
+                ? 0x9ebbc1
+                : 0x555d61,
+          affordance === 'SELECTED' ? 0.98 : affordance === 'CANDIDATE' ? 0.62 : 0.3,
+        );
       this.addToContent(ring);
 
       const textureKey = actorBattleTextureKey(position.actorId);
@@ -161,9 +175,19 @@ export class RefactorBattleScene extends Phaser.Scene {
       const y = 370 + (index % 2) * 54;
       const perspectiveScale = perspectiveScaleForY(y) * 1.08;
       const vitals = view.vitalsByActorId[enemyId];
+      const alive = Boolean(vitals && vitals.hp > 0);
       const isTargetable = targetable.has(enemyId);
+      const affordance = targetAffordance(alive, isTargetable, selectedTargetId === enemyId);
       const ring = this.add.circle(x, y, 62 * perspectiveScale, 0x301a1d, 0.13)
-        .setStrokeStyle(isTargetable ? 3 : 1, isTargetable ? 0xe1c371 : 0xc18f86, isTargetable ? 0.95 : 0.45);
+        .setStrokeStyle(
+          affordance === 'SELECTED' ? 3 : affordance === 'CANDIDATE' ? 2 : 1,
+          affordance === 'SELECTED'
+            ? 0xe1c371
+            : affordance === 'CANDIDATE'
+              ? 0xc59b92
+              : 0xc18f86,
+          affordance === 'SELECTED' ? 0.98 : affordance === 'CANDIDATE' ? 0.62 : 0.42,
+        );
       this.addToContent(ring);
 
       const textureKey = actorBattleTextureKey(enemyId);
@@ -426,15 +450,33 @@ export class RefactorBattleScene extends Phaser.Scene {
   }
 
   private presentationDestination(plan: RefactorBattleAnimationPlan): { x: number; y: number } {
-    if (plan.motion === 'REACTION' && plan.targetId) {
-      const target = this.actorSprites.get(plan.targetId);
-      if (target) {
-        return {
-          x: Math.min(720, target.x + 92),
-          y: target.y - 8,
-        };
-      }
+    const actor = this.actorSprites.get(plan.actorId);
+    const target = plan.targetId ? this.actorSprites.get(plan.targetId) : undefined;
+
+    if (plan.motion === 'ACTION' && actor && target) {
+      return actionApproachPosition(
+        {
+          x: actor.x,
+          y: actor.y,
+          width: actor.displayWidth,
+          height: actor.displayHeight,
+        },
+        {
+          x: target.x,
+          y: target.y,
+          width: target.displayWidth,
+          height: target.displayHeight,
+        },
+      );
     }
+
+    if (plan.motion === 'REACTION' && target) {
+      return {
+        x: Math.min(720, target.x + 92),
+        y: target.y - 8,
+      };
+    }
+
     return plan.motion === 'REACTION'
       ? { ...REFACTOR_BATTLE_LAYOUT.reactionPosition }
       : { ...REFACTOR_BATTLE_LAYOUT.actionPosition };
