@@ -137,7 +137,7 @@ CI：run 192 build / test 全數通過，因此 Phase 9c 升為 `VERIFIED`。
 
 ## Phase 9d — Feature-Flag QA Interaction Completion
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9D_FLAG_QA_INTERACTIONS.md`
 
@@ -157,12 +157,19 @@ CI 記錄：
 
 - run 201：`npm run build` 通過；`npm test` 235 個測試中 234 通過、1 個失敗。
 - 唯一失敗是 `RefactorBattleRuntimePhase9d.test.ts` 把 `any-ally` target list 順序寫死成 `['chikage', 'rin']`，實際 runtime 依 authoritative vitals insertion order 回傳 `['rin', 'chikage']`。
-- 此失敗不代表 target routing 規則錯誤；已修正測試，改驗證 runtime 的既定 snapshot 順序，不改 production target logic。
+- 此失敗不代表 target routing 規則錯誤；修正測試、不改 production target logic 後，run 205 build / test 全數通過，因此 Phase 9d 升為 `VERIFIED`。
 
 流程紀錄：Phase 9d contract 已先建立；本次 source/tests 寫入後才補齊 progress 狀態，未完全符合索引要求的「contract + progress 皆先於 source/tests」順序。此偏差已在本文件明確記錄，不視為完整流程合規證據。
 
-限制：目前尚未引入 browser automation framework；此批先修正從程式路徑可確定的 feature-flag 互動阻塞，仍需在 CI 綠燈後做實際部署／瀏覽器 QA。
+## Deployment / Browser QA Gate
+
+狀態：`BLOCKED_PENDING_FRESH_PREVIEW_AND_BROWSER_EVIDENCE`
+
+- Vercel project 已確認存在 `combat-refactor-v1` preview branch alias。
+- 目前可列出的最新 READY preview 仍停在較早的 Phase 9d contract commit `87fcf42d62587144d9d7cb5ad4e31eb814486861`，不是已通過 run 205 的 current head `243f3dd8a08cdbef3443a26c9a23cd2f1b86b65b`。
+- 直接探測 branch alias `?combat-refactor=1` 目前會被 Vercel authentication 302 攔截；現有工具無法提供 Phaser canvas 的實際 1280×720 / 844×390 互動式瀏覽器證據。
+- 因此目前不能宣稱 feature-flag browser QA 已完成，也不能切 production 預設入口。
 
 ## 下一批
 
-先讓修正後的 Phase 9d CI 通過。通過後用 `?combat-refactor=1` 做實際部署／瀏覽器 QA，驗證 1280×720 與 844×390 的 Timeline、選牌、友軍／敵軍 Target Preview、Confirm、enemy action、調度 0～2 與下一 actor 循環；在 QA 證據完成前不切 production 預設入口。
+先取得 current head 對應的 READY preview，並完成 `?combat-refactor=1` 的實際瀏覽器 QA：1280×720 與 844×390 下驗證 Timeline、選牌、友軍／敵軍 Target Preview、Confirm、enemy action、調度 0～2 與下一 actor 循環。只有這個 QA gate 有證據通過後，才評估 Phase 10 預設入口切換與 legacy removal。
