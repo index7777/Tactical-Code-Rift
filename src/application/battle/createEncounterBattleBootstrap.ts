@@ -1,6 +1,13 @@
 import { enemyArchetypePools } from '../../core/battle/EnemySkills';
 import type { EnemyArchetype } from '../../core/battle/BattleTypes';
 import { createRefactorDeck } from '../../core/cards/RefactorDeck';
+import { intentStateFromEnemyAction } from '../../core/enemy/EnemyActionIntentAdapter';
+import {
+  isNormalEnemyArchetype,
+  NORMAL_ENEMY_BASE_RESILIENCE,
+  NORMAL_ENEMY_HP,
+  normalEnemyActionAt,
+} from '../../core/enemy/NormalEnemyActionCatalog';
 import { createIntentState, type IntentState } from '../../core/intents/IntentState';
 import type { BattleResolutionState } from '../../core/resolution/BattleResolutionResolver';
 import { storyEncounter } from '../../core/route/EncounterCatalog';
@@ -17,16 +24,16 @@ const PLAYER_HP: Readonly<Record<(typeof PLAYER_IDS)[number], number>> = {
   mo: 48,
 };
 
-const ENEMY_HP: Readonly<Record<EnemyArchetype, number>> = {
+const LEGACY_ENEMY_HP: Readonly<Record<Exclude<EnemyArchetype,
+  | 'lantern-child'
+  | 'wet-corpse'
+  | 'mountain-hound'
+  | 'noose-ghost'
+  | 'lost-monk'
+  | 'wayfarer-umbrella'>, number>> = {
   swift: 34,
   crusher: 54,
   hexer: 38,
-  'wet-corpse': 36,
-  'lantern-child': 32,
-  'mountain-hound': 40,
-  'wayfarer-umbrella': 48,
-  'noose-ghost': 38,
-  'lost-monk': 44,
   'rain-warrior': 72,
   'rain-boss': 128,
 };
@@ -35,8 +42,29 @@ function targetFor(enemyIndex: number): (typeof PLAYER_IDS)[number] {
   return PLAYER_IDS[enemyIndex % PLAYER_IDS.length];
 }
 
+function enemyHp(archetype: EnemyArchetype): number {
+  if (isNormalEnemyArchetype(archetype)) return NORMAL_ENEMY_HP[archetype];
+  return LEGACY_ENEMY_HP[archetype];
+}
+
+function enemyBaseResilience(archetype: EnemyArchetype): number {
+  return isNormalEnemyArchetype(archetype)
+    ? NORMAL_ENEMY_BASE_RESILIENCE[archetype]
+    : 0;
+}
+
 export function createEncounterEnemyIntent(enemyId: string, sequence = 0): IntentState {
   const archetype = enemyId as EnemyArchetype;
+
+  if (isNormalEnemyArchetype(archetype)) {
+    return intentStateFromEnemyAction(
+      normalEnemyActionAt(archetype, sequence),
+      enemyId,
+      targetFor(sequence),
+      sequence,
+    );
+  }
+
   const pool = enemyArchetypePools[archetype];
   if (!pool?.length) throw new Error(`unknown encounter enemy: ${enemyId}`);
   const skill = pool[sequence % pool.length]!;
@@ -73,7 +101,7 @@ export function createEncounterBattleBootstrap(
     vitalsByActorId[playerId] = { actorId: playerId, hp: PLAYER_HP[playerId], maxHp: PLAYER_HP[playerId] };
   }
   for (const enemyId of encounter.enemies) {
-    const hp = ENEMY_HP[enemyId];
+    const hp = enemyHp(enemyId);
     vitalsByActorId[enemyId] = { actorId: enemyId, hp, maxHp: hp };
   }
 
@@ -91,7 +119,10 @@ export function createEncounterBattleBootstrap(
     }),
   );
   const resilienceByEnemyId = Object.fromEntries(
-    encounter.enemies.map((enemyId) => [enemyId, createControlResilience(0, 0)]),
+    encounter.enemies.map((enemyId) => [
+      enemyId,
+      createControlResilience(enemyBaseResilience(enemyId), 0),
+    ]),
   );
   const timelineEntries = [
     ...PLAYER_IDS.map((actorId, index) => ({ actorId, team: 'player' as const, nextActionAt: index * 3, tieBreaker: index })),
