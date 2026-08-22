@@ -4,10 +4,12 @@ import {
   queuePlayerAssets,
   type PlayerAssetEntry,
 } from '../../assets/PlayerAssetManifest';
+import { AREA01_RAIL_HALT_HD2D_Q60_DATA_URI } from '../../assets/generated/area01RailHaltHd2dQ60';
 
-export const REFACTOR_BATTLE_BACKGROUND_KEY = 'refactor-bg-area01-rail-halt';
+export const REFACTOR_BATTLE_BACKGROUND_KEY = 'refactor-bg-area01-rail-halt-hd2d-v2';
 export const REFACTOR_QA_ENEMY_KEY = 'refactor-enemy-lantern-child';
 export const REFACTOR_SLASH_FX_KEY = 'refactor-fx-slash';
+export const REFACTOR_BATTLE_MUSIC_KEY = 'refactor-battle-music';
 
 const playerById = new Map(playerAssetManifest.map((entry) => [entry.id, entry]));
 
@@ -38,10 +40,11 @@ export function actorTimelineTextureKey(actorId: string): string | undefined {
 
 export function queueRefactorBattleAssets(load: Phaser.Loader.LoaderPlugin): void {
   queuePlayerAssets(load);
-  load.image(REFACTOR_BATTLE_BACKGROUND_KEY, 'assets/battle/area01-rail-halt-bg-runtime-trial-v1.png');
+  load.image(REFACTOR_BATTLE_BACKGROUND_KEY, AREA01_RAIL_HALT_HD2D_Q60_DATA_URI);
   load.image(
     REFACTOR_QA_ENEMY_KEY,
     'assets/battle/generated/monsters/rainfall-ridgeline/lantern-child-master-runtime-v1.png',
   );
   load.image(REFACTOR_SLASH_FX_KEY, 'assets/battle/fx/p9a-arc-slash-1.png');
+  load.audio(REFACTOR_BATTLE_MUSIC_KEY, 'assets/battle/battle-music.ogg');
 }
