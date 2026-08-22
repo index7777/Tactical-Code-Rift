@@ -1,11 +1,12 @@
 import type { RefactorCardInstance } from '../cards/RefactorCardTypes';
+import type { ClashResolution } from '../clash/ClashResolver';
 import type { IntentState } from '../intents/IntentState';
 import type { GuardReactionState } from '../reactions/GuardState';
+import type { PreviewActorVitals } from '../preview/BattlePreviewResolver';
 import {
-  resolveBattlePreview,
-  type BattlePreviewResult,
-  type PreviewActorVitals,
-} from '../preview/BattlePreviewResolver';
+  resolveBattlePreviewWithClash,
+  type BattlePreviewWithClashResult,
+} from '../preview/BattlePreviewWithClash';
 import {
   removeConsumedBreakWindows,
   removeWindowsForTarget,
@@ -26,16 +27,22 @@ export interface BattleResolutionState {
   oboroDelayUsedByEnemyId?: Record<string, boolean | undefined>;
 }
 
+export interface BattleResolutionClashInput {
+  resolution: ClashResolution;
+  contestedEnemyId: string;
+}
+
 export interface BattleResolutionInput {
   state: BattleResolutionState;
   activeActorId: string;
   card: RefactorCardInstance;
   targetId?: string;
+  clash?: BattleResolutionClashInput;
 }
 
 export interface BattleResolutionResult {
   state: BattleResolutionState;
-  preview: BattlePreviewResult;
+  preview: BattlePreviewWithClashResult;
   activeActorId: string;
   targetId?: string;
   damageDealt: number;
@@ -108,8 +115,15 @@ export function resolveBattleAction(
   const target = input.targetId ? source.vitalsByActorId[input.targetId] : undefined;
   const targetIntent = input.targetId ? source.intentByEnemyId[input.targetId] : undefined;
   const targetResilience = input.targetId ? source.resilienceByEnemyId[input.targetId] : undefined;
+  const contestedEnemyIntent = input.clash
+    ? source.intentByEnemyId[input.clash.contestedEnemyId]
+    : undefined;
 
-  const preview = resolveBattlePreview({
+  if (input.clash?.resolution.eligible && !contestedEnemyIntent) {
+    throw new Error(`contested enemy Intent not found: ${input.clash.contestedEnemyId}`);
+  }
+
+  const preview = resolveBattlePreviewWithClash({
     activeActorId: input.activeActorId,
     card: input.card,
     target,
@@ -120,6 +134,13 @@ export function resolveBattleAction(
     oboroDelayAlreadyUsed: input.targetId
       ? Boolean(source.oboroDelayUsedByEnemyId?.[input.targetId])
       : false,
+    clash: input.clash
+      ? {
+          resolution: input.clash.resolution,
+          contestedEnemyId: input.clash.contestedEnemyId,
+          enemyIntent: contestedEnemyIntent,
+        }
+      : undefined,
   });
 
   const next = cloneState(source);
@@ -155,6 +176,10 @@ export function resolveBattleAction(
         [input.targetId]: true,
       };
     }
+  }
+
+  if (preview.clash?.consequence && preview.clash.contestedEnemyId && preview.clash.enemyIntentAfter) {
+    next.intentByEnemyId[preview.clash.contestedEnemyId] = cloneIntent(preview.clash.enemyIntentAfter);
   }
 
   if (preview.createdGuardReaction) {
