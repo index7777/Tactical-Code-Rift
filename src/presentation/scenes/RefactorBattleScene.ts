@@ -822,7 +822,8 @@ export class RefactorBattleScene extends Phaser.Scene {
     for (const timer of this.presentationTimers.splice(0)) timer.remove(false);
     this.tweens.killAll();
     this.focusedActorId = undefined;
-    this.resetWorldCamera(0);
+    // Scene shutdown disposes cameras before every shutdown listener has finished.
+    // Teardown must not mutate the world camera or route transitions can abort.
     this.animationBusy = false;
     if (this.input) this.input.enabled = true;
   }
