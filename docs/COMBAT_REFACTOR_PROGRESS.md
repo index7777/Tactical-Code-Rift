@@ -172,25 +172,29 @@ CI：run 221 build / test 通過；使用者已完成 GitHub Pages browser QA，
 
 ## Phase 10 — Default Cutover / Legacy Rollback
 
-狀態：`IMPLEMENTATION_PENDING`
+狀態：`IMPLEMENTED_PENDING_CI`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10_DEFAULT_CUTOVER.md`
 
-本批只做預設入口切換與短期 rollback：
+已實作：
 
-- 無 query flag 時預設啟動 `RefactorBattleScene`。
-- `?legacy-combat=1` 才啟動舊 `BootScene`。
-- 舊 `?combat-refactor=1` 在過渡期仍接受，但新版已不再依賴該 flag 才能啟用。
-- legacy source 本批不刪除，確保 cutover browser regression 有安全回退。
+- 新增 `CombatEntryPolicy.ts`，把入口判斷集中在純 application policy。
+- 無 query flag 時預設 `mode = refactor` 並注入 `RefactorBattleRuntime`。
+- `?legacy-combat=1` 明確切回舊 `BootScene`，且不注入新版 runtime。
+- `?combat-refactor=1` 仍相容新版入口；若同時指定 legacy rollback，legacy 明確優先。
+- `main.ts` Scene ordering 依 entry policy 決定；新版 default 為 `[RefactorBattleScene, BootScene, JourneyScene]`。
+- legacy source 本批未刪除。
+- 新增 `CombatEntryPolicy.test.ts` 覆蓋 default / compatibility / rollback / precedence。
 
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10_CUTOVER_PENDING`
+狀態：`PHASE10_CUTOVER_PENDING_CI_AND_BROWSER_REGRESSION`
 
 - Phase 9e / 9f 已完成 CI 與 browser QA。
-- Phase 10 source 寫入後仍需 CI 與 GitHub Pages 無 flag / legacy flag regression。
+- Phase 10 最新 source 尚待 CI。
+- CI 通過後需用 GitHub Pages 驗證無 flag URL 直接進新版，`?legacy-combat=1` 可回到舊入口。
 - regression 通過前不移除 legacy combat source。
 
 ## 下一批
 
-實作 Phase 10 default-entry policy 與 `?legacy-combat=1` rollback，新增純 policy 測試，更新 `main.ts` composition root；CI 通過後用 GitHub Pages 驗證無 flag 為新版、legacy flag 可回舊入口，再決定 legacy removal 批次。
+先讓 Phase 10 CI 通過；通過後做 GitHub Pages default-entry / legacy-rollback browser regression。只有兩條入口都驗證後，才建立 legacy removal contract 並逐項移除 RoundPlanner、雙 Timeline、舊 killing-intent planning layer 與 next-round interaction。
