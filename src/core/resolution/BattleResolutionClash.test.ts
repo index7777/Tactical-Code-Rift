@@ -91,7 +91,7 @@ describe('BattleResolutionResolver Clash integration', () => {
     expect(result.state.intentByEnemyId.enemy?.damage).toBeUndefined();
   });
 
-  it('commits draw as half player damage and half enemy Intent without status effects', () => {
+  it('commits draw as half final player damage and half enemy Intent without status effects', () => {
     const result = resolveBattleAction({
       state: makeState(),
       activeActorId: 'rin',
@@ -100,9 +100,10 @@ describe('BattleResolutionResolver Clash integration', () => {
       clash: { resolution: eligible('draw'), contestedEnemyId: 'enemy' },
     });
 
-    expect(result.preview.baseDamage).toBe(4);
-    expect(result.damageDealt).toBe(7);
-    expect(result.state.vitalsByActorId.enemy?.hp).toBe(23);
+    expect(result.preview.baseDamage).toBe(8);
+    expect(result.preview.specializationBonusDamage).toBe(3);
+    expect(result.damageDealt).toBe(5);
+    expect(result.state.vitalsByActorId.enemy?.hp).toBe(25);
     expect(result.state.intentByEnemyId.enemy).toMatchObject({
       damage: 4,
       delay: 5,
