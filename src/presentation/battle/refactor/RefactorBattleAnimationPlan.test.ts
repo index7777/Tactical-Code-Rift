@@ -106,6 +106,28 @@ describe('RefactorBattleAnimationPlan', () => {
     }
   });
 
+  it('keeps disruption non-contact by default instead of inventing melee pose or slash', () => {
+    const view = baseView({
+      hand: [{
+        ...baseView().hand[0]!,
+        instanceId: 'disruption-1',
+        name: '牽制',
+        category: 'disruption',
+        delay: 4,
+        effect: { delayTarget: 2 },
+        effectLines: ['目標延遲 +2'],
+        selected: true,
+      }],
+    });
+
+    expect(buildPlayerActionAnimationPlan(view)).toMatchObject({
+      motion: 'ACTION',
+      profileId: 'disruption',
+      useAttackPose: false,
+      useSlashFx: false,
+    });
+  });
+
   it('allows no-target cards to animate without inventing an impact target', () => {
     const view = baseView({
       phase: 'CARD_SELECTED',
