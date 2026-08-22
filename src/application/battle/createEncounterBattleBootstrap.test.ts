@@ -80,15 +80,43 @@ describe('encounter battle bootstrap', () => {
     expect(battle.resilienceByEnemyId['rain-warrior']).toMatchObject({ base: 1, temporary: 0 });
   });
 
-  it('uses the approved Boss HP and base resilience while keeping the existing Intent fallback', () => {
+  it('cuts rain-boss over to authored HP, resilience and multi-hit Intent data', () => {
     const { controller } = createEncounterBattleBootstrap('boss-1');
     const battle = controller.battle();
 
     expect(battle.vitalsByActorId['rain-boss']).toMatchObject({ hp: 240, maxHp: 240 });
     expect(battle.resilienceByEnemyId['rain-boss']).toMatchObject({ base: 1, temporary: 0 });
+    expect(createEncounterEnemyIntent('rain-boss', 1)).toMatchObject({
+      enemyId: 'rain-boss',
+      name: '山影連刃',
+      damage: 6,
+      hitCount: 2,
+      targetIds: ['chikage'],
+    });
+  });
 
-    const fallbackIntent = createEncounterEnemyIntent('rain-boss', 0);
-    expect(fallbackIntent).toMatchObject({ enemyId: 'rain-boss', targetIds: ['rin'] });
+  it('authors the next Boss action from current HP and expands AoE to living players only', () => {
+    const { controller, enemyIntentProvider } = createEncounterBattleBootstrap('boss-1');
+    const battle = controller.battle();
+    battle.vitalsByActorId['rain-boss'] = { actorId: 'rain-boss', hp: 160, maxHp: 240 };
+    battle.vitalsByActorId.oboro = { actorId: 'oboro', hp: 0, maxHp: 36 };
+
+    expect(enemyIntentProvider('rain-boss', battle).name).toBe('山影連刃');
+    expect(enemyIntentProvider('rain-boss', battle)).toMatchObject({
+      name: '驟雨橫掃',
+      damage: 8,
+      targetIds: ['rin', 'chikage', 'mo'],
+    });
+  });
+
+  it('makes Phase 3 終雨 deterministic and prevents immediate repeat through cooldown history', () => {
+    const { controller, enemyIntentProvider } = createEncounterBattleBootstrap('boss-1');
+    const battle = controller.battle();
+    battle.vitalsByActorId['rain-boss'] = { actorId: 'rain-boss', hp: 70, maxHp: 240 };
+
+    const names = Array.from({ length: 5 }, () => enemyIntentProvider('rain-boss', battle).name);
+    expect(names).toEqual(['山影連刃', '驟雨橫掃', '壓雨', '終雨', '雨斬']);
+    expect(enemyIntentProvider('rain-boss', battle).name).toBe('山影連刃');
   });
 
   it('rejects non-battle route nodes', () => {
