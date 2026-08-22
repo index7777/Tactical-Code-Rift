@@ -25,14 +25,15 @@ STATUS = AUTHORITATIVE_INDEX
 17. `COMBAT_REFACTOR_PHASE9D_FLAG_QA_INTERACTIONS.md`：Phase 9d feature-flag QA 互動完成契約；補齊 enemy resolution、合法目標 routing 與調度 0～2 張 UI path。
 18. `COMBAT_REFACTOR_PHASE9E_GITHUB_PAGES_QA.md`：Phase 9e GitHub Pages QA hosting 契約；把 current-head feature-flag QA deployment 從受 Vercel rate limit 阻塞的 preview 改由 GitHub Pages 提供。
 19. `COMBAT_REFACTOR_PHASE9F_AUTO_FLOW_LOCALIZATION.md`：Phase 9f 自動演進與中文 presentation 契約；非玩家決策 state 自動前進，玩家可見角色名／介面改為中文。
-20. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／deployment gate 狀態；只記進度，不取代規格與實作計畫。
-21. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-22. `art-bible.md`：角色、怪物、背景與透明素材規範。
-23. `characters/README.md`：角色母版與 runtime 對照。
-24. `areas/README.md`：區域背景與 runtime 狀態。
-25. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-26. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-27. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+20. `COMBAT_REFACTOR_PHASE10_DEFAULT_CUTOVER.md`：Phase 10 預設入口切換契約；新版成為 default，`?legacy-combat=1` 僅作短期 rollback，legacy source 本批不刪。
+21. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／deployment gate 狀態；只記進度，不取代規格與實作計畫。
+22. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+23. `art-bible.md`：角色、怪物、背景與透明素材規範。
+24. `characters/README.md`：角色母版與 runtime 對照。
+25. `areas/README.md`：區域背景與 runtime 狀態。
+26. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+27. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+28. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 
 ## combat-refactor-v1 分支規則
 
