@@ -27,20 +27,20 @@ export interface BattleVisualBounds {
 export const REFACTOR_BATTLE_LAYOUT: RefactorBattleLayout = {
   width: 1280,
   height: 720,
-  timeline: { x: 0, y: 0, width: 1280, height: 104 },
+  timeline: { x: 0, y: 24, width: 1280, height: 82 },
   battlefield: { x: 0, y: 0, width: 1280, height: 720 },
-  partyRail: { x: 18, y: 150, width: 158, height: 176 },
-  intentPanel: { x: 1042, y: 142, width: 220, height: 154 },
-  hand: { x: 0, y: 508, width: 1280, height: 212 },
-  actionPosition: { x: 680, y: 390 },
-  reactionPosition: { x: 750, y: 405 },
+  partyRail: { x: 18, y: 168, width: 126, height: 134 },
+  intentPanel: { x: 1060, y: 158, width: 202, height: 112 },
+  hand: { x: 0, y: 548, width: 1280, height: 172 },
+  actionPosition: { x: 700, y: 398 },
+  reactionPosition: { x: 760, y: 410 },
 };
 
 export const PLAYER_HOME_POSITIONS: readonly BattleActorPosition[] = [
-  { actorId: 'rin', x: 300, y: 315, perspectiveScale: 0.9 },
-  { actorId: 'chikage', x: 405, y: 350, perspectiveScale: 0.97 },
-  { actorId: 'oboro', x: 285, y: 402, perspectiveScale: 1.05 },
-  { actorId: 'mo', x: 420, y: 448, perspectiveScale: 1.12 },
+  { actorId: 'rin', x: 350, y: 320, perspectiveScale: 0.91 },
+  { actorId: 'chikage', x: 455, y: 355, perspectiveScale: 0.97 },
+  { actorId: 'oboro', x: 345, y: 410, perspectiveScale: 1.05 },
+  { actorId: 'mo', x: 480, y: 450, perspectiveScale: 1.12 },
 ];
 
 export function homePositionFor(actorId: BattleActorPosition['actorId']): BattleActorPosition {
