@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { battleExitDecision, type BattleOutcome } from '../../application/battle/BattleExitPolicy';
 import { createEncounterBattleBootstrap } from '../../application/battle/createEncounterBattleBootstrap';
 import { storyEncounter, type EncounterBattlefield } from '../../core/route/EncounterCatalog';
 import {
@@ -74,6 +75,7 @@ export class RefactorBattleScene extends Phaser.Scene {
   private battlefield: EncounterBattlefield = 'rail-halt';
   private selectedMusicKey = REFACTOR_BATTLE_MUSIC_KEY;
   private resultShown = false;
+  private qaOutcome?: BattleOutcome;
 
   constructor() {
     super('RefactorBattleScene');
@@ -81,6 +83,10 @@ export class RefactorBattleScene extends Phaser.Scene {
 
   init(data?: { journeyNodeId?: string }): void {
     const qaBattleNodeId = new URLSearchParams(window.location.search).get('qa-battle') ?? undefined;
+    const requestedQaOutcome = new URLSearchParams(window.location.search).get('qa-outcome');
+    this.qaOutcome = requestedQaOutcome === 'victory' || requestedQaOutcome === 'defeat'
+      ? requestedQaOutcome
+      : undefined;
     this.journeyNodeId = data?.journeyNodeId ?? qaBattleNodeId ?? 'battle-1';
     const encounter = storyEncounter(this.journeyNodeId);
     if (!encounter) throw new Error(`unknown battle node: ${this.journeyNodeId}`);
@@ -147,8 +153,10 @@ export class RefactorBattleScene extends Phaser.Scene {
     }
     const handLayout = handLayoutMetrics(view.phase, this.dispatchMode);
 
-    if (view.outcome) {
-      this.showBattleResult(view.outcome);
+    this.publishQaState(view);
+    const outcome = this.qaOutcome ?? view.outcome;
+    if (outcome) {
+      this.showBattleResult(outcome);
       return;
     }
 
@@ -853,16 +861,32 @@ export class RefactorBattleScene extends Phaser.Scene {
     this.resultShown = true;
     this.clearAutoAdvance();
     const victory = outcome === 'victory';
+    const decision = battleExitDecision(outcome, this.journeyNodeId);
     this.addToHud(this.add.rectangle(640, 360, 1280, 720, 0x03070b, 0.72));
     this.addText(640, 320, victory ? '戰鬥勝利' : '戰鬥敗北', '34px', victory ? '#f1d58b' : '#e28d87', 0.5);
-    this.drawButton(640, 390, 220, 44, victory ? '返回路線' : '重新挑戰', () => {
-      if (victory) {
-        if (this.journeyNodeId === 'boss-1') this.registry.set('journey-area01-cleared', true);
+    this.drawButton(640, 390, 220, 44, decision.label, () => {
+      if (decision.destination === 'journey') {
+        if (decision.markArea01Cleared) this.registry.set('journey-area01-cleared', true);
         this.scene.start('JourneyScene');
       } else {
         this.scene.restart({ journeyNodeId: this.journeyNodeId });
       }
     });
+  }
+
+  private publishQaState(view: RefactorBattleView): void {
+    const host = document.getElementById('game');
+    if (!host) return;
+    const encounter = storyEncounter(this.journeyNodeId);
+    host.dataset.qaScene = 'refactor-battle';
+    host.dataset.qaBattle = this.journeyNodeId;
+    host.dataset.qaPhase = view.phase;
+    host.dataset.qaOutcome = this.qaOutcome ?? view.outcome ?? '';
+    host.dataset.qaPlayers = String(view.timeline.filter((node) => node.team === 'player').length);
+    host.dataset.qaEnemies = String(view.timeline.filter((node) => node.team === 'enemy').length);
+    host.dataset.qaExpectedEnemies = String(encounter?.enemies.length ?? 0);
+    host.dataset.qaBattlefield = this.battlefield;
+    host.dataset.qaMusic = this.selectedMusicKey;
   }
 
   private addFittedImage(

@@ -17,7 +17,7 @@ const quickCards: RefactorCardDefinition[] = Array.from({ length: 8 }, (_, index
   effect: { damage: 8 },
 }));
 
-function battleState(): BattleResolutionState {
+function battleState(enemyHp = 39): BattleResolutionState {
   return {
     timeline: createBattleTimeline([
       { actorId: 'rin', team: 'player', nextActionAt: 0, tieBreaker: 0 },
@@ -27,7 +27,7 @@ function battleState(): BattleResolutionState {
     vitalsByActorId: {
       rin: { actorId: 'rin', hp: 32, maxHp: 40 },
       chikage: { actorId: 'chikage', hp: 40, maxHp: 40 },
-      'ghost-fire': { actorId: 'ghost-fire', hp: 39, maxHp: 52 },
+      'ghost-fire': { actorId: 'ghost-fire', hp: enemyHp, maxHp: 52 },
     },
     intentByEnemyId: {
       'ghost-fire': createIntentState({
@@ -135,5 +135,19 @@ describe('RefactorBattleRuntime', () => {
     expect(view.hand).toHaveLength(5);
     expect(view.timeline.find((node) => node.actorId === 'rin')?.nextActionAt).toBe(3);
     expect(view.vitalsByActorId['ghost-fire']?.hp).toBe(39);
+  });
+
+  it('exposes a victory outcome after authoritative lethal resolution', () => {
+    const controller = new BattleTurnController(battleState(10), createRefactorDeck(quickCards, 42));
+    const viewRuntime = new RefactorBattleRuntime(controller);
+    viewRuntime.startNextActor();
+    const cardId = viewRuntime.view().hand[0]!.instanceId;
+    viewRuntime.selectCard(cardId);
+    viewRuntime.previewTarget('ghost-fire');
+    viewRuntime.confirmCard();
+
+    const view = viewRuntime.resolveConfirmedPlayerAction();
+    expect(view.phase).toBe('BATTLE_ENDED');
+    expect(view.outcome).toBe('victory');
   });
 });
