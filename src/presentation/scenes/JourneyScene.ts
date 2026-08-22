@@ -2,6 +2,9 @@ import Phaser from'phaser';
 import{availableStoryNodes,createJourneyState,moveJourney,type JourneyState,type StoryNodeType,type StoryRouteNode}from'../../core/route/RouteGenerator';
 import{storyEncounter}from'../../core/route/EncounterCatalog';
 import{JOURNEY_MUSIC_FADE_IN_MS,JOURNEY_MUSIC_FADE_OUT_MS,journeyLoopFadeDelayMs}from'../../core/audio/JourneyMusicPolicy';
+import{availableDemoCardUpgrades,type DemoCardUpgradeId}from'../../core/cards/DemoCardUpgradeProgression';
+import type{DemoCardUpgradeRunState}from'../../core/cards/DemoCardUpgradeRunState';
+import{chooseJourneyDemoUpgradeReward,ensureDemoCardUpgradeRunState,offerJourneyDemoUpgradeRewardAfterVictory,prepareJourneyDemoUpgradeEncounterHandoff}from'../../application/battle/DemoCardUpgradeJourneyRegistry';
 
 const labels:Record<StoryNodeType,string>={departure:'出發',battle:'迎擊',event:'事件',exploration:'探索',companion:'伙伴',elite:'精英',boss:'王'};
 const routeAssetRoot='assets/journey/route-map-ui-v1';
@@ -19,6 +22,13 @@ const routeCopy:Record<StoryNodeType,string>={
   companion:'有人正在前方等待黃泉列車。',
   elite:'前方有強烈殺意盤踞。',
   boss:'終點站的氣息正從雨幕深處逼近。',
+};
+const upgradeCopy:Record<DemoCardUpgradeId,{name:string;effect:string}>={
+  'quick-v1':{name:'快攻',effect:'傷害 +2'},
+  'heavy-v1':{name:'重擊',effect:'傷害 +3'},
+  'guard-v1':{name:'守勢',effect:'Guard cap +3'},
+  'disruption-v1':{name:'干擾',effect:'自身 Delay -1'},
+  'break-v1':{name:'破勢',effect:'自身 Delay -1'},
 };
 
 export class JourneyScene extends Phaser.Scene{
@@ -41,6 +51,8 @@ export class JourneyScene extends Phaser.Scene{
     this.loadingLayer?.destroy(true);this.loadingLayer=undefined;this.compact=window.innerHeight<=500;
     this.startJourneyMusic();
     const state=(this.registry.get('journey-state')as JourneyState|undefined)??createJourneyState();this.registry.set('journey-state',state);
+    ensureDemoCardUpgradeRunState(this.registry);
+    const upgradeState=offerJourneyDemoUpgradeRewardAfterVictory(this.registry,state.currentNodeId),rewardPending=Boolean(upgradeState.pendingMilestone);
     this.add.image(640,360,'journey-bg-world01').setDisplaySize(1280,720);
     this.add.rectangle(640,360,1280,720,0x03080f,.12);
     this.add.rectangle(640,55,1280,110,0x03080d,.82).setStrokeStyle(1,0x8aa5ad,.15);
@@ -52,7 +64,7 @@ export class JourneyScene extends Phaser.Scene{
     this.add.text(1232,32,'路線進行',{fontFamily:'sans-serif',fontSize:this.compact?'14px':'12px',fontStyle:'bold',color:'#d7e5e7'}).setOrigin(1,0);
     this.add.text(1232,57,`${Math.max(0,state.visitedIds.length-1)} / ${state.route.nodes.length-1}`,{fontFamily:'monospace',fontSize:this.compact?'21px':'18px',fontStyle:'bold',color:'#edcf78'}).setOrigin(1,0);
 
-    const available=new Set(availableStoryNodes(state).map(n=>n.id)),visited=new Set(state.visitedIds);
+    const available=new Set((rewardPending?[]:availableStoryNodes(state)).map(n=>n.id)),visited=new Set(state.visitedIds);
     const pos=(column:number,lane:number)=>({x:135+column*205,y:220+lane*122});
     for(const node of state.route.nodes)for(const nextId of node.nextIds){
       const next=state.route.nodes.find(n=>n.id===nextId)!;const a=pos(node.column,node.lane),b=pos(next.column,next.lane),travelled=visited.has(node.id)&&visited.has(next.id),open=available.has(next.id);
@@ -92,8 +104,23 @@ export class JourneyScene extends Phaser.Scene{
     }
     const cp=pos(current.column,current.lane);this.createTrainToken(cp.x,cp.y+58).setData('train',true).setDepth(20);
     this.add.text(48,624,'黃泉列車',{fontFamily:'serif',fontSize:this.compact?'18px':'15px',fontStyle:'bold',color:'#ead9bb'});
-    this.add.text(48,650,available.size?'選擇下一段軌道；滑過節點可查看敵群。':'本區路線已抵達終點。',{fontFamily:'sans-serif',fontSize:this.compact?'14px':'12px',color:'#a9c1c7'});
+    this.add.text(48,650,rewardPending?'先選擇本次卡組強化，再繼續前進。':available.size?'選擇下一段軌道；滑過節點可查看敵群。':'本區路線已抵達終點。',{fontFamily:'sans-serif',fontSize:this.compact?'14px':'12px',color:'#a9c1c7'});
+    const ownedNames=upgradeState.ownedUpgradeIds.map(id=>upgradeCopy[id].name).join('・')||'尚無';
+    this.add.text(48,676,`卡組強化　${ownedNames}`,{fontFamily:'sans-serif',fontSize:this.compact?'13px':'11px',color:'#d8c98f'});
     if(state.currentNodeId==='boss-1'&&this.registry.get('journey-area01-cleared'))this.showAreaClear();
+    if(upgradeState.pendingMilestone)this.showUpgradeReward(upgradeState);
+  }
+  private showUpgradeReward(state:DemoCardUpgradeRunState){
+    const choices=availableDemoCardUpgrades(state.ownedUpgradeIds),veil=this.add.rectangle(640,360,1280,720,0x020609,.76).setDepth(500).setInteractive(),panel=this.add.rectangle(640,360,760,330,0x101c23,.98).setStrokeStyle(2,0xc8a45d,.9).setDepth(501);
+    this.add.text(640,238,'因果強化',{fontFamily:'serif',fontSize:this.compact?'30px':'26px',fontStyle:'bold',color:'#fff0d5'}).setOrigin(.5).setDepth(502);
+    this.add.text(640,274,'選擇一個卡型；本區每個里程碑只能取得一次。',{fontFamily:'sans-serif',fontSize:this.compact?'14px':'12px',color:'#bad3d7'}).setOrigin(.5).setDepth(502);
+    choices.forEach((id,index)=>{
+      const row=index<3?0:1,col=row===0?index:index-3,count=row===0?Math.min(3,choices.length):Math.max(0,choices.length-3),x=640+(col-(count-1)/2)*220,y=row===0?340:420,copy=upgradeCopy[id];
+      const button=this.add.rectangle(x,y,196,62,0x182931,.98).setStrokeStyle(1,0xd0aa61,.9).setDepth(502).setInteractive({useHandCursor:true});
+      const name=this.add.text(x,y-11,copy.name,{fontFamily:'serif',fontSize:this.compact?'18px':'16px',fontStyle:'bold',color:'#f7e4bc'}).setOrigin(.5).setDepth(503),effect=this.add.text(x,y+13,copy.effect,{fontFamily:'sans-serif',fontSize:this.compact?'13px':'11px',color:'#a9cbd0'}).setOrigin(.5).setDepth(503);
+      button.on('pointerdown',()=>{chooseJourneyDemoUpgradeReward(this.registry,id);this.scene.restart()});void name;void effect;
+    });
+    void veil;void panel;
   }
   private showAreaClear(){const veil=this.add.rectangle(640,360,1280,720,0x03070b,.78).setDepth(300),panel=this.add.rectangle(640,350,520,190,0x101c23,.97).setStrokeStyle(2,0xc8a45d,.9).setDepth(301),kicker=this.add.text(640,302,'第一區踏破',{fontFamily:'sans-serif',fontSize:'14px',fontStyle:'bold',color:'#e4c877'}).setOrigin(.5).setDepth(302),title=this.add.text(640,346,'雨暮山線・終',{fontFamily:'serif',fontSize:'34px',fontStyle:'bold',color:'#fff0d5'}).setOrigin(.5).setDepth(302),body=this.add.text(640,394,'站守已散，黃泉列車完成本區行程。',{fontFamily:'sans-serif',fontSize:'14px',color:'#bad3d7'}).setOrigin(.5).setDepth(302);void veil;void panel;void kicker;void title;void body}
   private createTrainToken(x:number,y:number){
@@ -120,7 +147,7 @@ export class JourneyScene extends Phaser.Scene{
     const next=moveJourney(state,nodeId);this.registry.set('journey-state',next);const node=next.route.nodes.find(n=>n.id===nodeId)!,train=this.children.list.find(o=>o.getData('train'))as Phaser.GameObjects.Container;
     this.input.enabled=false;this.tweens.add({targets:train,x,y:y+54,duration:720,ease:'Sine.easeInOut',onComplete:()=>{
       const encounter=storyEncounter(node.id);
-      if(encounter){const veil=this.add.rectangle(640,360,1280,720,node.type==='boss'?0x26080d:0x061016,0).setDepth(200),label=this.add.text(640,348,encounter.title,{fontFamily:'serif',fontSize:node.type==='boss'?'34px':'26px',fontStyle:'bold',color:'#fff1d6'}).setOrigin(.5).setDepth(201).setAlpha(0),sub=this.add.text(640,390,encounter.enemies.map(id=>enemyNames[id]??id).join('・'),{fontFamily:'sans-serif',fontSize:'12px',color:'#a9c9cf'}).setOrigin(.5).setDepth(201).setAlpha(0);this.tweens.add({targets:veil,alpha:.92,duration:360});this.tweens.add({targets:[label,sub],alpha:1,duration:260});this.time.delayedCall(420,()=>this.leaveJourneyMusic(()=>this.scene.start('RefactorBattleScene',{journeyNodeId:node.id}))) }
+      if(encounter){const veil=this.add.rectangle(640,360,1280,720,node.type==='boss'?0x26080d:0x061016,0).setDepth(200),label=this.add.text(640,348,encounter.title,{fontFamily:'serif',fontSize:node.type==='boss'?'34px':'26px',fontStyle:'bold',color:'#fff1d6'}).setOrigin(.5).setDepth(201).setAlpha(0),sub=this.add.text(640,390,encounter.enemies.map(id=>enemyNames[id]??id).join('・'),{fontFamily:'sans-serif',fontSize:'12px',color:'#a9c9cf'}).setOrigin(.5).setDepth(201).setAlpha(0);this.tweens.add({targets:veil,alpha:.92,duration:360});this.tweens.add({targets:[label,sub],alpha:1,duration:260});prepareJourneyDemoUpgradeEncounterHandoff(this.registry);this.time.delayedCall(420,()=>this.leaveJourneyMusic(()=>this.scene.start('RefactorBattleScene',{journeyNodeId:node.id}))) }
       else{this.input.enabled=true;this.time.delayedCall(300,()=>this.scene.restart())}
     }})
   }
