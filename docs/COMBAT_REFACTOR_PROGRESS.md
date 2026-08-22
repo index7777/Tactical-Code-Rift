@@ -159,17 +159,18 @@ CI：run 205 build / test 全數通過，因此 Phase 9d 為 `VERIFIED`。
 
 ## Phase 9f — Auto Flow + Chinese Presentation
 
-狀態：`IMPLEMENTATION_PENDING`
+狀態：`IMPLEMENTED_PENDING_CI`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9F_AUTO_FLOW_LOCALIZATION.md`
 
-目標：
+已實作：
 
-- 移除玩家手動「開始下一角色／執行敵方行動」的 QA step runner 操作。
-- `WAITING_FOR_NEXT_ACTOR` 與 enemy execution 改由 Scene presentation timer 自動推進。
-- 玩家只在選牌、選目標、確認、取消、調度時操作。
+- 移除玩家手動「開始下一角色／執行敵方行動」的 QA step runner 按鈕。
+- `WAITING_FOR_NEXT_ACTOR` 與 enemy execution 改由 Scene presentation timer 自動推進；每次 render / shutdown 會清除舊 timer，避免重複 transition。
+- 玩家仍只在選牌、選目標、確認、取消、調度時操作。
 - 玩家可見隊友名稱改為凜／千景／朧／紅葉，QA 敵人 `ghost-fire` 顯示為鬼火。
-- card category、target rule 與主要介面標題中文化；internal id / enum 不變。
+- phase、card category、target rule、生命／傷害／延遲／意圖等主要介面文字中文化；internal id / enum 不變。
+- 新增 `RefactorBattlePresentationPolicy.ts` 與測試，將中文顯示映射與 auto-flow policy 從 Phaser Scene 抽離。
 
 ## Deployment / Browser QA Gate
 
@@ -180,4 +181,4 @@ CI：run 205 build / test 全數通過，因此 Phase 9d 為 `VERIFIED`。
 
 ## 下一批
 
-實作 Phase 9f auto-flow 與中文 presentation，跑 `npm run build` / `npm test`，再由 GitHub Pages 驗證玩家不需要手動推進非決策狀態，且中文角色名稱與介面正確。
+先讓 Phase 9f CI 通過，再由 GitHub Pages 驗證玩家不需要手動推進非決策狀態，敵方行動會自動演進回下一個玩家 actor，且中文角色名稱與介面正確；完成 1280×720 / 844×390 QA 後才評估 Phase 10。
