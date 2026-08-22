@@ -1,6 +1,6 @@
 # Combat Refactor Phase 19 — Clash Presentation
 
-STATUS = PHASE19A_CI_VERIFIED_SCENE_WIRING_PENDING
+STATUS = CI_VERIFIED_BROWSER_QA_PENDING
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -50,24 +50,24 @@ The plan owns only presentation metadata:
 - authored/fallback enemy presentation profile id;
 - no damage or Intent mutation.
 
-If the contested enemy sprite is unavailable, the Scene may fall back to the existing one-sided player action presentation while preserving the authoritative Clash resolution.
+If the contested enemy sprite is unavailable, the Scene falls back to the existing one-sided player action presentation while preserving the authoritative Clash resolution.
 
 ## Contact and resolver ownership
 
 At Clash contact:
 
-- procedural contact FX may play;
-- a short presentation-only hit-stop may freeze actor tweens/camera motion;
+- procedural contact FX plays;
+- a short presentation-only hit-stop freezes active tween motion;
 - `resolveConfirmedPlayerAction()` is called exactly once;
 - no enemy resolver call occurs, because the contested enemy Intent consequence is already part of the player authoritative resolution.
 
 Visual result branching:
 
-- `player-win`: enemy is pushed/recoils farther; player follows through.
-- `draw`: both recoil a short distance.
-- `enemy-win`: player recoils farther; enemy holds forward pressure briefly.
+- `player-win`: enemy recoils farther; player follows through.
+- `draw`: both recoil symmetrically.
+- `enemy-win`: player recoils farther; enemy holds forward pressure.
 
-The branch must never call `resolveClashPreview()` or inspect legacy `clashPower`.
+The branch never calls `resolveClashPreview()` or inspects legacy `clashPower`.
 
 ## Phase 19a implemented boundary
 
@@ -78,44 +78,49 @@ Implemented and CI verified:
 - `RefactorBattleAnimationPlan` carries the same authoritative Clash outcome and contested enemy id into the player presentation plan.
 - enemy profile selection reuses authored Intent presentation metadata, with `enemy-light` only as the existing fallback.
 - no presentation code recalculates Clash scores or outcome.
-- tests cover eligible preview mapping, unavailable Clash suppression, and preservation of enemy-heavy + enemy-win data into the player animation plan.
 
 CI run 480: `npm run build` passed and `npm test` passed.
 
-## Phase 19b pending Scene wiring
+## Phase 19b implemented Scene wiring
 
-Still pending:
+Implemented and CI verified:
 
-- simultaneous player/enemy approach;
-- Clash contact FX;
-- presentation-only hit-stop;
-- player-win/draw/enemy-win recoil/follow-through branch;
-- return-to-formation browser QA.
+- `ClashPresentationChoreography.ts` owns presentation-only synchronized timing, hit-stop, result hold, and recoil magnitudes.
+- player and contested enemy approach the same contact lane simultaneously using their authored presentation profiles.
+- synchronized timing uses the slower participant duration for anticipation, approach, strike, recovery, and return so one participant never completes a Clash phase before the other.
+- Clash contact plays procedural feedback, commits `resolveConfirmedPlayerAction()` exactly once, then enters a fixed presentation-only hit-stop.
+- result motion branches from the already-authoritative `player-win / draw / enemy-win` outcome.
+- both actors return to their pre-Clash formation positions and scales before normal Scene flow resumes.
+- no `resolveActiveEnemyAction()` call occurs in the Clash branch.
+- if the contested enemy sprite is unavailable, normal one-sided player choreography remains the safe presentation fallback.
 
-The existing one-sided player action choreography remains active until this Scene wiring batch lands.
+CI run 484: `npm run build` passed and `npm test` passed.
 
 ## Initial implementation scope
 
 Phase 19 uses only existing sprites/procedural FX.
 
-It may use a fixed presentation-only hit-stop duration and small displacement tuning constants. These constants are visual only and do not enter ActionDefinition or combat math.
+Fixed hit-stop and displacement constants are presentation-only and do not enter ActionDefinition or combat math.
 
 Story encounters remain unchanged until authored production Clash metadata is explicitly enabled.
 
 ## Verification
 
-Phase 19a evidence:
+Automated evidence now covers:
 
 - Target Preview exposes eligible Clash outcome/contested enemy only from authoritative preview data;
 - unavailable/no Clash produces no Clash presentation snapshot;
 - player animation plan carries the same authoritative outcome without recalculation;
+- synchronized choreography selects the slower authored participant timing;
+- win/draw/lose displacement semantics are deterministic;
 - build/test pass.
 
-Phase 19b must additionally verify:
+Browser QA remains required for:
 
-- no Scene import of `ClashResolver`;
-- Scene calls player resolution once on Clash contact;
-- browser-readable simultaneous contact, result branch, and return-to-formation behavior.
+- simultaneous contact readability;
+- hit-stop feel;
+- player-win/draw/enemy-win result readability;
+- return-to-formation behavior at 1280×720 and 844×390.
 
 ## Out of scope
 
