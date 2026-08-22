@@ -45,11 +45,12 @@ function baseView(overrides: Partial<RefactorBattleView> = {}): RefactorBattleVi
 }
 
 describe('RefactorBattleAnimationPlan', () => {
-  it('routes normal player cards through ACTION with attack pose and impact fx', () => {
+  it('routes normal player cards through ACTION with their family presentation profile', () => {
     expect(buildPlayerActionAnimationPlan(baseView())).toEqual({
       actorId: 'rin',
       targetId: 'ghost-fire',
       motion: 'ACTION',
+      profileId: 'quick-melee',
       useAttackPose: true,
       useSlashFx: true,
     });
@@ -83,9 +84,26 @@ describe('RefactorBattleAnimationPlan', () => {
       actorId: 'chikage',
       targetId: 'rin',
       motion: 'REACTION',
+      profileId: 'guard',
       useAttackPose: false,
       useSlashFx: false,
     });
+  });
+
+  it('maps every non-guard player card family to the approved sequencer profile', () => {
+    const expectations = [
+      ['quick', 'quick-melee'],
+      ['heavy', 'heavy-melee'],
+      ['disruption', 'disruption'],
+      ['break', 'break'],
+    ] as const;
+
+    for (const [category, profileId] of expectations) {
+      const view = baseView({
+        hand: [{ ...baseView().hand[0]!, category, selected: true }],
+      });
+      expect(buildPlayerActionAnimationPlan(view)?.profileId).toBe(profileId);
+    }
   });
 
   it('allows no-target cards to animate without inventing an impact target', () => {
@@ -110,12 +128,13 @@ describe('RefactorBattleAnimationPlan', () => {
       actorId: 'rin',
       targetId: undefined,
       motion: 'ACTION',
+      profileId: 'quick-melee',
       useAttackPose: true,
       useSlashFx: false,
     });
   });
 
-  it('uses the active enemy intent target for enemy action animation', () => {
+  it('uses the active enemy intent target with the current enemy-light fallback profile', () => {
     const view = baseView({
       phase: 'ENEMY_EXECUTING',
       activeActorId: 'ghost-fire',
@@ -142,6 +161,7 @@ describe('RefactorBattleAnimationPlan', () => {
       actorId: 'ghost-fire',
       targetId: 'rin',
       motion: 'ENEMY_ACTION',
+      profileId: 'enemy-light',
       useAttackPose: false,
       useSlashFx: true,
     });
