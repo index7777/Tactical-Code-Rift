@@ -344,12 +344,15 @@ CI：run 353 build 通過，但 Phase 10j 遺留 `max player x <= 500` assertion
 
 ## Phase 11 — Route Cutover
 
-狀態：`CI_VERIFIED_RUNTIME_QA_PARTIAL`
+狀態：`CI_AND_PRODUCTION_RUNTIME_QA_VERIFIED`
 
 - `combat-refactor-v1` 已重放到最新 `origin/main`，不再落後主線。
 - production composition root 已移除 legacy runtime flag；公開流程改為 Journey → RefactorBattleScene。
 - 七個 `EncounterCatalog` 戰鬥節點已能建立 canonical enemy roster、Intent、mixed Timeline 與 shared deck。
 - 一般／精英、Boss BGM 及 sword WAV 已對齊上線 `main`；舊 visual FX 保留但不載入。
-- 57 個 test files／278 tests 與 production build 通過。
+- 整合分支 58 個 test files／283 tests 與 production build 通過；Pages 發布分支 59 個 test files／286 tests 與 production build 通過。
 - 1280×720 `battle-1` 與 844×390 `boss-1` 已成功渲染；內建 Browser 因 trusted-path 設定不可用，改用使用者先前授權的本機 Chrome headless。
-- 尚需逐節點互動打完、勝敗返回路線與 Console/404 完整證據，完成前不得合併 `main`。
+- 正式 Pages 七個節點都已到達 `PLAYER_IDLE`，實際點擊第一張「截勢」並點擊合法敵人後進入 `TARGET_PREVIEW`；enemy counts 為 2／3／3／4／4／3／3，全部符合 `EncounterCatalog`。
+- 正式勝利返回 `JourneyScene`；敗北重新建立同一節點；Boss 勝利返回路線並設置 Area 01 clear flag。
+- Runtime QA 找到並修正 Scene shutdown 時 Camera 已釋放後仍呼叫 `setZoom()`、導致勝利切場中止的缺陷；修正版正式 bundle `index-2wQi0fNw.js` 的完整重跑為 Console 0 errors。
+- Phase 11 的七節點互動、勝敗返回與 Boss runtime gate 已關閉；是否合併 `main` 仍是獨立發布決策。
