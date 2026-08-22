@@ -153,10 +153,16 @@ CI：run 192 build / test 全數通過，因此 Phase 9c 升為 `VERIFIED`。
 
 新增測試：enemy provider resolution、無 provider 拒絕、enemy / any-ally / self target routing、dispatch 0 / 1 / 2 張。
 
+CI 記錄：
+
+- run 201：`npm run build` 通過；`npm test` 235 個測試中 234 通過、1 個失敗。
+- 唯一失敗是 `RefactorBattleRuntimePhase9d.test.ts` 把 `any-ally` target list 順序寫死成 `['chikage', 'rin']`，實際 runtime 依 authoritative vitals insertion order 回傳 `['rin', 'chikage']`。
+- 此失敗不代表 target routing 規則錯誤；已修正測試，改驗證 runtime 的既定 snapshot 順序，不改 production target logic。
+
 流程紀錄：Phase 9d contract 已先建立；本次 source/tests 寫入後才補齊 progress 狀態，未完全符合索引要求的「contract + progress 皆先於 source/tests」順序。此偏差已在本文件明確記錄，不視為完整流程合規證據。
 
 限制：目前尚未引入 browser automation framework；此批先修正從程式路徑可確定的 feature-flag 互動阻塞，仍需在 CI 綠燈後做實際部署／瀏覽器 QA。
 
 ## 下一批
 
-先讓 Phase 9d CI 通過。通過後用 `?combat-refactor=1` 做實際部署／瀏覽器 QA，驗證 1280×720 與 844×390 的 Timeline、選牌、友軍／敵軍 Target Preview、Confirm、enemy action、調度 0～2 與下一 actor 循環；在 QA 證據完成前不切 production 預設入口。
+先讓修正後的 Phase 9d CI 通過。通過後用 `?combat-refactor=1` 做實際部署／瀏覽器 QA，驗證 1280×720 與 844×390 的 Timeline、選牌、友軍／敵軍 Target Preview、Confirm、enemy action、調度 0～2 與下一 actor 循環；在 QA 證據完成前不切 production 預設入口。
