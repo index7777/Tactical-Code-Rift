@@ -190,18 +190,21 @@ CI：run 228 build / test 通過。仍需 GitHub Pages default-entry / legacy-ro
 
 ## Phase 10b — Asset Reconnect
 
-狀態：`IMPLEMENTATION_PENDING`
+狀態：`IMPLEMENTED_PENDING_CI`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10B_ASSET_RECONNECT.md`
 
-目標：
+已實作：
 
-- 新版 Scene 自己 preload 現有角色 runtime manifest，不依賴 `BootScene.preload()`。
-- 四名隊友改用現有 pose / portrait 資產顯示。
-- 單 Timeline 接回 timeline portrait。
-- battlefield 接回 World 01 rooftop candidate 背景。
-- QA `ghost-fire` 只暫用現有 yokai runtime visual 作測試顯示，不宣稱正式 identity。
-- 保留 texture 缺失 fallback，先把真實資產接回再從畫面找 scale / pivot / overlap / 演出問題。
+- 新增 `RefactorBattleAssets.ts`，沿用唯一角色 runtime manifest 與 `queuePlayerAssets()`，不依賴 `BootScene.preload()`。
+- 新版 Scene 自己 preload 四名隊友 pose / portrait、World 01 rooftop candidate、QA yokai visual 與基礎 slash FX。
+- 四名隊友 battlefield 顯示改用實際 `idle-a` texture；保留 target ring、HP 與 texture 缺失 fallback。
+- 單 Timeline player node 優先顯示 timeline portrait；`ghost-fire` 使用 QA yokai visual；文字名稱與 `nextActionAt` 保留。
+- battlefield 接回既有 rooftop candidate 背景，party rail / intent panel / hand 仍由新版 layout 疊在上層。
+- `ghost-fire` 的 yokai 圖只作 QA visual，不視為正式 enemy identity master。
+- 新增 `RefactorBattleAssets.test.ts` 覆蓋四角色 manifest mapping、pose / timeline key 與 QA enemy mapping。
+
+CI：run 234 執行中。
 
 ## Deployment / Browser QA Gate
 
@@ -209,9 +212,9 @@ CI：run 228 build / test 通過。仍需 GitHub Pages default-entry / legacy-ro
 
 - Phase 10 CI 已通過。
 - default-entry / legacy rollback browser regression 尚待驗證。
-- 使用者要求先把現有資產接回新版戰鬥，再從真實畫面找問題；因此 Phase 10b 先執行，但 legacy source 仍保留。
+- 使用者要求先把現有資產接回新版戰鬥，再從真實畫面找問題；Phase 10b 已實作但尚待 CI / Pages browser QA。
 - Phase 10b CI 與 browser QA 完成前不進 legacy removal。
 
 ## 下一批
 
-實作 Phase 10b asset reconnect；CI 通過後用 GitHub Pages 檢查 1280×720 / 844×390、資產 404、角色 scale / pivot、Timeline portrait、背景遮擋與 default/legacy 入口。依實際問題再拆 actor normalization / animation sequencing。
+Phase 10b CI 通過後，用 GitHub Pages 檢查 1280×720 / 844×390、資產 404、角色 scale / pivot、Timeline portrait、背景遮擋與 default/legacy 入口。依實際問題再拆 actor normalization / animation sequencing。
