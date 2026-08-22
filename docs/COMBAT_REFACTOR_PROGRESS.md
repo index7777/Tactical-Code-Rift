@@ -162,7 +162,7 @@ CI：run 205 通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9F_AUTO_FLOW_LOCALIZATION.md`
 
-- 非玩家決策 state 自動推進，不再要求玩家按「開始下一角色／執行敵方行動」。
+- 非玩家決策 state 自動前進，不再要求玩家按「開始下一角色／執行敵方行動」。
 - 玩家只在選牌、選目標、確認、取消、調度時操作。
 - 玩家可見隊友名稱為凜／千景／朧／紅葉，QA 敵人顯示鬼火。
 - phase、card category、target rule、生命／傷害／延遲／意圖等主要介面中文化；internal id / enum 不變。
@@ -259,29 +259,40 @@ CI：run 266 build / test 通過。仍需 GitHub Pages 實機確認接敵距離�
 
 ## Phase 10j — Viewport / Battlefield / Floating HUD Cleanup
 
-狀態：`IMPLEMENTATION_IN_PROGRESS`
+狀態：`CI_VERIFIED_BROWSER_QA_FOUND_STAGE_MODEL_ISSUE`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10J_VIEWPORT_HUD_CLEANUP.md`
 
-本批依 current-head 截圖處理：
+- 寬螢幕一般比例改 cover/envelop；超寬保留 FIT。
+- DEFAULT actor ring 已移除，只保留 active/candidate/selected affordance。
+- Party rail、Intent panel、Shared Hand 已縮小。
+- CI run 323 build / test 通過。
+- 使用者實機截圖確認新的主要問題不是單純座標，而是角色 HOME 與手牌仍以單一畫面硬編排；不同 y 沒有完整綁到同一個 BG depth contract。
 
-- 寬螢幕左右黑柱：一般桌面／中寬橫向採 cover/envelop；超寬仍保留 FIT 以保護操作區。
-- 重新拉開四名我方 HOME silhouette 與 enemy x 基準，依目前 HD-2D BG 校正舞台腳點。
-- DEFAULT actor 不再常駐 ring；只在 active focus、合法候選、已選目標顯示 ring。
-- Party rail、Intent panel、Shared Hand 收斂成 compact floating UI。
-- Intent target 必須顯示公開 target name。
-- Phase 10i active actor camera focus / 前踏語意保留。
-- 本批不更換 BG、不增加角色／卡牌／foreground 資產；音訊 policy 另批處理。
+## Phase 10k — Adaptive Battle Stage / Hand Layout
+
+狀態：`IMPLEMENTATION_IN_PROGRESS`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE10K_ADAPTIVE_BATTLE_STAGE_HAND_LAYOUT.md`
+
+本批將 presentation 改為可重用舞台架構：
+
+- 建立 `BattleStageProfile`，描述 player/enemy/action zone、depth bands、BG focal point、safe crop / HUD safe bounds。
+- 角色 HOME 改由 formation slots + depth band 推導；actor identity 不再綁固定 x/y。
+- BG runtime framing 改為保持 aspect ratio 的 cover + focal anchor，不再直接拉伸到 1280×720。
+- Shared Hand 改為 collapsed / expanded metrics，由 phase / dispatch presentation state 決定；一般狀態讓出更多 battlefield 高度。
+- camera focus 改讀 stage safe bounds，保留 1.05 + 前踏，但不直接把 actor 當無限制 pan target。
+- rail-halt BG binary 保持 current-head，不因本批重構替換或升級資產。
+- 本批不混入 audio policy、canonical enemy mapping、EncounterCatalog 多敵人或額外 card/foreground 資產。
 
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10J_IMPLEMENTATION_IN_PROGRESS`
+狀態：`PHASE10K_IMPLEMENTATION_IN_PROGRESS`
 
-- Phase 10 CI 已通過；default-entry / legacy rollback browser regression 仍待確認。
-- Phase 10e CI run 266 已通過；後續 Phase 10f–10i 已進入 current-head presentation QA。
-- 使用者提供 current-head 截圖確認：新 HD-2D BG 已顯示，但左右黑柱、角色擁擠、常駐 actor rings 與過大的 Party／Intent／Hand 仍需修正。
-- Phase 10j 完成 CI 與 Pages browser QA 前不做 legacy removal。
+- Phase 10j CI run 323 已通過，但 browser QA 暴露 stage/hand architecture 仍需重構。
+- Phase 10k 完成自動驗證後，必須以 rail-halt 先驗證 1280×720 / 844×390，再用至少一個不同 profile 的純單元測試證明 Scene layout 不依賴單一 BG 座標。
+- Legacy combat removal 仍 blocked。
 
 ## 下一批
 
-先完成 Phase 10j viewport / battlefield composition / floating HUD cleanup；再做正式 audio policy 與 QA enemy canonical asset/portrait mapping。資產目錄只作可選來源，不因存在就全部接入。
+完成 Phase 10k adaptive stage / hand layout 後，再獨立處理正式 audio policy 與 QA enemy canonical asset/portrait mapping。資產庫是可選來源，不因存在就全部接入。
