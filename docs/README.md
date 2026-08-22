@@ -71,6 +71,7 @@ STATUS = AUTHORITATIVE_INDEX
 63. `COMBAT_REFACTOR_PHASE18C_ENEMY_PROFILE_MULTI_HIT_AOE_PRESENTATION.md`：Phase 18c enemy presentation 契約；把 authored enemy profile、hitCount 與 explicit targetIds 接入 presentation，multi-hit/AoE 僅改視覺接觸，不重複 resolver。
 64. `COMBAT_REFACTOR_PHASE19_CLASH_PRESENTATION.md`：Phase 19 Clash presentation 契約；Presentation 只消費 authoritative Clash outcome，Scene 以雙方同步 approach／contact／hit-stop／result branch／return 呈現，不重算 Clash 或重複 enemy resolver。
 65. `COMBAT_REFACTOR_PHASE20_SELECTION_TARGETING_ZOOM_PRESENTATION.md`：Phase 20 selection/targeting zoom 契約；以 PEEK 1.05、FOCUS 1.08、TARGETING 1.12 的 battlefield camera 語言區分輪到誰、已選牌與已選目標，TARGETING 只使用 authoritative selected target midpoint，不使用常態 cut-in。
+66. `COMBAT_REFACTOR_PHASE21_DEMO_CARD_UPGRADE_PROGRESSION.md`：Phase 21 Demo progression 契約；Area 01 固定三個 family-upgrade reward checkpoint，維持同一 10-card shared kit，不加入抽卡、稀有度、商店或大型 deckbuilder 系統。
 
 ## combat-refactor-v1 分支規則
 
