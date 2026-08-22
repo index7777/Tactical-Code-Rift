@@ -28,6 +28,40 @@ describe('encounter battle bootstrap', () => {
     }
   });
 
+  it('uses authored Normal action values instead of legacy EnemySkill tempo conversion', () => {
+    expect(createEncounterEnemyIntent('lantern-child', 0)).toMatchObject({
+      name: '鬼火疾走', damage: 7, delay: 3, targetIds: ['rin'],
+    });
+    expect(createEncounterEnemyIntent('lantern-child', 1)).toMatchObject({
+      name: '燈影截', damage: 8, delay: 4, targetIds: ['chikage'],
+    });
+    expect(createEncounterEnemyIntent('wayfarer-umbrella', 0)).toMatchObject({
+      name: '開傘壓', damage: 12, delay: 6,
+    });
+    expect(createEncounterEnemyIntent('wayfarer-umbrella', 1)).toMatchObject({
+      name: '傘骨重劈', damage: 15, delay: 7,
+    });
+  });
+
+  it('uses the approved Normal HP and base resilience in production encounter bootstrap', () => {
+    const { controller } = createEncounterBattleBootstrap('battle-3-lower');
+    const battle = controller.battle();
+
+    expect(battle.vitalsByActorId['wayfarer-umbrella']).toMatchObject({ hp: 58, maxHp: 58 });
+    expect(battle.vitalsByActorId['lost-monk']).toMatchObject({ hp: 48, maxHp: 48 });
+    expect(battle.vitalsByActorId['noose-ghost']).toMatchObject({ hp: 40, maxHp: 40 });
+    expect(battle.vitalsByActorId['wet-corpse']).toMatchObject({ hp: 42, maxHp: 42 });
+    expect(battle.resilienceByEnemyId['wayfarer-umbrella']).toMatchObject({ base: 1, temporary: 0 });
+    expect(battle.resilienceByEnemyId['lost-monk']).toMatchObject({ base: 1, temporary: 0 });
+    expect(battle.resilienceByEnemyId['noose-ghost']).toMatchObject({ base: 1, temporary: 0 });
+    expect(battle.resilienceByEnemyId['wet-corpse']).toMatchObject({ base: 0, temporary: 0 });
+  });
+
+  it('keeps Elite and Boss on the existing fallback until their dedicated migration phases', () => {
+    expect(createEncounterEnemyIntent('rain-warrior', 0).enemyId).toBe('rain-warrior');
+    expect(createEncounterEnemyIntent('rain-boss', 0).enemyId).toBe('rain-boss');
+  });
+
   it('rejects non-battle route nodes', () => {
     expect(() => createEncounterBattleBootstrap('departure')).toThrow(/unknown story encounter/);
   });
