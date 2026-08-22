@@ -67,7 +67,7 @@ function playerEffectForConsequence(
   if (consequence.playerEffectMode === 'none') return {};
 
   return {
-    damage: effect.damage === undefined ? undefined : Math.floor(effect.damage / 2),
+    damage: effect.damage,
     guardRatio: effect.guardRatio === undefined ? undefined : effect.guardRatio / 2,
     guardCap: effect.guardCap === undefined ? undefined : Math.floor(effect.guardCap / 2),
   };
@@ -84,6 +84,12 @@ function cardForConsequence(
       effect: playerEffectForConsequence(card.definition.effect, consequence),
     },
   };
+}
+
+function damageMultiplierForConsequence(consequence: ClashConsequence): number {
+  if (consequence.playerEffectMode === 'full') return 1;
+  if (consequence.playerEffectMode === 'half') return 0.5;
+  return 0;
 }
 
 function enemyIntentForConsequence(
@@ -138,6 +144,8 @@ export function resolveBattlePreviewWithClash(
   const basePreview = resolveBattlePreview({
     ...input,
     card: adjustedCard,
+    damageMultiplier: damageMultiplierForConsequence(consequence),
+    allowBreakWindowConsumption: consequence.playerEffectMode !== 'none',
   });
   const enemyIntentBefore = cloneIntent(input.clash.enemyIntent)!;
   const enemy = enemyIntentForConsequence(input.clash.enemyIntent, consequence);
