@@ -57,5 +57,6 @@ export function intentStateFromEnemyAction(
     canGuard: counterplay.guardable,
     canRedirect: counterplay.redirectable,
     statusEffects: action.statuses.map((status) => status.id),
+    presentationProfile: action.presentationProfile,
   });
 }
