@@ -9,12 +9,15 @@ const formations: Record<number, Point[]> = {
   4: [{ x: 48, y: -138 }, { x: -42, y: -46 }, { x: 48, y: 46 }, { x: -42, y: 138 }],
 };
 
+// Battle Layout v2: player formation is authored on the right and faces left;
+// enemies occupy the left side and face right. The per-slot offsets are mirrored
+// around each team's home anchor so formation depth remains unchanged.
 export function standbyPosition(team: 'player' | 'enemy', count: number, index: number): Point {
   const point = formations[count]![index]!;
   return {
-    x: (team === 'player' ? 320 : 960) + (team === 'player' ? -point.x : point.x),
+    x: (team === 'player' ? 960 : 320) + (team === 'player' ? point.x : -point.x),
     y: 320 + point.y,
   };
 }
 
-export const clashPositions = () => ({ enemy: { x: 720, y: 320 }, player: { x: 560, y: 320 } });
+export const clashPositions = () => ({ enemy: { x: 560, y: 320 }, player: { x: 720, y: 320 } });
