@@ -1,3 +1,5 @@
+import type { ActionPresentationProfile } from '../actions/ActionDefinition';
+
 export type IntentKind = 'normal' | 'hard-stagger';
 
 export interface IntentState {
@@ -14,6 +16,7 @@ export interface IntentState {
   canGuard: boolean;
   canRedirect: boolean;
   statusEffects: string[];
+  presentationProfile?: ActionPresentationProfile;
 }
 
 function assertNonNegativeInteger(value: number, label: string): void {
@@ -56,5 +59,6 @@ export function createHardStaggerIntent(original: IntentState): IntentState {
     canGuard: false,
     canRedirect: false,
     statusEffects: [],
+    presentationProfile: 'none',
   };
 }
