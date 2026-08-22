@@ -1,4 +1,10 @@
-import type { RefactorCardCategory, RefactorDeckState, RefactorTargetRule } from '../../../core/cards/RefactorCardTypes';
+import type {
+  RefactorCardCategory,
+  RefactorCardEffect,
+  RefactorDeckState,
+  RefactorTargetRule,
+} from '../../../core/cards/RefactorCardTypes';
+import { cardEffectLines } from './CardMasterPresentation';
 
 export interface HandCardView {
   instanceId: string;
@@ -6,6 +12,8 @@ export interface HandCardView {
   category: RefactorCardCategory;
   delay: number;
   targetRule: RefactorTargetRule;
+  effect: RefactorCardEffect;
+  effectLines: string[];
   selected: boolean;
 }
 
@@ -19,6 +27,8 @@ export function buildHandCards(
     category: card.definition.category,
     delay: card.definition.delay,
     targetRule: card.definition.targetRule,
+    effect: { ...card.definition.effect },
+    effectLines: cardEffectLines(card.definition.effect),
     selected: card.instanceId === selectedInstanceId,
   }));
 }
