@@ -75,6 +75,7 @@ STATUS = AUTHORITATIVE_INDEX
 67. `COMBAT_REFACTOR_PHASE21B_JOURNEY_UPGRADE_REWARD_STATE.md`：Phase 21b Journey reward state 契約；把三個里程碑做成 claim-once 的 pure progression state，兩條 battle-3 分支共用同一領取點。
 68. `COMBAT_REFACTOR_PHASE21C_JOURNEY_UPGRADE_REWARD_WIRING.md`：Phase 21c production wiring 契約；Journey registry 擁有升級狀態，戰後顯示 deterministic family choice，並透過 one-shot application handoff 把已擁有升級送入下一場 battle bootstrap。
 69. `COMBAT_REFACTOR_PHASE22_DEMO_REGRESSION_GATE.md`：Phase 22 Area 01 Demo regression gate；覆蓋兩條 canonical route、三個 claim-once upgrade milestone、Boss entry 三升級、one-shot handoff baseline 與 1280×720／844×390 responsive policy，Browser visual QA 仍為資產生產前最後 gate。
+70. `COMBAT_REFACTOR_PHASE23_FINAL_BROWSER_QA_ASSET_UNLOCK_GATE.md`：Phase 23 最終 Browser QA／資產解鎖 gate；要求兩個 canonical viewport、完整 progression 路徑、decision camera、八種 action profile、Clash、Boss multi-hit/AoE 與 HUD/formation runtime evidence。此 gate 通過前禁止開始生成五張 replacement family plates。
 
 ## combat-refactor-v1 分支規則
 
