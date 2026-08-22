@@ -54,6 +54,7 @@ STATUS = AUTHORITATIVE_INDEX
 46. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 47. `LEGACY_COMBAT_ARCHIVE.md`：舊戰鬥的歷史封存點與取回規則；不得作為 runtime 入口。
 48. `COMBAT_REFACTOR_PHASE11_ROUTE_CUTOVER.md`：新版戰鬥取代正式 runtime、七節點接線、音訊對齊與舊版封存契約。
+49. `COMBAT_REFACTOR_PHASE12_FORMATION_HAND_CHOREOGRAPHY.md`：4v4 上二／下二雙排隊形、完整卡牌下緣 PEEK、選牌抽出、執行退場、enemy overhead 與 responsive QA 的 presentation 重構契約；本批禁止生成資產。
 
 ## combat-refactor-v1 分支規則
 

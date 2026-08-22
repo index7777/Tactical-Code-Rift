@@ -356,3 +356,13 @@ CI：run 353 build 通過，但 Phase 10j 遺留 `max player x <= 500` assertion
 - 正式勝利返回 `JourneyScene`；敗北重新建立同一節點；Boss 勝利返回路線並設置 Area 01 clear flag。
 - Runtime QA 找到並修正 Scene shutdown 時 Camera 已釋放後仍呼叫 `setZoom()`、導致勝利切場中止的缺陷；修正版正式 bundle `index-2wQi0fNw.js` 的完整重跑為 Console 0 errors。
 - Phase 11 的七節點互動、勝敗返回與 Boss runtime gate 已關閉；是否合併 `main` 仍是獨立發布決策。
+
+## Phase 12 — 2×2 Formation / Hand Choreography
+
+狀態：`CONTRACT_READY_IMPLEMENTATION_PENDING`
+
+- 採用我方／敵方共用 rear 2＋front 2 的 4v4 formation；同排 scale 相同，以兩級淺透視取代四人各自不同倍率。
+- 採用完整卡牌 `PEEK／FOCUS／TARGETING／HIDDEN／DISPATCH` presentation states；idle 時卡牌藏入畫面下緣約一半，selected 才完整抽出，ACTION／resolve 時全部退場。
+- enemy Intent 正式方向改為 actor-anchored overhead modules；Timeline／Party 維持低權重，不生成厚重 HUD skin。
+- 規劃 8 個工作包、3 個停止點、約 12–16 個 source/test 檔新增或修改；先完成 pure policy＋灰盒，再接 runtime presenters，最後跑七節點回歸。
+- 本 Phase 不生成或自行核准任何資產；Batch B 預定非破壞性接入 `tactical-code-rift-card-assets-v1` 的 1 張 neutral frame/body 與 5 張 family visual 作 runtime trial，並補 provenance／alpha／crop／實機 composite gate。combat core、音樂、音效、數值與敵人 AI不變。

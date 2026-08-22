@@ -978,3 +978,11 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Canonical enemy counts passed for all nodes: `battle-1=2`, `battle-2-upper=3`, `battle-2-lower=3`, `battle-3-upper=4`, `battle-3-lower=4`, `elite-1=3`, `boss-1=3`. Battlefield families and normal/Boss music keys also matched their encounter policy.
 - Normal victory returned to `JourneyScene` without setting Area clear; defeat restarted `battle-2-upper`; Boss victory returned to `JourneyScene` with `journey-area01-cleared=true`. Final production run reported zero Console errors.
 - Verification: integration branch 58 files／283 tests, Pages release branch 59 files／286 tests, both production builds and `git diff --check` passed.
+
+## 2026-08-22 — Phase 12 formation and hand choreography contract
+
+- Adopted a full presentation refactor instead of further coordinate patching: both teams use a rear-2／front-2 formation so the battlefield can support complete 4v4 without four unrelated actor scales.
+- Replaced the old collapsed/expanded hand direction with full-card states: idle cards remain full height but hide 45–55% below the viewport; selected/targeting pulls one card into focus; action/resolve hides all decision UI; dispatch remains a separate neutral state.
+- Adopted actor-anchored enemy overhead modules and explicit UI visibility choreography so selected card, target preview and action feedback do not compete with Timeline／Party／Intent at the same time.
+- Defined 8 work packages in `COMBAT_REFACTOR_PHASE12_FORMATION_HAND_CHOREOGRAPHY.md`, split into graybox policy, runtime presenters and full-route regression stop points. Estimated impact is 12–16 source/test files. This documentation batch generates no assets and changes no runtime behavior.
+- User designated `D:/Tactical-Code-Rift/tactical-code-rift-card-assets-v1` as the existing card frame/pattern source: one 1024×1536 RGBA neutral frame/body and five 1254×1254 RGBA family visuals. Phase 12 will first graybox the hand motion, then composite these sources through clipping and runtime text; it will not regenerate them or infer approval from the folder.
