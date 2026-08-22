@@ -74,7 +74,7 @@ describe('Clash presentation boundary', () => {
         enemyScore: { base: 4, timing: 0, specialization: 0, state: 0, total: 4 },
         outcome: 'player-win',
       },
-      consequence: { playerEffectMode: 'full', enemyIntentMode: 'cancel' },
+      consequence: { outcome: 'player-win', playerEffectMode: 'full', enemyIntentMode: 'cancel' },
       contestedEnemyId: 'ghost-fire',
       enemyIntentChange: 'canceled',
     }));
@@ -102,7 +102,7 @@ describe('Clash presentation boundary', () => {
         enemyScore: { base: 5, timing: 0, specialization: 0, state: 0, total: 5 },
         outcome: 'enemy-win',
       },
-      consequence: { playerEffectMode: 'none', enemyIntentMode: 'full' },
+      consequence: { outcome: 'enemy-win', playerEffectMode: 'none', enemyIntentMode: 'full' },
       contestedEnemyId: 'ghost-fire',
       enemyIntentChange: 'none',
     }));
