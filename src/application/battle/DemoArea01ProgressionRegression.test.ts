@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  claimDemoCardUpgradeReward,
-  normalizeDemoCardUpgradeProgressionState,
-  pendingDemoCardUpgradeReward,
-} from '../../core/cards/DemoCardUpgradeRewardState';
+  chooseDemoUpgradeReward,
+  createDemoCardUpgradeRunState,
+  offerDemoUpgradeRewardAfterVictory,
+} from '../../core/cards/DemoCardUpgradeRunState';
 import { refactorViewportScaleMode } from '../../presentation/battle/refactor/RefactorBattleViewportPolicy';
 import {
   clearDemoCardUpgradeEncounterHandoff,
@@ -25,28 +25,34 @@ function card(definitions: ReturnType<typeof definitionsFor>, id: string) {
 
 function runBranch(battle2Id: string, battle3Id: string) {
   clearDemoCardUpgradeEncounterHandoff();
-  let progression = normalizeDemoCardUpgradeProgressionState();
+  let progression = createDemoCardUpgradeRunState();
 
-  const first = pendingDemoCardUpgradeReward('battle-1', progression)!;
-  progression = claimDemoCardUpgradeReward(progression, first, 'quick-v1');
+  progression = chooseDemoUpgradeReward(
+    offerDemoUpgradeRewardAfterVictory(progression, 'battle-1'),
+    'quick-v1',
+  );
   const battle2 = definitionsFor(battle2Id, progression.ownedUpgradeIds);
   expect(card(battle2, 'qa-quick-cut').effect.damage).toBe(10);
-  expect(pendingDemoCardUpgradeReward(battle2Id, progression)).toBeUndefined();
+  expect(offerDemoUpgradeRewardAfterVictory(progression, battle2Id)).toEqual(progression);
 
-  const second = pendingDemoCardUpgradeReward(battle3Id, progression)!;
-  progression = claimDemoCardUpgradeReward(progression, second, 'guard-v1');
+  progression = chooseDemoUpgradeReward(
+    offerDemoUpgradeRewardAfterVictory(progression, battle3Id),
+    'guard-v1',
+  );
   const elite = definitionsFor('elite-1', progression.ownedUpgradeIds);
   expect(card(elite, 'qa-quick-cut').effect.damage).toBe(10);
   expect(card(elite, 'qa-guard-stance').effect.guardCap).toBe(11);
 
-  const third = pendingDemoCardUpgradeReward('elite-1', progression)!;
-  progression = claimDemoCardUpgradeReward(progression, third, 'heavy-v1');
+  progression = chooseDemoUpgradeReward(
+    offerDemoUpgradeRewardAfterVictory(progression, 'elite-1'),
+    'heavy-v1',
+  );
   const boss = definitionsFor('boss-1', progression.ownedUpgradeIds);
   expect(progression.ownedUpgradeIds).toEqual(['quick-v1', 'guard-v1', 'heavy-v1']);
   expect(card(boss, 'qa-quick-cut').effect.damage).toBe(10);
   expect(card(boss, 'qa-guard-stance').effect.guardCap).toBe(11);
   expect(card(boss, 'qa-heavy-cleave').effect.damage).toBe(21);
-  expect(pendingDemoCardUpgradeReward('boss-1', progression)).toBeUndefined();
+  expect(offerDemoUpgradeRewardAfterVictory(progression, 'boss-1')).toEqual(progression);
 
   const directBaseline = createEncounterBattleBootstrap('battle-1').controller.deck();
   const baselineDefinitions = [...directBaseline.hand, ...directBaseline.drawPile, ...directBaseline.discardPile]
