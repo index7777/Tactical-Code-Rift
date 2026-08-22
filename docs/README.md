@@ -22,14 +22,15 @@ STATUS = AUTHORITATIVE_INDEX
 14. `COMBAT_REFACTOR_PHASE9_PRESENTATION_FOUNDATION.md`：Phase 9 新 Presentation 基礎契約；定義單 Timeline、共享手牌、Target Preview、Actor／Intent presenter 與平行 `RefactorBattleScene` 骨架。
 15. `COMBAT_REFACTOR_PHASE9B_PRESENTATION_WIRING.md`：Phase 9b Controller / Presentation wiring 契約；定義 `RefactorBattleRuntime`、Scene registry 注入與互動邊界。
 16. `COMBAT_REFACTOR_PHASE9C_FEATURE_FLAG_BOOTSTRAP.md`：Phase 9c feature-flag bootstrap 契約；定義 `?combat-refactor=1`、deterministic QA controller bootstrap、composition-root runtime 注入與 legacy-default 保留條件。
-17. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
-18. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-19. `art-bible.md`：角色、怪物、背景與透明素材規範。
-20. `characters/README.md`：角色母版與 runtime 對照。
-21. `areas/README.md`：區域背景與 runtime 狀態。
-22. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-23. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-24. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+17. `COMBAT_REFACTOR_PHASE9D_FLAG_QA_INTERACTIONS.md`：Phase 9d feature-flag QA 互動完成契約；補齊 enemy resolution、合法目標 routing 與調度 0～2 張 UI path。
+18. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／下一批狀態；只記進度，不取代規格與實作計畫。
+19. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+20. `art-bible.md`：角色、怪物、背景與透明素材規範。
+21. `characters/README.md`：角色母版與 runtime 對照。
+22. `areas/README.md`：區域背景與 runtime 狀態。
+23. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+24. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+25. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 
 ## combat-refactor-v1 分支規則
 
