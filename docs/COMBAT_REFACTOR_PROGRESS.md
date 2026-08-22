@@ -18,8 +18,8 @@ CI：run 100 通過。
 
 狀態：`VERIFIED`
 
-- `WAITING_FOR_NEXT_ACTOR -> PLAYER_IDLE / ENEMY_EXECUTING -> ... -> RESOLVING`。
-- 只有 Timeline 最前角色可行動；玩家確認後立即執行，不等待其他隊友預排。
+- unit-level player / enemy turn flow。
+- 只有 Timeline 最前角色可行動；玩家確認後立即執行。
 
 CI：run 104 通過。
 
@@ -27,11 +27,10 @@ CI：run 104 通過。
 
 狀態：`VERIFIED`
 
-- 共用 5 張手牌、出 1 補 1、未使用牌保留、deterministic reshuffle。
-- 調度 0～2 張，Delay 3；無 AP / Mana。
+- 共用 5 張手牌、出 1 補 1、調度 0–2 張 Delay 3、無 AP / Mana。
 - Controller 只能提交手牌內 card instance，卡牌 Delay 驅動重新排程。
 
-CI：run 114 曾因測試把下一 actor 寫死而失敗；修正為依 Timeline 絕對排序後，run 125 通過。
+CI：run 125 通過。
 
 ## Phase 4 — Intent / Control Resilience / Break Window
 
@@ -39,8 +38,8 @@ CI：run 114 曾因測試把下一 actor 寫死而失敗；修正為依 Timeline
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE4_DOMAIN.md`
 
-- Intent 與 persistent status 分離。
-- Delay / Interrupt 分流、temporary resilience、armor-break / imbalance window lifecycle。
+- Intent / persistent status 分離。
+- Delay / Interrupt、temporary resilience、armor-break / imbalance lifecycle。
 
 CI：run 125 通過。
 
@@ -51,9 +50,9 @@ CI：run 125 通過。
 先行文件：`docs/COMBAT_REFACTOR_PHASE5_PREVIEW.md`
 
 - Preview 集中 damage / HP / lethal / Delay / Timeline / Intent / Break Window。
-- `targetResilienceAfter` 供 commit 直接採用，presentation 不自行重算。
+- presentation 不自行重算。
 
-CI：run 130 曾有 category 型別邊界錯誤；修正後 run 132 通過。
+CI：run 132 通過。
 
 ## Phase 5b — Controller Preview Wiring
 
@@ -61,8 +60,8 @@ CI：run 130 曾有 category 型別邊界錯誤；修正後 run 132 通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE5B_CONTROLLER_PREVIEW.md`
 
-- Controller 目標選擇直接呼叫 `resolveBattlePreview()`。
-- `preview()` defensive clone；stale preview 在所有 action boundary 清除。
+- Controller target preview 直接呼叫 `resolveBattlePreview()`。
+- stale preview 在 action boundary 清除。
 
 CI：run 137 通過。
 
@@ -72,9 +71,8 @@ CI：run 137 通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE6_RESOLUTION.md`
 
-- `BattleResolutionState` 集中 authoritative battle snapshot。
-- `resolveBattleAction()` 先取得同一份 Preview，再提交 HP / Timeline / Intent / resilience / Break Window。
-- deterministic break-window id；Preview / Execute parity 有測試。
+- `BattleResolutionState` 成為 authoritative battle snapshot。
+- `resolveBattleAction()` 提交同一份 Preview 規則結果。
 
 CI：run 143 通過。
 
@@ -84,8 +82,8 @@ CI：run 143 通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE6B_CONTROLLER_RESOLUTION.md`
 
-- Controller 直接持有 `BattleResolutionState`。
-- 玩家一般卡牌完整走 `resolveBattleAction()`；調度為唯一 schedule-only player path。
+- Controller 直接持有 authoritative resolution state。
+- 玩家一般卡牌完整走 `resolveBattleAction()`；調度為 schedule-only player path。
 
 CI：run 148 通過。
 
@@ -95,9 +93,8 @@ CI：run 148 通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE7_ENEMY_ACTION.md`
 
-- 正常 Intent 提交直接傷害、死亡移除、成功行動後 temporary resilience / Break Window cleanup。
-- `hard-stagger` 消耗 action opportunity 但不是成功行動。
-- 下一 Intent Delay 成為 enemy scheduling source of truth；Controller 不再接受 raw enemyDelay。
+- 公開 Intent 執行、死亡移除、成功行動 cleanup、下一 Intent reveal / reschedule。
+- Controller 不再接受 raw enemyDelay。
 
 CI：run 155 通過。
 
@@ -107,54 +104,60 @@ CI：run 155 通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE8_SPECIALIZATION_GUARD.md`
 
-- 標準守勢 50% 減傷、單次上限 8。
-- 千景可守任意存活友軍；成功減傷觸發承勢 +1 Delay。
-- 凜 quick 搶先成立 +3。
-- 朧每個 enemy successful-action cycle 第一次有效 disruption Delay requested +1。
-- 紅葉 heavy 消耗 armor-break 時在 +50% base damage 外再 +4。
-- Preview / Execute 共用規則，Controller snapshots defensive clone。
+- 千景 Guard / 承勢、凜 quick +3、朧首個有效 Delay +1、紅葉破甲 heavy +4。
+- Preview / Execute 共用角色專精規則。
 
-CI 記錄：
-
-- run 164：build 通過，3 個舊測試仍期待凜 quick 只打 base 8 而失敗。
-- 已把 Preview / Resolution / Controller 舊斷言改為驗證 `specializationBonusDamage = 3`、`finalDamage = 11`、39 HP → 28。
-- run 168 build / test 全數通過，因此 Phase 8 升為 `VERIFIED`。
+CI：run 164 暴露 3 個舊凜 quick 基線斷言；修正舊測試後 run 168 build / test 全數通過。
 
 ## Phase 9 — Presentation Foundation
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9_PRESENTATION_FOUNDATION.md`
 
+- 新 `src/presentation/battle/refactor/` presenter 路徑。
+- 單一敵我 Timeline、Shared Hand、Target Preview、Actor layout、Enemy Intent presenter。
+- `RefactorBattleScene` 為平行 Scene；`BootScene` 仍是預設 runtime。
+- Battlefield 高度 388px，超過 1280×720 畫面的 50%。
+
+CI：run 179 build / test 全數通過，因此 Phase 9 升為 `VERIFIED`。
+
+## Phase 9b — Controller / Presentation Wiring
+
+狀態：`IMPLEMENTED_PENDING_CI`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE9B_PRESENTATION_WIRING.md`
+
 新增：
 
-- `src/presentation/battle/refactor/TimelinePresenter.ts`
-- `src/presentation/battle/refactor/HandPresenter.ts`
-- `src/presentation/battle/refactor/TargetPreviewPresenter.ts`
-- `src/presentation/battle/refactor/BattleActorPresenter.ts`
-- `src/presentation/battle/refactor/EnemyIntentPresenter.ts`
-- `src/presentation/battle/refactor/RefactorPresentation.test.ts`
+- `src/presentation/battle/refactor/RefactorBattleRuntime.ts`
+- `src/presentation/battle/refactor/RefactorBattleRuntime.test.ts`
+
+已更新：
+
 - `src/presentation/scenes/RefactorBattleScene.ts`
 
 已實作：
 
-- Timeline presenter 只輸出單一敵我混合 Timeline，預設最多 8 個節點，enemy node 直接讀公開 Intent。
-- Hand presenter 只呈現共享手牌的卡名 / category / Delay / target rule / selected，不提供 AP / Mana 欄位。
-- Target Preview presenter 只映射 `BattlePreviewResult`，不自行重算傷害、Delay、角色專精或 Intent。
-- Actor layout 固定四名我方 Home Position、中央 Action / Reaction Position。
-- 1280×720 layout 中 Battlefield 高度 388px，超過畫面 50%。
-- Enemy Intent presenter 與 persistent status 分離。
-- `RefactorBattleScene` 已建立全新單 Timeline / Battlefield / Party / Intent / Shared Hand / 調度骨架。
-- `src/main.ts` 僅註冊 `RefactorBattleScene`，仍由 `BootScene` 作預設啟動；尚未切 live runtime。
+- `RefactorBattleRuntime` 只持有 `BattleTurnController` reference，不建立第二份 mutable combat state。
+- `view()` 即時讀 `turn()` / `battle()` / `deck()` / `preview()`，再交給 Phase 9 presenters 建立 Timeline / Hand / Intent / Preview view model。
+- view model 暴露 phase、active actor、vitals、canConfirm、canDispatch；不暴露 authoritative mutable reference。
+- UI interaction methods 已接 Controller：start actor、select card、preview target、cancel、confirm、resolve player action、dispatch。
+- `RefactorBattleScene` 從 registry `refactor-battle-runtime` 取得 runtime；沒有 runtime 時只顯示 dormant diagnostic，不建立 mock battle state。
+- Scene 的卡片、敵方 target、確認、取消、調度 0 張與開始下一角色按鈕都只呼叫 runtime methods。
+- Scene 顯示的 Preview 數值直接來自 `BattlePreviewResult` presenter mapping，不重算 damage / Delay / specialization。
+- 預設 runtime 仍未切換；`BootScene` 不動。
 
-目前刻意不做：
+測試覆蓋：
 
-- feature flag runtime switch。
-- Controller interaction wiring。
-- 正式角色／敵人素材與動畫。
-- redirect / counter / persistent status UI。
-- legacy combat removal。
+- Controller snapshots -> Timeline / Hand / Intent / vitals view。
+- selected card state。
+- Rin quick authoritative Preview：base 8 + specialization 3 = 11，39 HP -> 28。
+- confirm 前不改 HP；resolve 後 view 反映 committed HP / Timeline。
+- cancel 清 preview。
+- view defensive isolation。
+- dispatch 走 Controller Delay 3。
 
 ## 下一批
 
-先讓 Phase 9 foundation CI 通過。通過後再做 presentation interaction wiring：把 `BattleTurnController` 的 turn / deck / preview / battle snapshots 接到新 presenters 與 `RefactorBattleScene`，仍不切換預設 runtime。
+先讓 Phase 9b CI 通過。通過後才進 feature-flag runtime switch（`?combat-refactor=1`），建立真正 encounter bootstrap / controller injection；預設仍先保持 legacy runtime，直到 flag QA 完成。
