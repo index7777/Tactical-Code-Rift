@@ -2,11 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { cardEffectLines, cardFamilyStyle, cardSelectionPresentation } from './CardMasterPresentation';
 
 describe('CardMasterPresentation', () => {
-  it('assigns a distinct stable style to every refactor card family', () => {
+  it('assigns a distinct stable style and one shared texture to every refactor card family', () => {
     const categories = ['quick', 'heavy', 'guard', 'disruption', 'break'] as const;
     const styles = categories.map(cardFamilyStyle);
     expect(new Set(styles.map((style) => style.stroke)).size).toBe(categories.length);
     expect(styles.map((style) => style.label)).toEqual(['迅擊', '重擊', '守勢', '干擾', '破勢']);
+    expect(styles.map((style) => style.textureKey)).toEqual([
+      'refactor-card-family-quick',
+      'refactor-card-family-heavy',
+      'refactor-card-family-guard',
+      'refactor-card-family-disruption',
+      'refactor-card-family-break',
+    ]);
   });
 
   it('summarizes player-facing effects without reproducing target-rule enums', () => {
