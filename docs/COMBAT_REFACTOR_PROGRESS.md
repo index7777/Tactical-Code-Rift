@@ -60,9 +60,6 @@ CI：run 132 通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE5B_CONTROLLER_PREVIEW.md`
 
-- Controller target preview 直接呼叫 `resolveBattlePreview()`。
-- stale preview 在 action boundary 清除。
-
 CI：run 137 通過。
 
 ## Phase 6 — Battle Resolution / Commit
@@ -82,9 +79,6 @@ CI：run 143 通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE6B_CONTROLLER_RESOLUTION.md`
 
-- Controller 直接持有 authoritative resolution state。
-- 玩家一般卡牌完整走 `resolveBattleAction()`；調度為 schedule-only player path。
-
 CI：run 148 通過。
 
 ## Phase 7 — Enemy Action Resolver
@@ -94,7 +88,6 @@ CI：run 148 通過。
 先行文件：`docs/COMBAT_REFACTOR_PHASE7_ENEMY_ACTION.md`
 
 - 公開 Intent 執行、死亡移除、成功行動 cleanup、下一 Intent reveal / reschedule。
-- Controller 不再接受 raw enemyDelay。
 
 CI：run 155 通過。
 
@@ -105,9 +98,8 @@ CI：run 155 通過。
 先行文件：`docs/COMBAT_REFACTOR_PHASE8_SPECIALIZATION_GUARD.md`
 
 - 千景 Guard / 承勢、凜 quick +3、朧首個有效 Delay +1、紅葉破甲 heavy +4。
-- Preview / Execute 共用角色專精規則。
 
-CI：run 164 暴露 3 個舊凜 quick 基線斷言；修正舊測試後 run 168 build / test 全數通過。
+CI：run 164 暴露 3 個舊凜 quick 基線斷言；修正後 run 168 通過。
 
 ## Phase 9 — Presentation Foundation
 
@@ -115,12 +107,10 @@ CI：run 164 暴露 3 個舊凜 quick 基線斷言；修正舊測試後 run 168 
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9_PRESENTATION_FOUNDATION.md`
 
-- 新 `src/presentation/battle/refactor/` presenter 路徑。
-- 單一敵我 Timeline、Shared Hand、Target Preview、Actor layout、Enemy Intent presenter。
-- `RefactorBattleScene` 為平行 Scene；`BootScene` 仍是預設 runtime。
-- Battlefield 高度 388px，超過 1280×720 畫面的 50%。
+- 新 presenter path、單 Timeline、Shared Hand、Target Preview、Actor layout、Enemy Intent。
+- `RefactorBattleScene` 為平行 Scene；Battlefield 高度 388px。
 
-CI：run 179 build / test 全數通過。
+CI：run 179 通過。
 
 ## Phase 9b — Controller / Presentation Wiring
 
@@ -128,46 +118,48 @@ CI：run 179 build / test 全數通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9B_PRESENTATION_WIRING.md`
 
-- `RefactorBattleRuntime` 是 Controller -> Presenter 唯一 adapter，不保存第二份 mutable combat state。
-- Scene 的 start / select / target preview / cancel / confirm / player resolve / dispatch 全部呼叫 runtime methods。
-- Scene 顯示的 Timeline / Hand / Intent / vitals / Preview 全部來自 Controller snapshots 與 presenters。
-- 沒有 registry runtime 時 Scene 保持 dormant，不建立 mock battle state。
+- `RefactorBattleRuntime` 是 Controller -> Presenter 唯一 adapter。
+- Scene 的玩家互動與 view 全部經 runtime / presenters。
 
-CI：run 185 build / test 全數通過，因此 Phase 9b 升為 `VERIFIED`。
+CI：run 185 通過。
 
 ## Phase 9c — Feature Flag Bootstrap
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9C_FEATURE_FLAG_BOOTSTRAP.md`
 
-新增：
+- `?combat-refactor=1` 才把 `RefactorBattleScene` 放到第一啟動順位；沒有 flag 仍以 `BootScene` 為預設。
+- deterministic QA bootstrap 建立四名我方、`ghost-fire`、mixed Timeline、公開 Intent、shared deck 與 `BattleTurnController`。
+- `main.ts` 在 Phaser `preBoot` 注入 `refactor-battle-runtime`。
 
-- `src/application/battle/createRefactorBattleBootstrap.ts`
-- `src/application/battle/createRefactorBattleBootstrap.test.ts`
+CI：run 192 build / test 全數通過，因此 Phase 9c 升為 `VERIFIED`。
 
-已更新：
+## Phase 9d — Feature-Flag QA Interaction Completion
 
-- `src/main.ts`
+狀態：`IMPLEMENTED_PENDING_CI`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE9D_FLAG_QA_INTERACTIONS.md`
 
 已實作：
 
-- `?combat-refactor=1` 才把 `RefactorBattleScene` 排成第一啟動 Scene；沒有 flag 時仍由 `BootScene` 啟動。
-- application bootstrap 建立 deterministic QA `BattleResolutionState` + shared deck + `BattleTurnController`，不 import Phaser / presentation。
-- QA state 同時包含 `rin / chikage / oboro / mo` 與 `ghost-fire`，使用單一 mixed Timeline。
-- QA deck 含 quick / heavy / guard / disruption / break，初始 shared hand 仍為 5。
-- `main.ts` 作 composition root，把 controller 包成 `RefactorBattleRuntime`，並在 Phaser `preBoot` 注入 registry key `refactor-battle-runtime`。
-- `BootScene` 沒有被改成新版戰鬥容器。
-- QA bootstrap 不是正式 20 張 production deck，也不代表正式 encounter balance。
+- `RefactorBattleRuntime` 可注入 `RefactorEnemyIntentProvider`，Scene 不自行決定 enemy Intent。
+- `resolveActiveEnemyAction()` 讓 `ENEMY_EXECUTING` 正式走 Controller -> EnemyActionResolver -> `WAITING_FOR_NEXT_ACTOR`。
+- QA bootstrap 新增 deterministic `createRefactorQaEnemyIntent()`，由 `main.ts` composition root 注入 runtime。
+- `RefactorBattleView.targetableActorIds` 讓 Scene 只對目前 selected card 的合法 team target 掛互動。
+- 千景 `any-ally` Guard 可以在 Scene 點我方角色進 Target Preview。
+- Scene 新增純 UI ephemeral 調度模式，可選 0 / 1 / 2 張後一次提交；不建立第二份 combat state。
+- runtime 仍拒絕沒有 provider 的 enemy resolution。
 
-測試覆蓋：
+新增測試：
 
-- 四名我方 + 一名敵人存在。
-- shared hand = 5。
-- 五種新版 card category 都存在於 QA deck。
-- timeline-front `rin` 可由 controller 正常開始。
-- 相同 seed bootstrap deterministic。
+- enemy provider resolution path。
+- 無 provider 拒絕 enemy resolution。
+- enemy / any-ally / self target routing。
+- dispatch 0 / 1 / 2 張。
+
+限制：目前尚未引入 browser automation framework；此批先修正從程式路徑可確定的 feature-flag 互動阻塞，仍需在 CI 綠燈後做實際部署／瀏覽器 QA。
 
 ## 下一批
 
-先讓 Phase 9c CI 通過。通過後以 `?combat-refactor=1` 做實際 browser/runtime QA；確認新版 Scene 可啟動、Timeline / Shared Hand / Target Preview 可操作後，再處理 enemy runtime interaction 與 feature-flag QA 缺陷，不切 production 預設入口。
+先讓 Phase 9d CI 通過。通過後用 `?combat-refactor=1` 做實際部署／瀏覽器 QA，驗證 1280×720 與 844×390 的 Timeline、選牌、友軍／敵軍 Target Preview、Confirm、enemy action、調度 0～2 與下一 actor 循環；在 QA 證據完成前不切 production 預設入口。
