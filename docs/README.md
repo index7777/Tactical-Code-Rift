@@ -40,14 +40,15 @@ STATUS = AUTHORITATIVE_INDEX
 32. `COMBAT_REFACTOR_PHASE10M_STAGE_FORMATION_SCALE_CALIBRATION.md`：Phase 10m 舞台隊形／尺度校正契約；縮短 depth band 垂直跨度、增加玩家橫向 silhouette 分離，並把 enemy 視覺倍率納入 stage profile，不回到角色 identity 特例座標。
 33. `COMBAT_REFACTOR_PHASE10N_GROUNDING_DEPTH_SEPARATION.md`：Phase 10n 接地／景深分離契約；整體角色站位下移、加強下方較大的透視比例並增加 formation 水平分離，不縮卡、不改 BG。
 34. `COMBAT_REFACTOR_PHASE10O_BATTLE_UI_ASSET_SLOT_CONTRACT.md`：Phase 10o / Asset Batch A；列出母版所需全部 battle UI/HUD logical slots，標記 EXISTING／REUSE／NEW／PROCEDURAL／HOLD／FORBIDDEN，並把本輪新增素材預算限制在 8 個以內。
-35. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／deployment gate 狀態；只記進度，不取代規格與實作計畫。
-36. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-37. `art-bible.md`：角色、怪物、背景與透明素材規範。
-38. `characters/README.md`：角色母版與 runtime 對照。
-39. `areas/README.md`：區域背景與 runtime 狀態。
-40. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-41. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-42. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+35. `COMBAT_REFACTOR_PHASE10P_CARD_MASTER_ASSET_REUSE.md`：Phase 10p / Asset Batch B；審核既有 card art／frame／icon，固定五種 family 共用 visual 的 runtime slot，舊四分類 frame 保持 HOLD，卡牌本批新增素材為 0。
+36. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／deployment gate 狀態；只記進度，不取代規格與實作計畫。
+37. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+38. `art-bible.md`：角色、怪物、背景與透明素材規範。
+39. `characters/README.md`：角色母版與 runtime 對照。
+40. `areas/README.md`：區域背景與 runtime 狀態。
+41. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+42. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+43. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 
 ## combat-refactor-v1 分支規則
 
