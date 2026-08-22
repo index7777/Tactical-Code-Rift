@@ -1,6 +1,6 @@
 # Combat Refactor Phase 22 — Area 01 Full QA Matrix
 
-STATUS = IMPLEMENTATION_CONTRACT
+STATUS = CI_VERIFIED_BROWSER_QA_PENDING
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -24,9 +24,9 @@ The seven battle nodes are fixed:
 
 Expected enemy counts remain `2 / 3 / 3 / 4 / 4 / 3 / 3`.
 
-The QA matrix must create every encounter through `createEncounterBattleBootstrap()` rather than constructing bespoke test-only battle states.
+The QA matrix creates every encounter through `createEncounterBattleBootstrap()` rather than constructing bespoke test-only battle states.
 
-## Required automated checks
+## Implemented automated checks
 
 ### Route / encounter integrity
 
@@ -34,31 +34,40 @@ The QA matrix must create every encounter through `createEncounterBattleBootstra
 - every encounter creates exactly four player actors;
 - every encounter creates the canonical enemy roster and positive HP values;
 - `rain-warrior` and `rain-boss` retain their authored HP/resilience cutovers;
-- Boss bootstrap retains authored multi-hit / AoE Intent capability.
+- Boss bootstrap retains authored multi-hit Intent capability through `山影連刃 = 6 × 2`.
 
 ### Progression integrity
 
 - `battle-1`, either `battle-3-*`, and `elite-1` remain the only three reward milestones;
 - upper/lower branch choice cannot produce a fourth reward;
-- three chosen family upgrades remain active in the Boss-entry deck;
+- Quick +2, Guard cap +3 and Heavy +3 remain active together in the Boss-entry deck;
 - Boss completion does not create an additional in-Area upgrade.
 
 ### Presentation capability
 
-The eight action presentation profiles must remain available:
+The eight action presentation profiles remain available:
 
 `quick-melee / heavy-melee / guard / disruption / break / enemy-light / enemy-heavy / boss-signature`.
 
-This matrix verifies capability presence only; timing quality remains a browser QA concern.
+The matrix verifies capability presence only; timing quality remains a browser QA concern.
 
 ### Responsive policy
 
-The two mandatory QA viewports are:
+The two mandatory QA viewports remain:
 
-- `1280×720` → normal wide-screen battle policy;
-- `844×390` → compact landscape policy.
+- `1280×720` → `COVER`;
+- `844×390` → `FIT`.
 
-Automated tests verify both resolve to the currently approved viewport scale modes and that decision-camera policy can produce legal PEEK / FOCUS / TARGETING values without exceeding stage camera bounds.
+Automated tests also verify decision-camera PEEK / FOCUS / TARGETING outputs use zoom `1.05 / 1.08 / 1.12` and remain inside the stage camera safe bounds.
+
+## Automated verification
+
+`src/application/battle/DemoArea01FullQaMatrix.test.ts` now covers the route/encounter, Elite/Boss cutover, progression, presentation-profile and responsive-camera matrix above.
+
+CI run 572 passed:
+
+- `npm run build`;
+- `npm run test`.
 
 ## Browser QA gate
 
@@ -77,7 +86,7 @@ Still required before the Demo is considered visually closed:
 - reward-choice overlay readability and claim flow;
 - no camera ownership fight between decision camera, action sequencer and Clash presentation.
 
-If browser evidence cannot be produced in the current tool environment, status must remain `CI_VERIFIED_BROWSER_QA_PENDING`.
+Until that evidence exists, Phase 22 remains `CI_VERIFIED_BROWSER_QA_PENDING`.
 
 ## Out of scope
 
