@@ -4,26 +4,38 @@ import { createIntentState, type IntentState } from '../intents/IntentState';
 export function intentStateFromEnemyAction(
   action: ActionDefinition,
   enemyId: string,
-  targetId: string,
+  targetIdOrIds: string | readonly string[],
   sequence: number,
 ): IntentState {
   if (action.owner !== 'enemy') throw new Error('Intent adapter requires an enemy action');
-  if (action.targetMode !== 'single-enemy') {
-    throw new Error(`Intent adapter only supports single-target enemy actions: ${action.id}`);
-  }
   if (!Number.isInteger(sequence) || sequence < 0) {
     throw new Error('Intent adapter sequence must be a non-negative integer');
   }
-  if (!targetId) throw new Error('Intent adapter targetId is required');
 
-  const expandedHits = action.hits.flatMap((hit) =>
-    Array.from({ length: hit.repeats ?? 1 }, () => hit.damage),
-  );
-  if (expandedHits.length > 1) {
-    throw new Error(`Intent adapter cannot represent multi-hit action: ${action.id}`);
+  const targetIds = Array.isArray(targetIdOrIds) ? [...targetIdOrIds] : [targetIdOrIds];
+  if (targetIds.some((targetId) => !targetId)) {
+    throw new Error('Intent adapter target id is required');
   }
 
-  const damage = expandedHits[0];
+  if (action.targetMode === 'single-enemy') {
+    if (targetIds.length !== 1) {
+      throw new Error(`single-target enemy action requires exactly one target: ${action.id}`);
+    }
+  } else if (action.targetMode === 'all-enemies') {
+    if (targetIds.length < 1) {
+      throw new Error(`all-opponent enemy action requires at least one target: ${action.id}`);
+    }
+  } else {
+    throw new Error(`Intent adapter does not support target mode ${action.targetMode}: ${action.id}`);
+  }
+
+  if (action.hits.length > 1) {
+    throw new Error(`Intent adapter cannot represent heterogeneous multi-hit action: ${action.id}`);
+  }
+
+  const hit = action.hits[0];
+  const damage = hit?.damage;
+  const hitCount = hit?.repeats;
   const counterplay = action.counterplay ?? {
     delayable: false,
     interruptible: false,
@@ -36,8 +48,9 @@ export function intentStateFromEnemyAction(
     enemyId,
     kind: 'normal',
     name: action.name,
-    targetIds: [targetId],
+    targetIds,
     damage,
+    hitCount,
     delay: action.actionDelay,
     canDelay: counterplay.delayable,
     canInterrupt: counterplay.interruptible,
