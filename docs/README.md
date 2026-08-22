@@ -64,6 +64,7 @@ STATUS = AUTHORITATIVE_INDEX
 56. `COMBAT_REFACTOR_PHASE14D_CLASH_APPLICATION_WIRING.md`：Phase 14d Clash application wiring 契約；由選牌、明確 target、公開 Intent 與 Timeline 決定 contested enemy、timing／specialization modifier，QA bootstrap 首次接入 Controller，七節點 story encounter 暫不啟用。
 57. `COMBAT_REFACTOR_PHASE15_NORMAL_ENEMY_ACTION_MIGRATION.md`：Phase 15 Normal enemy migration 契約；六種 Area 01 普通敵人改用 authored ActionDefinition、正式 HP／resilience 與 deterministic cyclic Intent，保留目前 Intent runtime boundary。
 58. `COMBAT_REFACTOR_PHASE16_ELITE_RAIN_WARRIOR_MIGRATION.md`：Phase 16 Elite rain-warrior migration 契約；正式 HP 120／resilience 1，採踏込→崩し→居合 deterministic cadence，Boss 尚未遷移。
+59. `COMBAT_REFACTOR_PHASE17_BOSS_ACTION_PHASE_POLICY.md`：Phase 17 Boss 資料／phase policy 契約；正式 HP 240／resilience 1，author `雨斬／山影連刃／驟雨橫掃／壓雨／終雨` 與 deterministic phase/cooldown policy，multi-hit／AoE runtime cutover 留待下一批。
 
 ## combat-refactor-v1 分支規則
 
