@@ -4,8 +4,8 @@ import { cardContentLayout } from './CardContentLayout';
 describe('cardContentLayout', () => {
   it('keeps title, art, effect, and footer in distinct vertical slots', () => {
     const layout = cardContentLayout(640, 500, 204, 306);
-    expect(layout.title.y).toBeLessThan(layout.art.y - layout.art.height / 2);
-    expect(layout.art.y + layout.art.height / 2).toBeLessThan(layout.effect.firstLineY);
+    expect(layout.art.y + layout.art.height / 2).toBeLessThan(layout.title.y);
+    expect(layout.title.y).toBeLessThan(layout.effect.firstLineY);
     expect(layout.effect.firstLineY + layout.effect.lineGap).toBeLessThan(layout.footer.y - layout.footer.height / 2);
   });
 

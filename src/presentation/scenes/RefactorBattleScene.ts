@@ -352,19 +352,13 @@ export class RefactorBattleScene extends Phaser.Scene {
       const cardAlpha = selectedFocus ? 1 : anySkillSelected ? 0.42 : presentation.alpha;
       const content = cardContentLayout(x, y, width, height);
 
-      if (card.selected) {
-        this.addToHud(
-          this.add.rectangle(x, y, width + 10, height + 10, family.accent, 0.045)
-            .setStrokeStyle(2, family.accent, presentation.glowAlpha * 0.72),
-        );
-      }
-
-      const cardRect = this.add.rectangle(x, y, width, height, family.fill, cardAlpha)
-        .setStrokeStyle(presentation.strokeWidth, family.stroke, presentation.glowAlpha);
+      const hasFrame = this.textures.exists(REFACTOR_CARD_FRAME_KEY);
+      const cardRect = this.add.rectangle(x, y, width, height, family.fill, hasFrame ? 0.001 : cardAlpha);
+      if (!hasFrame) cardRect.setStrokeStyle(presentation.strokeWidth, family.stroke, presentation.glowAlpha);
       this.addToHud(cardRect);
 
       const familyKey = refactorCardFamilyTextureKey(card.category);
-      if (this.textures.exists(REFACTOR_CARD_FRAME_KEY)) {
+      if (hasFrame) {
         this.addToHud(this.add.image(x, y, REFACTOR_CARD_FRAME_KEY).setDisplaySize(width, height).setAlpha(cardAlpha));
       }
       if (this.textures.exists(familyKey)) {
@@ -379,31 +373,10 @@ export class RefactorBattleScene extends Phaser.Scene {
         );
       }
 
-      const accentBar = this.add.rectangle(
-        x,
-        y - height / 2 + 4,
-        width - 8,
-        6,
-        family.accent,
-        card.selected ? 0.95 : 0.62,
-      );
-      this.addToHud(accentBar);
-
-      const mark = this.add.rectangle(
-        content.familyBadge.x,
-        content.familyBadge.y,
-        content.familyBadge.size,
-        content.familyBadge.size,
-        family.accent,
-        card.selected ? 0.24 : 0.12,
-      )
-        .setRotation(Math.PI / 4)
-        .setStrokeStyle(1, family.accent, card.selected ? 0.9 : 0.55);
-      this.addToHud(mark);
       this.addText(
         content.familyBadge.x,
         content.familyBadge.y,
-        family.label.slice(0, 1),
+        family.label,
         selectedFocus ? '9px' : '7px',
         family.text,
         0.5,
@@ -429,20 +402,10 @@ export class RefactorBattleScene extends Phaser.Scene {
         ).setWordWrapWidth(content.effect.maxWidth, true);
       });
 
-      const footer = this.add.rectangle(
-        content.footer.x,
-        content.footer.y,
-        content.footer.width,
-        content.footer.height,
-        0x070c12,
-        0.9,
-      )
-        .setStrokeStyle(1, family.stroke, card.selected ? 0.86 : 0.42);
-      this.addToHud(footer);
       this.addText(
         content.footer.x,
         content.footer.y,
-        `${family.label}  ·  Delay ${card.delay}`,
+        `Delay ${card.delay}`,
         selectedFocus ? '11px' : '8px',
         '#f1d687',
         0.5,

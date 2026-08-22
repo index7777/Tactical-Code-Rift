@@ -11,18 +11,18 @@ export function cardContentLayout(x: number, y: number, width: number, height: n
   const top = y - height / 2;
   return {
     familyBadge: {
-      x: left + width * 0.14,
-      y: top + height * 0.075,
-      size: width * 0.12,
+      x: left + width * 0.16,
+      y: top + height * 0.495,
+      size: width * 0.1,
     },
     title: {
-      x: x + width * 0.04,
-      y: top + height * 0.075,
-      maxWidth: width * 0.62,
+      x: x + width * 0.06,
+      y: top + height * 0.495,
+      maxWidth: width * 0.56,
     },
     art: {
       x,
-      y: top + height * 0.31,
+      y: top + height * 0.26,
       width: width * 0.78,
       height: height * 0.34,
     },
@@ -34,9 +34,9 @@ export function cardContentLayout(x: number, y: number, width: number, height: n
     },
     footer: {
       x,
-      y: top + height * 0.945,
-      width: width * 0.82,
-      height: height * 0.075,
+      y: top + height * 0.89,
+      width: width * 0.78,
+      height: height * 0.065,
     },
   };
 }

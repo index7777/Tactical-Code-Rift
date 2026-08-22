@@ -1007,3 +1007,10 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Extracted `EnemyOverheadLayoutPolicy` so enemy name, intent pill, HP bar, HP value and selected-target marker share one 148×48 actor-anchored module instead of independent Scene offsets.
 - Dead enemies now leave their immutable formation slot empty: the actor and overhead module stop rendering, while surviving enemies keep their original encounter-slot indices and never compact.
 - 4-enemy desktop and 844×390 runtime composites show no overhead-to-overhead collisions and no floating intent copy. A remaining cross-component collision was identified: the centered selected card overlaps the innermost front-enemy overhead; selected-card／Preview／Confirm focus-group placement remains the next layout batch.
+
+## 2026-08-22 — Card-frame-native text anatomy correction
+
+- Re-inspected the supplied 1024×1536 neutral card frame before changing layout. Its native anatomy is: upper illustration window, central narrow title band, lower effect panel, and bottom Delay footer.
+- Removed every redundant procedural border layered over that asset: selected purple outline, fallback stroke when the PNG exists, top accent strip, category diamond and runtime footer frame.
+- Runtime text now follows the authored slots: family label + card name in the central band, effect copy in the lower panel, and Delay in the native footer. Selection relies on extraction/scale plus dimmed sibling cards rather than another frame.
+- Desktop Chrome composite confirms the supplied PNG is the only visible card boundary; tests and production build pass without application Console errors.
