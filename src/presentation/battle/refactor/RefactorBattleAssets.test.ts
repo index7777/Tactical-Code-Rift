@@ -22,9 +22,10 @@ describe('RefactorBattleAssets', () => {
     expect(playerTimelinePortraitKey('chikage')).toBe('portrait-player-chikage-timeline');
   });
 
-  it('uses the QA yokai visual only for ghost-fire', () => {
+  it('maps the QA enemy id to the current rainfall-ridgeline runtime texture key', () => {
     expect(actorBattleTextureKey('ghost-fire')).toBe(REFACTOR_QA_ENEMY_KEY);
     expect(actorTimelineTextureKey('ghost-fire')).toBe(REFACTOR_QA_ENEMY_KEY);
+    expect(REFACTOR_QA_ENEMY_KEY).toBe('refactor-enemy-lantern-child');
     expect(actorBattleTextureKey('unknown-enemy')).toBeUndefined();
   });
 });
