@@ -1,0 +1,42 @@
+name: Phase 23 Browser QA
+
+on:
+  push:
+    branches:
+      - combat-refactor-v1
+  workflow_dispatch:
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local production preview
+        run: |
+          nohup npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/phase23-vite.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/phase23-vite.log
+          exit 1
+      - name: Run Phase 23 browser QA
+        run: node tools/phase23_browser_qa.mjs
+      - name: Upload browser QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase23-browser-qa
+          path: artifacts/phase23-browser-qa
+          if-no-files-found: warn
