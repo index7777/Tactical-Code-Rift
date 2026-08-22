@@ -68,6 +68,7 @@ STATUS = AUTHORITATIVE_INDEX
 60. `COMBAT_REFACTOR_PHASE17B_BOSS_MULTI_TARGET_MULTI_HIT_RESOLUTION.md`：Phase 17b Boss runtime resolution 契約；保留 `damage × hitCount`、全體公開目標與整個 Intent 一次 Guard，並把 production rain-boss 切到 authored phase/cooldown action provider。
 61. `COMBAT_REFACTOR_PHASE18_ACTION_PRESENTATION_SEQUENCER.md`：Phase 18 Action Presentation Sequencer 契約；建立八種 reusable choreography profile、固定演出 state language、Impact 同步點與 zoom-in 決策語言，18a 先完成 pure profile/marker 層，Scene tween wiring 留待 18b。
 62. `COMBAT_REFACTOR_PHASE18B_SEQUENCER_SCENE_WIRING.md`：Phase 18b Scene wiring 契約；把玩家／敵方硬編碼 tween 時序改由 Phase 18 profile 驅動，保留 IMPACT authoritative resolver handoff，Guard／Disruption 維持非近戰語言，本批不生成資產。
+63. `COMBAT_REFACTOR_PHASE18C_ENEMY_PROFILE_MULTI_HIT_AOE_PRESENTATION.md`：Phase 18c enemy presentation 契約；把 authored enemy profile、hitCount 與 explicit targetIds 接入 presentation，multi-hit/AoE 僅改視覺接觸，不重複 resolver。
 
 ## combat-refactor-v1 分支規則
 
