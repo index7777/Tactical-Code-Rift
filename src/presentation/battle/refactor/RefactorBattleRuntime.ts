@@ -8,7 +8,10 @@ import { buildHandCards, type HandCardView } from './HandPresenter';
 import { buildTargetPreview, type TargetPreviewView } from './TargetPreviewPresenter';
 import { buildTimelineNodes, type TimelineNodeView } from './TimelinePresenter';
 
-export type RefactorEnemyIntentProvider = (enemyId: string) => IntentState;
+export type RefactorEnemyIntentProvider = (
+  enemyId: string,
+  battle: BattleResolutionState,
+) => IntentState;
 
 export interface RefactorActorVitalsView {
   actorId: string;
@@ -157,7 +160,7 @@ export class RefactorBattleRuntime {
       throw new Error(`cannot resolve enemy action during ${turn.phase}`);
     }
     if (!this.enemyIntentProvider) throw new Error('enemy intent provider is not attached');
-    const nextIntent = this.enemyIntentProvider(actor.actorId);
+    const nextIntent = this.enemyIntentProvider(actor.actorId, this.controller.battle());
     this.controller.beginResolution();
     this.controller.completeResolution(nextIntent);
     return this.view();
