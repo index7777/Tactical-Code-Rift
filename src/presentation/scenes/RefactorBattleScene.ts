@@ -3,6 +3,7 @@ import {
   PLAYER_HOME_POSITIONS,
   REFACTOR_BATTLE_LAYOUT,
   actionApproachPosition,
+  homePositionFor,
   perspectiveScaleForY,
 } from '../battle/refactor/BattleActorPresenter';
 import {
@@ -19,6 +20,11 @@ import {
   type RefactorBattleAnimationPlan,
 } from '../battle/refactor/RefactorBattleAnimationPlan';
 import {
+  focusCameraTarget,
+  focusedActorPosition,
+  focusedPlayerActorId,
+} from '../battle/refactor/RefactorBattleFocusPolicy';
+import {
   actorDisplayName,
   autoAdvanceAction,
   categoryDisplayName,
@@ -31,15 +37,23 @@ import type { RefactorBattleRuntime, RefactorBattleView } from '../battle/refact
 const RUNTIME_REGISTRY_KEY = 'refactor-battle-runtime';
 const NEXT_ACTOR_DELAY_MS = 420;
 const ENEMY_ACTION_DELAY_MS = 720;
+const ACTIVE_FOCUS_DURATION_MS = 220;
+const OTHER_PLAYER_FOCUS_ALPHA = 0.76;
+
+type RenderLayer = 'world' | 'hud';
 
 export class RefactorBattleScene extends Phaser.Scene {
   private runtime?: RefactorBattleRuntime;
-  private content?: Phaser.GameObjects.Container;
+  private worldContent?: Phaser.GameObjects.Container;
+  private hudContent?: Phaser.GameObjects.Container;
+  private hudCamera?: Phaser.Cameras.Scene2D.Camera;
   private dispatchMode = false;
   private readonly dispatchSelection = new Set<string>();
   private autoAdvanceTimer?: Phaser.Time.TimerEvent;
   private readonly actorSprites = new Map<string, Phaser.GameObjects.Image>();
+  private readonly actorRings = new Map<string, Phaser.GameObjects.Arc>();
   private readonly presentationTimers: Phaser.Time.TimerEvent[] = [];
+  private focusedActorId?: string;
   private animationBusy = false;
 
   constructor() {
@@ -52,24 +66,37 @@ export class RefactorBattleScene extends Phaser.Scene {
 
   create(): void {
     this.runtime = this.registry.get(RUNTIME_REGISTRY_KEY) as RefactorBattleRuntime | undefined;
+    this.configureCameras();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.clearPresentationMotion());
     this.events.once(Phaser.Scenes.Events.DESTROY, () => this.clearPresentationMotion());
     this.render();
   }
 
+  private configureCameras(): void {
+    this.cameras.main.setZoom(1).centerOn(640, 360);
+    this.hudCamera = this.cameras.add(0, 0, REFACTOR_BATTLE_LAYOUT.width, REFACTOR_BATTLE_LAYOUT.height, false, 'RefactorBattleHud');
+    this.hudCamera.setZoom(1).centerOn(640, 360);
+  }
+
   private render(): void {
     this.clearAutoAdvance();
     this.actorSprites.clear();
-    this.content?.destroy(true);
-    this.content = this.add.container(0, 0);
+    this.actorRings.clear();
+    this.worldContent?.destroy(true);
+    this.hudContent?.destroy(true);
+    this.worldContent = this.add.container(0, 0);
+    this.hudContent = this.add.container(0, 0);
+    this.cameras.main.ignore(this.hudContent);
+    this.hudCamera?.ignore(this.worldContent);
     const layout = REFACTOR_BATTLE_LAYOUT;
 
-    this.addToContent(this.add.rectangle(640, 360, layout.width, layout.height, 0x07101a, 1));
+    this.addToWorld(this.add.rectangle(640, 360, layout.width, layout.height, 0x07101a, 1));
     this.drawBattlefieldBackground();
     this.drawOverlayPanel(layout.partyRail, 0x08151d, 0x739aa2, 0.72);
     this.drawOverlayPanel(layout.intentPanel, 0x121820, 0xb28f65, 0.76);
 
     if (!this.runtime) {
+      this.resetWorldCamera(0);
       this.addText(640, 336, '新版戰鬥執行環境未連接', '18px', '#e5c98d', 0.5);
       this.addText(640, 370, '此場景保持停用，不建立模擬戰鬥狀態。', '14px', '#a9c2c7', 0.5);
       return;
@@ -85,6 +112,9 @@ export class RefactorBattleScene extends Phaser.Scene {
       this.dispatchSelection.clear();
     }
 
+    const focusActorId = focusedPlayerActorId(view.phase, view.activeActorId, view.timeline);
+    const enteringFocus = Boolean(focusActorId && focusActorId !== this.focusedActorId);
+
     this.addText(24, 16, phaseDisplayName(view.phase), '12px', '#d8e7e9');
     if (view.activeActorId) {
       this.addText(24, 38, `目前：${actorDisplayName(view.activeActorId)}`, '13px', '#e8ca7d');
@@ -98,11 +128,11 @@ export class RefactorBattleScene extends Phaser.Scene {
       const stroke = active ? 0xe6c96d : node.team === 'player' ? 0x8fb9c3 : 0xc48c83;
       const card = this.add.rectangle(x, y, 110, 74, fill, active ? 0.98 : 0.9)
         .setStrokeStyle(active ? 3 : 1, stroke, active ? 1 : 0.7);
-      this.addToContent(card);
+      this.addToHud(card);
 
       const portraitKey = actorTimelineTextureKey(node.actorId);
       if (portraitKey && this.textures.exists(portraitKey)) {
-        this.addFittedImage(x - 29, y - 6, portraitKey, 42, 42, active ? 1 : 0.92);
+        this.addFittedImage(x - 29, y - 6, portraitKey, 42, 42, active ? 1 : 0.92, 'hud');
       } else {
         this.addText(x - 29, y - 5, actorDisplayName(node.actorId), '10px', '#eef5f3', 0.5);
       }
@@ -117,31 +147,47 @@ export class RefactorBattleScene extends Phaser.Scene {
       const vitals = view.vitalsByActorId[position.actorId];
       const alive = Boolean(vitals && vitals.hp > 0);
       const isTargetable = targetable.has(position.actorId);
+      const isFocused = focusActorId === position.actorId;
+      const displayPosition = focusedActorPosition(position.x, position.y, isFocused && !enteringFocus);
       const affordance = targetAffordance(alive, isTargetable, selectedTargetId === position.actorId);
       const ringRadius = 43 * position.perspectiveScale;
-      const ring = this.add.circle(position.x, position.y, ringRadius, 0x0b1720, 0.12)
-        .setStrokeStyle(
-          affordance === 'SELECTED' ? 3 : affordance === 'CANDIDATE' ? 2 : 1,
-          affordance === 'SELECTED'
-            ? 0xe1c371
-            : affordance === 'CANDIDATE'
-              ? 0x86b9c4
-              : alive
-                ? 0x9ebbc1
-                : 0x555d61,
-          affordance === 'SELECTED' ? 0.98 : affordance === 'CANDIDATE' ? 0.62 : 0.3,
-        );
-      this.addToContent(ring);
+      const ringWidth = affordance === 'SELECTED' ? 3 : affordance === 'CANDIDATE' || isFocused ? 2 : 1;
+      const ringColor = affordance === 'SELECTED'
+        ? 0xe1c371
+        : affordance === 'CANDIDATE'
+          ? 0x86b9c4
+          : isFocused
+            ? 0xe0cf92
+            : alive
+              ? 0x9ebbc1
+              : 0x555d61;
+      const ringAlpha = affordance === 'SELECTED'
+        ? 0.98
+        : affordance === 'CANDIDATE'
+          ? 0.62
+          : isFocused
+            ? 0.76
+            : 0.3;
+      const ring = this.add.circle(displayPosition.x, displayPosition.y, ringRadius, 0x0b1720, 0.12)
+        .setStrokeStyle(ringWidth, ringColor, ringAlpha);
+      this.addToWorld(ring);
+      this.actorRings.set(position.actorId, ring);
 
       const textureKey = actorBattleTextureKey(position.actorId);
       if (textureKey && this.textures.exists(textureKey)) {
+        const actorAlpha = !alive
+          ? 0.42
+          : focusActorId && !isFocused
+            ? OTHER_PLAYER_FOCUS_ALPHA
+            : 1;
         const actor = this.addFittedImage(
-          position.x,
-          position.y,
+          displayPosition.x,
+          displayPosition.y,
           textureKey,
           132 * position.perspectiveScale,
           118 * position.perspectiveScale,
-          alive ? 1 : 0.42,
+          actorAlpha,
+          'world',
         );
         this.actorSprites.set(position.actorId, actor);
         if (isTargetable) {
@@ -182,11 +228,11 @@ export class RefactorBattleScene extends Phaser.Scene {
               : 0xc18f86,
           affordance === 'SELECTED' ? 0.98 : affordance === 'CANDIDATE' ? 0.62 : 0.42,
         );
-      this.addToContent(ring);
+      this.addToWorld(ring);
 
       const textureKey = actorBattleTextureKey(enemyId);
       if (textureKey && this.textures.exists(textureKey)) {
-        const actor = this.addFittedImage(x, y, textureKey, 172 * perspectiveScale, 154 * perspectiveScale, 1);
+        const actor = this.addFittedImage(x, y, textureKey, 172 * perspectiveScale, 154 * perspectiveScale, 1, 'world');
         this.actorSprites.set(enemyId, actor);
         if (isTargetable) {
           actor.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
@@ -201,8 +247,8 @@ export class RefactorBattleScene extends Phaser.Scene {
         });
       }
 
-      this.addText(x, y + 76 * perspectiveScale, actorDisplayName(enemyId), '12px', '#f0dddd', 0.5);
-      this.addText(x, y + 95 * perspectiveScale, vitals ? `生命 ${vitals.hp}/${vitals.maxHp}` : '--', '11px', '#dcb7af', 0.5);
+      this.addText(x, y + 76 * perspectiveScale, actorDisplayName(enemyId), '12px', '#f0dddd', 0.5, 'world');
+      this.addText(x, y + 95 * perspectiveScale, vitals ? `生命 ${vitals.hp}/${vitals.maxHp}` : '--', '11px', '#dcb7af', 0.5, 'world');
     });
 
     this.addText(layout.intentPanel.x + 12, layout.intentPanel.y + 10, '敵方意圖', '10px', '#d8b98d');
@@ -224,7 +270,7 @@ export class RefactorBattleScene extends Phaser.Scene {
     if (view.preview) {
       const previewX = 650;
       const previewY = 142;
-      this.addToContent(
+      this.addToHud(
         this.add.rectangle(previewX, previewY, 430, 62, 0x071019, 0.82)
           .setStrokeStyle(1, view.preview.lethal ? 0xc56d65 : 0xd1b969, 0.78),
       );
@@ -254,7 +300,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       const highlighted = card.selected || dispatchSelected;
       const rectangle = this.add.rectangle(x, y, 136, 138, highlighted ? 0x243b43 : 0x12222c, 0.94)
         .setStrokeStyle(highlighted ? 2 : 1, dispatchSelected ? 0xe1c371 : card.selected ? 0xd7bd78 : 0x8aa4ad, highlighted ? 0.95 : 0.5);
-      this.addToContent(rectangle);
+      this.addToHud(rectangle);
       this.addText(x, y - 34, card.name, '12px', '#edf3f2', 0.5);
       this.addText(x, y - 8, categoryDisplayName(card.category), '10px', '#9fc5cd', 0.5);
       this.addText(x, y + 20, `延遲 ${card.delay}`, '12px', '#e4c579', 0.5);
@@ -309,6 +355,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       });
     }
 
+    this.updateActiveActorFocus(focusActorId, enteringFocus);
     this.scheduleAutoAdvance(view);
   }
 
@@ -327,12 +374,55 @@ export class RefactorBattleScene extends Phaser.Scene {
     });
   }
 
+  private updateActiveActorFocus(focusActorId: string | undefined, enteringFocus: boolean): void {
+    if (!focusActorId) {
+      if (this.focusedActorId) this.resetWorldCamera(ACTIVE_FOCUS_DURATION_MS);
+      this.focusedActorId = undefined;
+      return;
+    }
+
+    const actor = this.actorSprites.get(focusActorId);
+    const ring = this.actorRings.get(focusActorId);
+    if (!actor) return;
+
+    const cameraTarget = focusCameraTarget(actor.x, actor.y);
+    if (enteringFocus) {
+      const home = homePositionFor(focusActorId as 'rin' | 'chikage' | 'oboro' | 'mo');
+      const stepped = focusedActorPosition(home.x, home.y, true);
+      this.tweens.add({
+        targets: [actor, ...(ring ? [ring] : [])],
+        x: stepped.x,
+        y: stepped.y,
+        duration: ACTIVE_FOCUS_DURATION_MS,
+        ease: 'Sine.easeOut',
+      });
+      this.cameras.main.pan(cameraTarget.x, cameraTarget.y, ACTIVE_FOCUS_DURATION_MS, 'Sine.easeOut');
+      this.cameras.main.zoomTo(cameraTarget.zoom, ACTIVE_FOCUS_DURATION_MS, 'Sine.easeOut');
+    } else if (Math.abs(this.cameras.main.zoom - cameraTarget.zoom) > 0.001) {
+      this.cameras.main.centerOn(cameraTarget.x, cameraTarget.y);
+      this.cameras.main.setZoom(cameraTarget.zoom);
+    }
+
+    this.focusedActorId = focusActorId;
+  }
+
+  private resetWorldCamera(duration: number): void {
+    if (duration <= 0) {
+      this.cameras.main.setZoom(1).centerOn(640, 360);
+      return;
+    }
+    this.cameras.main.pan(640, 360, duration, 'Sine.easeInOut');
+    this.cameras.main.zoomTo(1, duration, 'Sine.easeInOut');
+  }
+
   private playPlayerAction(view: RefactorBattleView): void {
     if (!this.runtime || this.animationBusy) return;
     const plan = buildPlayerActionAnimationPlan(view);
     if (!plan) {
       this.runtime.confirmCard();
       this.runtime.resolveConfirmedPlayerAction();
+      this.focusedActorId = undefined;
+      this.resetWorldCamera(ACTIVE_FOCUS_DURATION_MS);
       this.render();
       return;
     }
@@ -341,6 +431,8 @@ export class RefactorBattleScene extends Phaser.Scene {
     if (!actor) {
       this.runtime.confirmCard();
       this.runtime.resolveConfirmedPlayerAction();
+      this.focusedActorId = undefined;
+      this.resetWorldCamera(ACTIVE_FOCUS_DURATION_MS);
       this.render();
       return;
     }
@@ -348,8 +440,7 @@ export class RefactorBattleScene extends Phaser.Scene {
     this.beginPresentationMotion();
     this.runtime.confirmCard();
 
-    const originX = actor.x;
-    const originY = actor.y;
+    const home = homePositionFor(plan.actorId as 'rin' | 'chikage' | 'oboro' | 'mo');
     const destination = this.presentationDestination(plan);
     this.setPlayerPose(plan.actorId, 'ready');
 
@@ -368,10 +459,12 @@ export class RefactorBattleScene extends Phaser.Scene {
             if (plan.motion !== 'REACTION') this.playTargetReaction(plan.targetId);
             this.runtime?.resolveConfirmedPlayerAction();
             this.queuePresentationDelay(120, () => {
+              this.focusedActorId = undefined;
+              this.resetWorldCamera(210);
               this.tweens.add({
                 targets: actor,
-                x: originX,
-                y: originY,
+                x: home.x,
+                y: home.y,
                 duration: 210,
                 ease: 'Sine.easeInOut',
                 onComplete: () => {
@@ -389,6 +482,8 @@ export class RefactorBattleScene extends Phaser.Scene {
 
   private playEnemyAction(view: RefactorBattleView): void {
     if (!this.runtime || this.animationBusy) return;
+    this.focusedActorId = undefined;
+    this.resetWorldCamera(ACTIVE_FOCUS_DURATION_MS);
     const plan = buildEnemyActionAnimationPlan(view);
     if (!plan) {
       this.runtime.resolveActiveEnemyAction();
@@ -515,7 +610,7 @@ export class RefactorBattleScene extends Phaser.Scene {
     const target = targetId ? this.actorSprites.get(targetId) : undefined;
     const x = target?.x ?? REFACTOR_BATTLE_LAYOUT.actionPosition.x + 70;
     const y = target?.y ?? REFACTOR_BATTLE_LAYOUT.actionPosition.y;
-    const fx = this.addFittedImage(x, y, REFACTOR_SLASH_FX_KEY, 128, 96, 0.92)
+    const fx = this.addFittedImage(x, y, REFACTOR_SLASH_FX_KEY, 128, 96, 0.92, 'world')
       .setRotation(-0.2);
     this.tweens.add({
       targets: fx,
@@ -544,6 +639,8 @@ export class RefactorBattleScene extends Phaser.Scene {
     this.clearAutoAdvance();
     for (const timer of this.presentationTimers.splice(0)) timer.remove(false);
     this.tweens.killAll();
+    this.focusedActorId = undefined;
+    this.resetWorldCamera(0);
     this.animationBusy = false;
     if (this.input) this.input.enabled = true;
   }
@@ -561,7 +658,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       layout.y + layout.height / 2,
       REFACTOR_BATTLE_BACKGROUND_KEY,
     ).setDisplaySize(layout.width, layout.height);
-    this.addToContent(background);
+    this.addToWorld(background);
   }
 
   private addFittedImage(
@@ -571,12 +668,13 @@ export class RefactorBattleScene extends Phaser.Scene {
     maxWidth: number,
     maxHeight: number,
     alpha = 1,
+    layer: RenderLayer = 'hud',
   ): Phaser.GameObjects.Image {
     const image = this.add.image(x, y, textureKey).setAlpha(alpha);
     const sourceWidth = Math.max(1, image.width);
     const sourceHeight = Math.max(1, image.height);
     image.setScale(Math.min(maxWidth / sourceWidth, maxHeight / sourceHeight));
-    this.addToContent(image);
+    this.addToLayer(image, layer);
     return image;
   }
 
@@ -607,7 +705,7 @@ export class RefactorBattleScene extends Phaser.Scene {
     stroke: number,
     alpha: number,
   ): void {
-    this.addToContent(
+    this.addToHud(
       this.add.rectangle(rect.x + rect.width / 2, rect.y + rect.height / 2, rect.width, rect.height, fill, alpha)
         .setStrokeStyle(1, stroke, 0.3),
     );
@@ -618,11 +716,19 @@ export class RefactorBattleScene extends Phaser.Scene {
       .setStrokeStyle(1, 0xc4a361, 0.8)
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', action);
-    this.addToContent(button);
+    this.addToHud(button);
     this.addText(x, y, label, '12px', '#f0d69d', 0.5);
   }
 
-  private addText(x: number, y: number, text: string, fontSize: string, color: string, origin = 0): Phaser.GameObjects.Text {
+  private addText(
+    x: number,
+    y: number,
+    text: string,
+    fontSize: string,
+    color: string,
+    origin = 0,
+    layer: RenderLayer = 'hud',
+  ): Phaser.GameObjects.Text {
     const label = this.add.text(x, y, text, {
       fontFamily: 'sans-serif',
       fontSize,
@@ -630,12 +736,21 @@ export class RefactorBattleScene extends Phaser.Scene {
       lineSpacing: 4,
       align: origin === 0.5 ? 'center' : 'left',
     }).setOrigin(origin);
-    this.addToContent(label);
+    this.addToLayer(label, layer);
     return label;
   }
 
-  private addToContent<T extends Phaser.GameObjects.GameObject>(object: T): T {
-    this.content?.add(object);
+  private addToLayer<T extends Phaser.GameObjects.GameObject>(object: T, layer: RenderLayer): T {
+    return layer === 'world' ? this.addToWorld(object) : this.addToHud(object);
+  }
+
+  private addToWorld<T extends Phaser.GameObjects.GameObject>(object: T): T {
+    this.worldContent?.add(object);
+    return object;
+  }
+
+  private addToHud<T extends Phaser.GameObjects.GameObject>(object: T): T {
+    this.hudContent?.add(object);
     return object;
   }
 }
