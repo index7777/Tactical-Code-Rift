@@ -1,4 +1,8 @@
 import type { RefactorBattleView } from './RefactorBattleRuntime';
+import {
+  actionPresentationProfileForCardCategory,
+  type AnimatedActionPresentationProfile,
+} from './ActionPresentationSequencer';
 
 export type RefactorActionMotion = 'ACTION' | 'REACTION' | 'ENEMY_ACTION';
 
@@ -6,6 +10,7 @@ export interface RefactorBattleAnimationPlan {
   actorId: string;
   targetId?: string;
   motion: RefactorActionMotion;
+  profileId: AnimatedActionPresentationProfile;
   useAttackPose: boolean;
   useSlashFx: boolean;
 }
@@ -23,6 +28,7 @@ export function buildPlayerActionAnimationPlan(
       actorId: view.activeActorId,
       targetId,
       motion: 'REACTION',
+      profileId: 'guard',
       useAttackPose: false,
       useSlashFx: false,
     };
@@ -32,6 +38,7 @@ export function buildPlayerActionAnimationPlan(
     actorId: view.activeActorId,
     targetId,
     motion: 'ACTION',
+    profileId: actionPresentationProfileForCardCategory(selected.category),
     useAttackPose: true,
     useSlashFx: Boolean(targetId),
   };
@@ -51,6 +58,7 @@ export function buildEnemyActionAnimationPlan(
     actorId: view.activeActorId,
     targetId: intent?.targetIds[0],
     motion: 'ENEMY_ACTION',
+    profileId: 'enemy-light',
     useAttackPose: false,
     useSlashFx: Boolean(intent?.targetIds[0]),
   };
