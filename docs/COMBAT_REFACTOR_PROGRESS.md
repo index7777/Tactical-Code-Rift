@@ -146,17 +146,14 @@ CI：run 192 build / test 全數通過，因此 Phase 9c 升為 `VERIFIED`。
 - `RefactorBattleRuntime` 可注入 `RefactorEnemyIntentProvider`，Scene 不自行決定 enemy Intent。
 - `resolveActiveEnemyAction()` 讓 `ENEMY_EXECUTING` 正式走 Controller -> EnemyActionResolver -> `WAITING_FOR_NEXT_ACTOR`。
 - QA bootstrap 新增 deterministic `createRefactorQaEnemyIntent()`，由 `main.ts` composition root 注入 runtime。
-- `RefactorBattleView.targetableActorIds` 讓 Scene 只對目前 selected card 的合法 team target 掛互動。
+- `RefactorBattleView.targetableActorIds` 讓 Scene 只對 selected card 的 target team 掛互動。
 - 千景 `any-ally` Guard 可以在 Scene 點我方角色進 Target Preview。
 - Scene 新增純 UI ephemeral 調度模式，可選 0 / 1 / 2 張後一次提交；不建立第二份 combat state。
 - runtime 仍拒絕沒有 provider 的 enemy resolution。
 
-新增測試：
+新增測試：enemy provider resolution、無 provider 拒絕、enemy / any-ally / self target routing、dispatch 0 / 1 / 2 張。
 
-- enemy provider resolution path。
-- 無 provider 拒絕 enemy resolution。
-- enemy / any-ally / self target routing。
-- dispatch 0 / 1 / 2 張。
+流程紀錄：Phase 9d contract 已先建立；本次 source/tests 寫入後才補齊 progress 狀態，未完全符合索引要求的「contract + progress 皆先於 source/tests」順序。此偏差已在本文件明確記錄，不視為完整流程合規證據。
 
 限制：目前尚未引入 browser automation framework；此批先修正從程式路徑可確定的 feature-flag 互動阻塞，仍需在 CI 綠燈後做實際部署／瀏覽器 QA。
 
