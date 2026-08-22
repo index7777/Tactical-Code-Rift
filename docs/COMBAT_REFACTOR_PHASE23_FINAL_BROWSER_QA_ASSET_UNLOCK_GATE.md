@@ -133,6 +133,17 @@ The automated path checks:
 
 This harness does not replace manual visual judgment for rhythm, silhouette clarity, camera feel, Clash outcome readability, Boss multi-hit/AoE readability, or overlap quality. Those remain the final asset-unlock review.
 
+## Workflow result bridge
+
+Because the Browser-QA workflow runs from a branch push while the normal CI check is PR-triggered, Phase 23 requires one discoverable result bridge for review tooling:
+
+- after every Browser-QA run, the workflow posts the GitHub Actions run id and run URL to the open pull request associated with the tested commit;
+- when `summary.json` exists, the comment also reports the per-viewport automated pass/fail state;
+- the comment step runs with `always()` so a failed browser test still exposes the run id needed to inspect job logs and uploaded screenshot artifacts;
+- failure to produce a visual report must never be converted into a pass by the reporting step.
+
+The bridge is observability only. It does not alter the browser assertions, gameplay, presentation, or the asset-unlock criteria.
+
 ## Asset unlock condition
 
 Only after all required checks above pass may the next phase begin generated family-plate production.
