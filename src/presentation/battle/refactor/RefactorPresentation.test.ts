@@ -3,7 +3,11 @@ import type { RefactorDeckState } from '../../../core/cards/RefactorCardTypes';
 import { createIntentState } from '../../../core/intents/IntentState';
 import type { BattlePreviewResult } from '../../../core/preview/BattlePreviewResolver';
 import { createBattleTimeline } from '../../../core/timeline/BattleTimeline';
-import { PLAYER_HOME_POSITIONS, REFACTOR_BATTLE_LAYOUT } from './BattleActorPresenter';
+import {
+  PLAYER_HOME_POSITIONS,
+  REFACTOR_BATTLE_LAYOUT,
+  perspectiveScaleForY,
+} from './BattleActorPresenter';
 import { buildEnemyIntent } from './EnemyIntentPresenter';
 import { buildHandCards } from './HandPresenter';
 import { buildTargetPreview } from './TargetPreviewPresenter';
@@ -111,11 +115,13 @@ describe('refactor presentation foundation', () => {
     });
   });
 
-  it('keeps four player home positions and a battlefield taller than half the screen', () => {
+  it('keeps four player home positions on a full-canvas battlefield with perspective scaling', () => {
     expect(PLAYER_HOME_POSITIONS.map((position) => position.actorId)).toEqual([
       'rin', 'chikage', 'oboro', 'mo',
     ]);
-    expect(REFACTOR_BATTLE_LAYOUT.battlefield.height).toBeGreaterThanOrEqual(360);
+    expect(REFACTOR_BATTLE_LAYOUT.battlefield).toEqual({ x: 0, y: 0, width: 1280, height: 720 });
+    expect(PLAYER_HOME_POSITIONS[0].perspectiveScale).toBeLessThan(PLAYER_HOME_POSITIONS[3].perspectiveScale);
+    expect(perspectiveScaleForY(330)).toBeLessThan(perspectiveScaleForY(430));
   });
 
   it('keeps intent capability data separate from status presentation', () => {
