@@ -60,6 +60,7 @@ STATUS = AUTHORITATIVE_INDEX
 52. `COMBAT_REFACTOR_PHASE13_ACTION_DATA_CONTRACT.md`：Phase 13 行動資料契約；統一 player/enemy action 語意欄位，保留 Clash、Boss phase、multi-hit／AoE 與 presentation profile 的資料槽位，先不改 runtime resolver。
 53. `COMBAT_REFACTOR_PHASE14_CLASH_CORE.md`：Phase 14 Clash 純 core 契約；定義 eligibility、score breakdown 與 player-win／draw／enemy-win，要求 Preview／Execute 共用同一計算且不恢復 legacy clashPower。
 54. `COMBAT_REFACTOR_PHASE14B_CLASH_PREVIEW_CONSEQUENCE.md`：Phase 14b Clash 結果語意契約；把 win／draw／lose 映射為共用 consequence，先附著於 Preview，不在本批改寫 live damage 或 Intent resolution。
+55. `COMBAT_REFACTOR_PHASE14C_CLASH_AUTHORITATIVE_RESOLUTION.md`：Phase 14c Clash authoritative resolution 契約；把共用 consequence 套入 Preview／Execute，同一份結果決定玩家效果縮放與 contested enemy Intent 的 cancel／half／full。
 
 ## combat-refactor-v1 分支規則
 
