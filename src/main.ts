@@ -1,12 +1,34 @@
 import Phaser from 'phaser';
 import './styles.css';
 import './input-lock.css';
-import { BootScene } from './presentation/scenes/BootScene';
-import{JourneyScene}from'./presentation/scenes/JourneyScene';
-for(const eventName of ['contextmenu','dragstart','selectstart'] as const){
-  document.addEventListener(eventName,(event)=>event.preventDefault(),{capture:true});
+import { refactorViewportScaleMode } from './presentation/battle/refactor/RefactorBattleViewportPolicy';
+import { DemoProgressionJourneyScene } from './presentation/scenes/DemoProgressionJourneyScene';
+import { RefactorBattleScene } from './presentation/scenes/RefactorBattleScene';
+
+for (const eventName of ['contextmenu', 'dragstart', 'selectstart'] as const) {
+  document.addEventListener(eventName, (event) => event.preventDefault(), { capture: true });
 }
-const config: Phaser.Types.Core.GameConfig={type:Phaser.AUTO,parent:'game',backgroundColor:'#090c18',render:{antialias:true,pixelArt:false,roundPixels:false},scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH,width:1280,height:720},input:{activePointers:3},scene:[BootScene,JourneyScene]};
+
+const viewportScaleMode = refactorViewportScaleMode(window.innerWidth, window.innerHeight);
+const qaBattleNodeId = new URLSearchParams(window.location.search).get('qa-battle');
+
+const config: Phaser.Types.Core.GameConfig = {
+  type: Phaser.AUTO,
+  parent: 'game',
+  backgroundColor: '#090c18',
+  render: { antialias: true, pixelArt: false, roundPixels: false },
+  scale: {
+    mode: viewportScaleMode === 'COVER' ? Phaser.Scale.ENVELOP : Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: 1280,
+    height: 720,
+  },
+  input: { activePointers: 3 },
+  scene: qaBattleNodeId
+    ? [RefactorBattleScene, DemoProgressionJourneyScene]
+    : [DemoProgressionJourneyScene, RefactorBattleScene],
+};
+
 const game = new Phaser.Game(config);
 
 declare global {

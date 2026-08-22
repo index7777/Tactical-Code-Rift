@@ -961,3 +961,70 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - 根因是 Phaser 返回路線後重用同一個 `BootScene` instance；上一場勝利路徑保留 `busy=true`，下一節點 `rebuild()` 因此提前返回。
 - `BootScene.init()` 現在會重置所有 per-battle 狀態，再依新節點建立 encounter。此修正不更動、核准或升級任何背景／怪物素材。
 - 正式站逐節點實打仍是 open gate；必須部署此修正後重新從 `battle-1` 走到 `boss-1` 才能關閉。
+
+## 2026-08-22 — Combat refactor integration baseline
+
+- Adopted `combat-refactor-v1` as the only production combat direction and rebased its 266 commits onto current `origin/main`.
+- Removed the runtime legacy-combat entry policy; public flow is `JourneyScene → RefactorBattleScene`.
+- Preserved the pre-replacement design through tag `legacy-combat-pre-refactor-20260822` and `docs/LEGACY_COMBAT_ARCHIVE.md`.
+- Reused the live normal/Boss BGM and sword SFX paths. Existing visual FX remain available but are not wired into the replacement presentation batch.
+- Began system replacement by constructing the refactor controller from all seven canonical `EncounterCatalog` battle nodes.
+
+## 2026-08-22 — Phase 11 production route-flow verification
+
+- Added a pure battle exit policy and read-only runtime QA state for encounter id, phase, outcome, actor counts, battlefield and selected music; normal victory returns to the existing route, defeat retries the same node, and only Boss victory sets the Area 01 clear flag.
+- Production headless-Chrome QA exposed a real route-transition crash: `RefactorBattleScene` teardown attempted to reset the world camera after Phaser had already disposed scene cameras. Removed camera mutation from teardown and deployed fix `c0a85b7`.
+- Verified deployed bundle `index-2wQi0fNw.js`. All seven nodes reached `PLAYER_IDLE`, accepted a physical click on the first `截勢` card and a physical click on a legal enemy, then reached `TARGET_PREVIEW` against `wet-corpse`, `mountain-hound`, `wayfarer-umbrella`, `mountain-hound`, `wayfarer-umbrella`, `rain-warrior`, and `rain-boss` respectively.
+- Canonical enemy counts passed for all nodes: `battle-1=2`, `battle-2-upper=3`, `battle-2-lower=3`, `battle-3-upper=4`, `battle-3-lower=4`, `elite-1=3`, `boss-1=3`. Battlefield families and normal/Boss music keys also matched their encounter policy.
+- Normal victory returned to `JourneyScene` without setting Area clear; defeat restarted `battle-2-upper`; Boss victory returned to `JourneyScene` with `journey-area01-cleared=true`. Final production run reported zero Console errors.
+- Verification: integration branch 58 files／283 tests, Pages release branch 59 files／286 tests, both production builds and `git diff --check` passed.
+
+## 2026-08-22 — Phase 12 formation and hand choreography contract
+
+- Adopted a full presentation refactor instead of further coordinate patching: both teams use a rear-2／front-2 formation so the battlefield can support complete 4v4 without four unrelated actor scales.
+- Replaced the old collapsed/expanded hand direction with full-card states: idle cards remain full height but hide 45–55% below the viewport; selected/targeting pulls one card into focus; action/resolve hides all decision UI; dispatch remains a separate neutral state.
+- Adopted actor-anchored enemy overhead modules and explicit UI visibility choreography so selected card, target preview and action feedback do not compete with Timeline／Party／Intent at the same time.
+- Defined 8 work packages in `COMBAT_REFACTOR_PHASE12_FORMATION_HAND_CHOREOGRAPHY.md`, split into graybox policy, runtime presenters and full-route regression stop points. Estimated impact is 12–16 source/test files. This documentation batch generates no assets and changes no runtime behavior.
+- User designated `D:/Tactical-Code-Rift/tactical-code-rift-card-assets-v1` as the existing card frame/pattern source: one 1024×1536 RGBA neutral frame/body and five 1254×1254 RGBA family visuals. Phase 12 will first graybox the hand motion, then composite these sources through clipping and runtime text; it will not regenerate them or infer approval from the folder.
+- Formation clarification: enemy spawn slots are immutable for the encounter, so death never compacts survivors forward. Rear/front overlap is allowed only with explicit silhouette spacing and deterministic layer order: ground/ring, rear actor, front actor, overhead/target feedback, then damage/result text.
+
+## 2026-08-22 — Phase 12 direct runtime implementation and overlap correction
+
+- Per user direction, skipped a separate graybox delivery and directly integrated the existing neutral card frame plus five family visuals as runtime-trial composites; no asset was generated or modified.
+- Replaced both teams' irregular lineups with rear-2/front-2 slots. Enemy slots are sourced once from the encounter roster, remain immutable after death, span a 520px enemy zone, use 260px same-row separation and 84px rear/front separation.
+- Runtime depth now follows foot-baseline Y: ground/rings render below rear actors, rear actors below front actors, and actor-anchored overhead HUD/target feedback above all sprites. Enemy visual scale multiplier was reduced from 1.14 to 1.06 to protect silhouettes.
+- Hand choreography now uses `PEEK`, `FOCUS`, `TARGETING`, `HIDDEN`, and `DISPATCH`; idle cards expose exactly half height, selected cards pull into the battlefield, and decision UI hides during action presentation.
+- Verification passed: 59 Vitest files / 287 tests, production build, and 1280×720 Chrome runtime composite for `battle-3-upper`. Physical click on the first half-hidden card changed runtime phase to `CARD_SELECTED`; 844×390 landscape capture preserved the 2×2 enemy formation. No application Console error occurred; Chrome reported only expected autoplay AudioContext warnings before a user gesture.
+
+## 2026-08-22 — Phase 12 card anatomy and target-marker correction
+
+- Replaced Scene-local card text offsets with one scalable `CardContentLayout`: family badge and title occupy the header, family visual is clipped to the art slot, effect copy occupies the lower text panel, and family／Delay share the footer.
+- Removed target-candidate body circles. Legal candidates now use only a restrained overhead-HUD border; a confirmed target uses one small diamond marker. Active-actor focus uses a shallow underfoot ellipse instead of a character-enclosing circle.
+- Runtime composite review confirms the four simultaneous enemy circles are gone and selected-card text no longer collides with the art or footer. Enemy intent copy above the overhead panel remains a separate HUD-anatomy follow-up.
+
+## 2026-08-22 — Phase 12 enemy overhead anatomy
+
+- Extracted `EnemyOverheadLayoutPolicy` so enemy name, intent pill, HP bar, HP value and selected-target marker share one 148×48 actor-anchored module instead of independent Scene offsets.
+- Dead enemies now leave their immutable formation slot empty: the actor and overhead module stop rendering, while surviving enemies keep their original encounter-slot indices and never compact.
+- 4-enemy desktop and 844×390 runtime composites show no overhead-to-overhead collisions and no floating intent copy. A remaining cross-component collision was identified: the centered selected card overlaps the innermost front-enemy overhead; selected-card／Preview／Confirm focus-group placement remains the next layout batch.
+
+## 2026-08-22 — Card-frame-native text anatomy correction
+
+- Re-inspected the supplied 1024×1536 neutral card frame before changing layout. Its native anatomy is: upper illustration window, central narrow title band, lower effect panel, and bottom Delay footer.
+- Removed every redundant procedural border layered over that asset: selected purple outline, fallback stroke when the PNG exists, top accent strip, category diamond and runtime footer frame.
+- Runtime text now follows the authored slots: family label + card name in the central band, effect copy in the lower panel, and Delay in the native footer. Selection relies on extraction/scale plus dimmed sibling cards rather than another frame.
+- Desktop Chrome composite confirms the supplied PNG is the only visible card boundary; tests and production build pass without application Console errors.
+
+## 2026-08-22 — Demo asset requirements replanning
+
+- Replanned the Area 01 seven-node demo as one bounded asset set: one route map, four battle backgrounds, four players, eight enemies, one neutral card frame, five family illustration plates, up to three conditional key-feedback cues and the existing audio mapping.
+- Classified Timeline, Party HUD, enemy overhead, targeting, route lines, loading-train travel and control states as runtime/procedural; they must not expand into generated character-specific or state-specific skins.
+- Runtime evidence established that the five 1254×1254 transparent family cutouts use the wrong production scope for the neutral frame's approximately 1.44:1, mostly transparent illustration window. `DEMO_ASSET_REQUIREMENTS_V1.md` replaces the cutout assumption with five fully opaque full-bleed illustration plates, produced and reviewed one family at a time.
+- This batch changes authoritative asset planning only. It generates no image and does not promote any runtime-trial asset.
+
+## 2026-08-22 — Combat demo and asset handoff
+
+- Added `HANDOFF_2026-08-22_COMBAT_DEMO_ASSETS.md` as the current operational handoff for the refactored combat demo; the older `HANDOFF.md` remains historical and superseded.
+- The handoff records today's route cutover, seven-node flow, 2×2 formations, non-compacting enemy death slots, floating Timeline/hand presentation, neutral-frame card anatomy, audio preservation and asset gates.
+- It explicitly carries forward the Demo Asset Requirements V1 decision: retain the neutral card frame, reject the five square transparent family cutouts, and produce one opaque 1.44:1 family illustration plate at a time starting with quick.
+- No runtime behavior or art asset changed in this handoff batch. Verification is limited to document routes, referenced paths and Git whitespace integrity.

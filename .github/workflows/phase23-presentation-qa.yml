@@ -1,0 +1,90 @@
+name: Phase 23 Presentation QA
+
+on:
+  push:
+    branches:
+      - combat-refactor-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  presentation-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local production preview
+        run: |
+          nohup npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/phase23-presentation-vite.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/phase23-presentation-vite.log
+          exit 1
+      - name: Run Phase 23 presentation QA
+        run: node tools/phase23_presentation_qa_runner.mjs
+      - name: Upload presentation QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase23-presentation-qa
+          path: artifacts/phase23-presentation-qa
+          if-no-files-found: warn
+      - name: Publish presentation QA run locator
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'artifacts/phase23-presentation-qa/summary.json';
+            let viewportSummary = 'summary.json was not produced; inspect workflow logs and failure evidence.';
+            if (fs.existsSync(path)) {
+              try {
+                const reports = JSON.parse(fs.readFileSync(path, 'utf8'));
+                viewportSummary = reports
+                  .map((report) => `${report.viewport?.name ?? 'unknown'}: ${report.passed === true ? 'PASS' : 'FAIL'}`)
+                  .join('\n');
+              } catch (error) {
+                viewportSummary = `summary.json could not be parsed: ${String(error)}`;
+              }
+            }
+            const associated = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+            const pull = associated.data.find((candidate) => candidate.head.ref === 'combat-refactor-v1') ?? associated.data[0];
+            if (!pull) {
+              core.warning('No pull request is associated with this commit; presentation QA locator was not posted.');
+              return;
+            }
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pull.number,
+              body: [
+                '### Phase 23 Presentation QA run',
+                `Run ID: \`${context.runId}\``,
+                `Run: ${runUrl}`,
+                '',
+                viewportSummary,
+                '',
+                'Screenshot/JSON evidence is uploaded as the `phase23-presentation-qa` workflow artifact.',
+              ].join('\n'),
+            });
