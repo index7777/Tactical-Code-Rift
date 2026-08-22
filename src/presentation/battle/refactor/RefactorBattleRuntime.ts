@@ -54,11 +54,19 @@ function livingActorIds(
 function targetableActorIds(
   battle: BattleResolutionState,
   selectedCard: RefactorCardInstance | undefined,
+  activeActorId?: string,
 ): string[] {
   if (!selectedCard) return [];
   const rule = selectedCard.definition.targetRule;
   if (rule === 'enemy') return livingActorIds(battle, 'enemy');
-  if (rule === 'ally' || rule === 'any-ally') return livingActorIds(battle, 'player');
+  if (rule === 'ally') return livingActorIds(battle, 'player');
+  if (rule === 'any-ally') {
+    const livingPlayers = livingActorIds(battle, 'player');
+    if (selectedCard.definition.category === 'guard' && activeActorId !== 'chikage') {
+      return activeActorId && livingPlayers.includes(activeActorId) ? [activeActorId] : [];
+    }
+    return livingPlayers;
+  }
   return [];
 }
 
@@ -89,7 +97,7 @@ export class RefactorBattleRuntime {
         .filter((intent): intent is NonNullable<typeof intent> => Boolean(intent))
         .map((intent) => buildEnemyIntent(intent)),
       vitalsByActorId: cloneVitals(battle.vitalsByActorId),
-      targetableActorIds: targetableActorIds(battle, selectedCard),
+      targetableActorIds: targetableActorIds(battle, selectedCard, turn.activeActor?.actorId),
       canConfirm: (turn.phase === 'TARGET_PREVIEW' && Boolean(preview))
         || (turn.phase === 'CARD_SELECTED' && Boolean(selectedNeedsNoExplicitTarget)),
       canDispatch: turn.phase === 'PLAYER_IDLE' && turn.activeActor?.team === 'player',
