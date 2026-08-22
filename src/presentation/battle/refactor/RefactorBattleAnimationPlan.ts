@@ -9,6 +9,8 @@ export type RefactorActionMotion = 'ACTION' | 'REACTION' | 'ENEMY_ACTION';
 export interface RefactorBattleAnimationPlan {
   actorId: string;
   targetId?: string;
+  targetIds: readonly string[];
+  hitCount: number;
   motion: RefactorActionMotion;
   profileId: AnimatedActionPresentationProfile;
   useAttackPose: boolean;
@@ -23,10 +25,13 @@ export function buildPlayerActionAnimationPlan(
   if (!selected) return undefined;
 
   const targetId = view.preview?.targetId;
+  const targetIds = targetId ? [targetId] : [];
   if (selected.category === 'guard') {
     return {
       actorId: view.activeActorId,
       targetId,
+      targetIds,
+      hitCount: 1,
       motion: 'REACTION',
       profileId: 'guard',
       useAttackPose: false,
@@ -38,6 +43,8 @@ export function buildPlayerActionAnimationPlan(
   return {
     actorId: view.activeActorId,
     targetId,
+    targetIds,
+    hitCount: 1,
     motion: 'ACTION',
     profileId: actionPresentationProfileForCardCategory(selected.category),
     useAttackPose: !controlPresentation,
@@ -54,13 +61,17 @@ export function buildEnemyActionAnimationPlan(
 
   const intent = view.enemyIntents.find((candidate) => candidate.enemyId === view.activeActorId)
     ?? view.enemyIntents[0];
+  if (intent?.presentationProfile === 'none') return undefined;
 
+  const targetIds = intent ? [...intent.targetIds] : [];
   return {
     actorId: view.activeActorId,
-    targetId: intent?.targetIds[0],
+    targetId: targetIds[0],
+    targetIds,
+    hitCount: intent?.hitCount ?? 1,
     motion: 'ENEMY_ACTION',
-    profileId: 'enemy-light',
+    profileId: intent?.presentationProfile ?? 'enemy-light',
     useAttackPose: false,
-    useSlashFx: Boolean(intent?.targetIds[0]),
+    useSlashFx: targetIds.length > 0,
   };
 }
