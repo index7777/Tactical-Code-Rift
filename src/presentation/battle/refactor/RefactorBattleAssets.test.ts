@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { AREA01_RAIL_HALT_HD2D_Q60_DATA_URI } from '../../assets/generated/area01RailHaltHd2dQ60';
 import {
+  REFACTOR_BATTLE_BACKGROUND_KEY,
+  REFACTOR_BATTLE_MUSIC_KEY,
   REFACTOR_QA_ENEMY_KEY,
   actorBattleTextureKey,
   actorTimelineTextureKey,
@@ -27,5 +30,12 @@ describe('RefactorBattleAssets', () => {
     expect(actorTimelineTextureKey('ghost-fire')).toBe(REFACTOR_QA_ENEMY_KEY);
     expect(REFACTOR_QA_ENEMY_KEY).toBe('refactor-enemy-lantern-child');
     expect(actorBattleTextureKey('unknown-enemy')).toBeUndefined();
+  });
+
+  it('uses the provided hd2d rail-halt candidate and battle music in refactor runtime', () => {
+    expect(REFACTOR_BATTLE_BACKGROUND_KEY).toBe('refactor-bg-area01-rail-halt-hd2d-v2');
+    expect(AREA01_RAIL_HALT_HD2D_Q60_DATA_URI.startsWith('data:image/jpeg;base64,/9j/')).toBe(true);
+    expect(AREA01_RAIL_HALT_HD2D_Q60_DATA_URI).not.toContain('area01-rail-halt-bg-runtime-trial-v1.png');
+    expect(REFACTOR_BATTLE_MUSIC_KEY).toBe('refactor-battle-music');
   });
 });
