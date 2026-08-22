@@ -129,11 +129,10 @@ CI：run 185 通過。
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9C_FEATURE_FLAG_BOOTSTRAP.md`
 
-- `?combat-refactor=1` 才把 `RefactorBattleScene` 放到第一啟動順位；沒有 flag 仍以 `BootScene` 為預設。
+- `?combat-refactor=1` 可進新版 `RefactorBattleScene`。
 - deterministic QA bootstrap 建立四名我方、`ghost-fire`、mixed Timeline、公開 Intent、shared deck 與 `BattleTurnController`。
-- `main.ts` 在 Phaser `preBoot` 注入 `refactor-battle-runtime`。
 
-CI：run 192 build / test 全數通過，因此 Phase 9c 升為 `VERIFIED`。
+CI：run 192 通過。
 
 ## Phase 9d — Feature-Flag QA Interaction Completion
 
@@ -143,42 +142,55 @@ CI：run 192 build / test 全數通過，因此 Phase 9c 升為 `VERIFIED`。
 
 已實作 enemy resolution、enemy / ally target routing、千景 any-ally Guard 與調度 0–2 張。
 
-CI：run 205 build / test 全數通過，因此 Phase 9d 為 `VERIFIED`。
+CI：run 205 通過。
 
 流程紀錄：Phase 9d contract 已先建立；progress 更新晚於 source/tests 的偏差已記錄，不視為完整流程合規證據。
 
 ## Phase 9e — GitHub Pages QA Hosting
 
-狀態：`BROWSER_QA_IN_PROGRESS`
+狀態：`VERIFIED`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9E_GITHUB_PAGES_QA.md`
 
 - Vercel build-rate limit 後改用 GitHub Pages。
-- Pages environment 已允許 `combat-refactor-v1`；使用者已確認 feature-flag 頁面可以載入、可以點擊並進行戰鬥。
-- 目前仍需完成完整尺寸與流程 QA。
+- Pages environment 已允許 `combat-refactor-v1`。
+- 使用者已確認 current-head feature-flag runtime 可載入、可點擊並可進行戰鬥。
 
 ## Phase 9f — Auto Flow + Chinese Presentation
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9F_AUTO_FLOW_LOCALIZATION.md`
 
-已實作：
+- 非玩家決策 state 自動推進，不再要求玩家按「開始下一角色／執行敵方行動」。
+- 玩家只在選牌、選目標、確認、取消、調度時操作。
+- 玩家可見隊友名稱為凜／千景／朧／紅葉，QA 敵人顯示鬼火。
+- phase、card category、target rule、生命／傷害／延遲／意圖等主要介面中文化；internal id / enum 不變。
+- `RefactorBattlePresentationPolicy.ts` 將顯示映射與 auto-flow policy 從 Phaser Scene 抽離。
 
-- 移除玩家手動「開始下一角色／執行敵方行動」的 QA step runner 按鈕。
-- `WAITING_FOR_NEXT_ACTOR` 與 enemy execution 改由 Scene presentation timer 自動推進；每次 render / shutdown 會清除舊 timer，避免重複 transition。
-- 玩家仍只在選牌、選目標、確認、取消、調度時操作。
-- 玩家可見隊友名稱改為凜／千景／朧／紅葉，QA 敵人 `ghost-fire` 顯示為鬼火。
-- phase、card category、target rule、生命／傷害／延遲／意圖等主要介面文字中文化；internal id / enum 不變。
-- 新增 `RefactorBattlePresentationPolicy.ts` 與測試，將中文顯示映射與 auto-flow policy 從 Phaser Scene 抽離。
+CI：run 221 build / test 通過；使用者已完成 GitHub Pages browser QA，確認 auto-flow 與中文 presentation 可操作。
+
+## Phase 10 — Default Cutover / Legacy Rollback
+
+狀態：`IMPLEMENTATION_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE10_DEFAULT_CUTOVER.md`
+
+本批只做預設入口切換與短期 rollback：
+
+- 無 query flag 時預設啟動 `RefactorBattleScene`。
+- `?legacy-combat=1` 才啟動舊 `BootScene`。
+- 舊 `?combat-refactor=1` 在過渡期仍接受，但新版已不再依賴該 flag 才能啟用。
+- legacy source 本批不刪除，確保 cutover browser regression 有安全回退。
 
 ## Deployment / Browser QA Gate
 
-狀態：`ACTIVE_ON_GITHUB_PAGES`
+狀態：`PHASE10_CUTOVER_PENDING`
 
-- GitHub Pages 已可載入 feature-flag runtime 並操作戰鬥。
-- Phase 10 前仍需完成 1280×720 / 844×390 與 Phase 9f auto-flow/browser regression QA。
+- Phase 9e / 9f 已完成 CI 與 browser QA。
+- Phase 10 source 寫入後仍需 CI 與 GitHub Pages 無 flag / legacy flag regression。
+- regression 通過前不移除 legacy combat source。
 
 ## 下一批
 
-先讓 Phase 9f CI 通過，再由 GitHub Pages 驗證玩家不需要手動推進非決策狀態，敵方行動會自動演進回下一個玩家 actor，且中文角色名稱與介面正確；完成 1280×720 / 844×390 QA 後才評估 Phase 10。
+實作 Phase 10 default-entry policy 與 `?legacy-combat=1` rollback，新增純 policy 測試，更新 `main.ts` composition root；CI 通過後用 GitHub Pages 驗證無 flag 為新版、legacy flag 可回舊入口，再決定 legacy removal 批次。
