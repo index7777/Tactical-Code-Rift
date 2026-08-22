@@ -241,26 +241,29 @@ GitHub Pages 實機回饋：
 
 ## Phase 10e — Action Reach / Single-target Affordance
 
-狀態：`IMPLEMENTATION_PENDING`
+狀態：`IMPLEMENTED_PENDING_CI`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10E_ACTION_REACH_TARGET_AFFORDANCE.md`
 
-目標：
+已實作：
 
-- 有 explicit target 的 ACTION 由 actor / target runtime 位置與顯示尺寸推導接敵目的地，不再停在固定中央 action point。
-- 左右方向可鏡像；角色應停在敵人前方而非與目標重疊。
-- `targetableActorIds` 仍表示所有合法單體候選，不改 Guard 規則。
-- 合法但未選定的目標使用弱提示；只有 `preview.targetId` 使用強黃圈，避免「護持」看起來像全隊生效。
+- 新增純 presentation `actionApproachPosition()`，用 actor / target 的 runtime x、display width 與 gap 推導接敵點；有 explicit target 的玩家 ACTION 不再固定停在中央 `actionPosition`。
+- 接敵方向依 actor / target x 自動鏡像；y 跟隨 target，讓角色接近同一地面帶；已經夠近時不穿越目標。
+- Scene 的 ACTION sequencing 使用此 target-relative destination；無 target 才保留既有 fallback action point。
+- 新增 `targetAffordance()`，把 `SELECTED / CANDIDATE / DEFAULT / DISABLED` 分開。
+- 所有合法但尚未選定的單體目標只顯示低強度候選圈；只有 `preview.targetId` 使用強黃圈。
+- 千景「護持」仍可指定任一存活友軍，但不再四人同時顯示像全隊生效的黃圈；enemy target card 套用同樣 affordance。
+- 新增 target-relative approach 與 affordance unit tests。
 
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10E_IMPLEMENTATION_PENDING`
+狀態：`PHASE10E_CI_AND_BROWSER_QA_PENDING`
 
 - Phase 10 CI 已通過；default-entry / legacy rollback browser regression 仍待確認。
 - Phase 10c CI run 247 已通過；full-canvas / 新 BG / 新 monster / perspective layout 持續由 Pages 實機 QA。
-- Phase 10d CI run 254 已通過，但 browser QA 找到 ACTION 接敵距離與單體 target affordance 問題。
-- Phase 10e 修正完成並通過 CI / Pages 前不做 legacy removal。
+- Phase 10d CI run 254 已通過；browser QA 找到的 ACTION 接敵距離與單體 target affordance 已由 Phase 10e 修正。
+- Phase 10e CI / Pages 驗證完成前不做 legacy removal。
 
 ## 下一批
 
-實作 Phase 10e：把有目標的玩家 ACTION 改為接近實際 target 的 presentation destination，並把所有合法候選的弱提示與目前單一 preview target 的黃圈強提示分離。之後再回 GitHub Pages 驗證攻擊接敵距離與千景「護持」單體選取視覺。
+等待 Phase 10e CI 與 GitHub Pages current-head：確認攻擊者會停在敵人面前、護持選牌時合法友軍只有弱候選提示且實際點選者才亮黃圈；同時回歸 1280×720 / 844×390 與 default / legacy 入口。通過後再處理 down/death、hit-stop、FX 對點與最終 floating HUD。
