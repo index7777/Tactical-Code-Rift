@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import './styles.css';
 import './input-lock.css';
 import { refactorViewportScaleMode } from './presentation/battle/refactor/RefactorBattleViewportPolicy';
-import { JourneyScene } from './presentation/scenes/JourneyScene';
+import { DemoProgressionJourneyScene } from './presentation/scenes/DemoProgressionJourneyScene';
 import { RefactorBattleScene } from './presentation/scenes/RefactorBattleScene';
 
 for (const eventName of ['contextmenu', 'dragstart', 'selectstart'] as const) {
@@ -25,8 +25,8 @@ const config: Phaser.Types.Core.GameConfig = {
   },
   input: { activePointers: 3 },
   scene: qaBattleNodeId
-    ? [RefactorBattleScene, JourneyScene]
-    : [JourneyScene, RefactorBattleScene],
+    ? [RefactorBattleScene, DemoProgressionJourneyScene]
+    : [DemoProgressionJourneyScene, RefactorBattleScene],
 };
 
 const game = new Phaser.Game(config);
