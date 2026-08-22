@@ -5,8 +5,8 @@ import {
   type PlayerAssetEntry,
 } from '../../assets/PlayerAssetManifest';
 
-export const REFACTOR_BATTLE_BACKGROUND_KEY = 'refactor-bg-world01-rooftop';
-export const REFACTOR_QA_ENEMY_KEY = 'refactor-enemy-ghost-fire';
+export const REFACTOR_BATTLE_BACKGROUND_KEY = 'refactor-bg-area01-rail-halt';
+export const REFACTOR_QA_ENEMY_KEY = 'refactor-enemy-lantern-child';
 export const REFACTOR_SLASH_FX_KEY = 'refactor-fx-slash';
 
 const playerById = new Map(playerAssetManifest.map((entry) => [entry.id, entry]));
@@ -15,7 +15,10 @@ export function playerAssetEntry(actorId: string): PlayerAssetEntry | undefined 
   return playerById.get(actorId as PlayerAssetEntry['id']);
 }
 
-export function playerPoseTextureKey(actorId: string, pose: 'idle-a' | 'idle-b' | 'ready' | 'attack-a' | 'attack-b' | 'hit-a' | 'hit-b' | 'down' = 'idle-a'): string | undefined {
+export function playerPoseTextureKey(
+  actorId: string,
+  pose: 'idle-a' | 'idle-b' | 'ready' | 'attack-a' | 'attack-b' | 'hit-a' | 'hit-b' | 'down' = 'idle-a',
+): string | undefined {
   const entry = playerAssetEntry(actorId);
   return entry ? `${entry.assetPrefix}-${pose}` : undefined;
 }
@@ -35,7 +38,10 @@ export function actorTimelineTextureKey(actorId: string): string | undefined {
 
 export function queueRefactorBattleAssets(load: Phaser.Loader.LoaderPlugin): void {
   queuePlayerAssets(load);
-  load.image(REFACTOR_BATTLE_BACKGROUND_KEY, 'assets/battle/world01-rooftop-composite-candidate-v3.png');
-  load.image(REFACTOR_QA_ENEMY_KEY, 'assets/battle/kamaitachi.png');
+  load.image(REFACTOR_BATTLE_BACKGROUND_KEY, 'assets/battle/area01-rail-halt-bg-runtime-trial-v1.png');
+  load.image(
+    REFACTOR_QA_ENEMY_KEY,
+    'assets/battle/generated/monsters/rainfall-ridgeline/lantern-child-master-runtime-v1.png',
+  );
   load.image(REFACTOR_SLASH_FX_KEY, 'assets/battle/fx/p9a-arc-slash-1.png');
 }
