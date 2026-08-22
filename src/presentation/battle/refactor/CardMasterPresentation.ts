@@ -1,4 +1,5 @@
 import type { RefactorCardCategory, RefactorCardEffect } from '../../../core/cards/RefactorCardTypes';
+import { cardFamilyAssetSlot } from './CardFamilyAssetPolicy';
 
 export interface CardFamilyStyle {
   label: string;
@@ -6,6 +7,7 @@ export interface CardFamilyStyle {
   stroke: number;
   accent: number;
   text: string;
+  textureKey: string;
 }
 
 export interface CardSelectionPresentation {
@@ -16,7 +18,7 @@ export interface CardSelectionPresentation {
   glowAlpha: number;
 }
 
-const FAMILY_STYLES: Readonly<Record<RefactorCardCategory, CardFamilyStyle>> = {
+const FAMILY_STYLES: Readonly<Record<RefactorCardCategory, Omit<CardFamilyStyle, 'textureKey'>>> = {
   quick: { label: '迅擊', fill: 0x102735, stroke: 0x5ca7c8, accent: 0x8bd7f0, text: '#cdebf4' },
   heavy: { label: '重擊', fill: 0x321719, stroke: 0xb85b4d, accent: 0xef7a63, text: '#f4d4cf' },
   guard: { label: '守勢', fill: 0x112d2a, stroke: 0x5ba99b, accent: 0x83d5c5, text: '#d0eee8' },
@@ -25,7 +27,10 @@ const FAMILY_STYLES: Readonly<Record<RefactorCardCategory, CardFamilyStyle>> = {
 };
 
 export function cardFamilyStyle(category: RefactorCardCategory): CardFamilyStyle {
-  return { ...FAMILY_STYLES[category] };
+  return {
+    ...FAMILY_STYLES[category],
+    textureKey: cardFamilyAssetSlot(category).textureKey,
+  };
 }
 
 export function cardEffectLines(effect: RefactorCardEffect): string[] {
