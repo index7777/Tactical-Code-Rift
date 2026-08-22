@@ -1,5 +1,6 @@
 import type { BattleTurnPhase } from '../../../core/turns/BattleTurnState';
 import type { TimelineNodeView } from './TimelinePresenter';
+import { clampCameraTarget } from './BattleStageProfile';
 
 export const ACTIVE_ACTOR_FOCUS_ZOOM = 1.05;
 export const ACTIVE_ACTOR_STEP_X = 14;
@@ -30,9 +31,13 @@ export function focusedActorPosition(
 }
 
 export function focusCameraTarget(actorX: number, actorY: number): { x: number; y: number; zoom: number } {
-  return {
+  const requested = {
     x: 640 + (actorX - 640) * 0.2,
     y: 360 + (actorY - 360) * 0.16,
+  };
+  const clamped = clampCameraTarget(requested.x, requested.y);
+  return {
+    ...clamped,
     zoom: ACTIVE_ACTOR_FOCUS_ZOOM,
   };
 }
