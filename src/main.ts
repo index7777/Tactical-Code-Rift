@@ -1,7 +1,10 @@
 import Phaser from 'phaser';
 import './styles.css';
 import './input-lock.css';
-import { createRefactorBattleBootstrap } from './application/battle/createRefactorBattleBootstrap';
+import {
+  createRefactorBattleBootstrap,
+  createRefactorQaEnemyIntent,
+} from './application/battle/createRefactorBattleBootstrap';
 import { RefactorBattleRuntime } from './presentation/battle/refactor/RefactorBattleRuntime';
 import { BootScene } from './presentation/scenes/BootScene';
 import { JourneyScene } from './presentation/scenes/JourneyScene';
@@ -13,7 +16,7 @@ for (const eventName of ['contextmenu', 'dragstart', 'selectstart'] as const) {
 
 const refactorBattleEnabled = new URLSearchParams(window.location.search).get('combat-refactor') === '1';
 const refactorBattleRuntime = refactorBattleEnabled
-  ? new RefactorBattleRuntime(createRefactorBattleBootstrap())
+  ? new RefactorBattleRuntime(createRefactorBattleBootstrap(), createRefactorQaEnemyIntent)
   : undefined;
 
 const config: Phaser.Types.Core.GameConfig = {
