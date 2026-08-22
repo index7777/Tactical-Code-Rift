@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   actorDisplayName,
   autoAdvanceAction,
+  cardTargetDisplayName,
   categoryDisplayName,
   phaseDisplayName,
   targetAffordance,
@@ -26,7 +27,14 @@ describe('RefactorBattlePresentationPolicy', () => {
     expect(categoryDisplayName('break')).toBe('破勢');
     expect(targetRuleDisplayName('enemy')).toBe('敵方');
     expect(targetRuleDisplayName('self')).toBe('自身');
-    expect(targetRuleDisplayName('any-ally')).toBe('任一友方');
+    expect(targetRuleDisplayName('any-ally')).toBe('友方');
+  });
+
+  it('shows guard target copy from actual actor targetability', () => {
+    expect(cardTargetDisplayName('any-ally', 'guard', 'rin')).toBe('自身');
+    expect(cardTargetDisplayName('any-ally', 'guard', 'oboro')).toBe('自身');
+    expect(cardTargetDisplayName('any-ally', 'guard', 'chikage')).toBe('友方');
+    expect(cardTargetDisplayName('self', 'guard', 'rin')).toBe('自身');
   });
 
   it('distinguishes legal single-target candidates from the selected preview target', () => {
