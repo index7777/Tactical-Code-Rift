@@ -210,7 +210,7 @@ STATUS = APPEND_ONLY
 - 實作八種通用卡型與 18 張共用牌庫：快斬 3、重斬 2、破甲 3、堅守 2、掩護 2、接力 2、整備 2、牽制 2。沒有免費動作、免費棄牌或角色專屬牌。
 - 整備消耗角色行動，棄至多兩張未提交手牌並補回相同數量；實機固定情境確認結算後牌庫 `13→11`、棄牌 `0→3`，新手牌在補牌動畫後顯示。
 - 牽制為威力 4、速度 +2 的干擾攻擊，指定敵人本輪最終時序 −2；時間軸改顯示最終時序值而非原始速度。
-- 三種怪物牌池加入視覺 cue 與跨輪不重複同意圖限制；混合群單輪最多一張威力 7 維持不變。
+- 三種怪物牌池加入視覺 cue 與跨輪不重複同意圖限制；混合群單輪最多一張 7 維持不變。
 - 免費素材佔位分工：疾行／咒返沿用 CC0 Kamaitachi 的不同 tint／節奏，鎮岳改用 CC0 Dark Knight；不生成玩家角色或新增敵人逐格動畫。
 - 卡牌 UI 改為四意圖色系、卡內六角威力徽章、八種程式化圖示、固定速度與效果欄；`card-proof` 固定情境可重現。
 - 新增 5,000 組固定種子模擬門檻，涵蓋最高威力覆蓋、平均意圖覆蓋、死手率、功能卡擁塞與重斬密度。
@@ -827,7 +827,7 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 
 - Audited all eight Chikage runtime poses after the action screenshot exposed a horizontally flipped blade fragment.
 - Added deterministic primary-layer cleanup, preserved the original reference crops, wrote a versioned candidate set, synchronized the package/runtime copies, and rebuilt the 4x2 runtime sheet.
-- Cleanup is restricted to disconnected neighboring-frame fragments; the character silhouette, intended weapon, pose, scale, and pivot remain unchanged.
+- Cleanup is restricted to disconnected neighboring-frame fragments; the character silhouette, intended weapon, pose, scale, and pivot remain unchanged。
 
 ## 2026-08-20 — Integrate and archive route-map UI assets v1
 
@@ -961,3 +961,16 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - 根因是 Phaser 返回路線後重用同一個 `BootScene` instance；上一場勝利路徑保留 `busy=true`，下一節點 `rebuild()` 因此提前返回。
 - `BootScene.init()` 現在會重置所有 per-battle 狀態，再依新節點建立 encounter。此修正不更動、核准或升級任何背景／怪物素材。
 - 正式站逐節點實打仍是 open gate；必須部署此修正後重新從 `battle-1` 走到 `boss-1` 才能關閉。
+
+## 2026-08-22 — Combat refactor Phase 10l card master presentation
+
+狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
+
+- 使用者以既定戰鬥 UI 母版校正 Phase 10k：手牌不能只是縮小舊 rectangle，必須恢復 card anatomy、family identity、selected hierarchy，以及卡牌／調度／確認控制的視覺分工。
+- 採用五種穩定 family：quick 冷藍、heavy 朱紅、guard 青綠、disruption 紫、break 金橙；先以程式化 frame / mark 建立結構，不因 runtime 資產目錄已有 card art / frame / icon 就批量接入。
+- `HandPresenter` 提供 effect snapshot 與最多兩行 player-facing 摘要；卡面固定 family mark、卡名、效果區與獨立 `Delay N` footer，不再以 target-rule enum 作主要卡面文字。
+- selected skill 上浮／略放大／加 family glow；其他牌降低層級。調度選中的棄牌使用較弱的獨立標記，不冒充 skill selected。
+- `調度` 改成獨立 utility panel，顯示 `交換 0–2 張 / Delay 3`；CARD_SELECTED／TARGET_PREVIEW 使用獨立 command panel 顯示目前卡名、選擇目標／目標已確認、確認執行／取消。
+- Phase 10k 的 adaptive stage 與 collapsed/expanded hand 架構保留；BG、角色站位、combat domain、audio policy、enemy roster 本批均不更動。
+- CI run 343 首次 build 因舊 animation-plan test fixtures 缺少新增的 `effect/effectLines` view 欄位而失敗；更新 fixture 後 run 344 build + test 通過。後續 docs/progress commit 的 run 345 亦通過。
+- Browser QA 尚未完成：需以 1280×720／844×390 實機確認五張牌是否像同一套卡牌、Delay footer 能否快速橫向掃讀、selected 上浮／glow 是否足夠、調度／確認是否與卡牌明確分離，並回歸 Phase 10k 角色腳點與 camera focus。
