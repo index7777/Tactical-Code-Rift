@@ -1,5 +1,6 @@
 import { enemyArchetypePools } from '../../core/battle/EnemySkills';
 import type { EnemyArchetype } from '../../core/battle/BattleTypes';
+import { applyDemoCardUpgrades, type DemoCardUpgradeId } from '../../core/cards/DemoCardUpgradeProgression';
 import { createRefactorDeck } from '../../core/cards/RefactorDeck';
 import {
   RAIN_BOSS_BASE_RESILIENCE,
@@ -143,6 +144,7 @@ export interface EncounterBattleBootstrap {
 export function createEncounterBattleBootstrap(
   journeyNodeId: string,
   seed = 20260822,
+  ownedUpgradeIds: readonly DemoCardUpgradeId[] = [],
 ): EncounterBattleBootstrap {
   const encounter = storyEncounter(journeyNodeId);
   if (!encounter) throw new Error(`unknown story encounter: ${journeyNodeId}`);
@@ -219,8 +221,9 @@ export function createEncounterBattleBootstrap(
     return createEncounterEnemyIntent(enemyId, sequence);
   };
 
+  const deckDefinitions = applyDemoCardUpgrades(REFACTOR_QA_CARD_DEFINITIONS, ownedUpgradeIds);
   return {
-    controller: new BattleTurnController(state, createRefactorDeck([...REFACTOR_QA_CARD_DEFINITIONS], seed)),
+    controller: new BattleTurnController(state, createRefactorDeck(deckDefinitions, seed)),
     enemyIntentProvider: nextIntent,
   };
 }
