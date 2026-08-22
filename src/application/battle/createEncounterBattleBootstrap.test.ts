@@ -57,8 +57,30 @@ describe('encounter battle bootstrap', () => {
     expect(battle.resilienceByEnemyId['wet-corpse']).toMatchObject({ base: 0, temporary: 0 });
   });
 
-  it('keeps Elite and Boss on the existing fallback until their dedicated migration phases', () => {
-    expect(createEncounterEnemyIntent('rain-warrior', 0).enemyId).toBe('rain-warrior');
+  it('uses the authored rain-warrior fast-control-heavy cadence without consecutive iai', () => {
+    expect(createEncounterEnemyIntent('rain-warrior', 0)).toMatchObject({
+      name: '踏込', damage: 10, delay: 4, targetIds: ['rin'],
+    });
+    expect(createEncounterEnemyIntent('rain-warrior', 1)).toMatchObject({
+      name: '崩し', damage: 8, delay: 5, targetIds: ['chikage'],
+    });
+    expect(createEncounterEnemyIntent('rain-warrior', 2)).toMatchObject({
+      name: '居合', damage: 16, delay: 7, targetIds: ['oboro'],
+    });
+    expect(createEncounterEnemyIntent('rain-warrior', 3)).toMatchObject({
+      name: '踏込', damage: 10, delay: 4, targetIds: ['mo'],
+    });
+  });
+
+  it('uses the approved Elite HP and base resilience in elite-1', () => {
+    const { controller } = createEncounterBattleBootstrap('elite-1');
+    const battle = controller.battle();
+
+    expect(battle.vitalsByActorId['rain-warrior']).toMatchObject({ hp: 120, maxHp: 120 });
+    expect(battle.resilienceByEnemyId['rain-warrior']).toMatchObject({ base: 1, temporary: 0 });
+  });
+
+  it('keeps Boss on the existing fallback until its dedicated migration phase', () => {
     expect(createEncounterEnemyIntent('rain-boss', 0).enemyId).toBe('rain-boss');
   });
 
