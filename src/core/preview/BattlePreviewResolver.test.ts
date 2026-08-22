@@ -50,7 +50,7 @@ function target(hp = 39) {
 }
 
 describe('BattlePreviewResolver', () => {
-  it('previews ordinary damage and the active actor next action without moving the target', () => {
+  it('previews Rin quick specialization and the active actor next action without moving the target', () => {
     const result = resolveBattlePreview({
       activeActorId: 'rin',
       card: card('quick', 'quick', 3, { damage: 8 }),
@@ -61,8 +61,9 @@ describe('BattlePreviewResolver', () => {
       breakWindows: [],
     });
 
-    expect(result.finalDamage).toBe(8);
-    expect(result.hpAfter).toBe(31);
+    expect(result.specializationBonusDamage).toBe(3);
+    expect(result.finalDamage).toBe(11);
+    expect(result.hpAfter).toBe(28);
     expect(result.actorNextActionAt).toBe(3);
     expect(result.targetTimelineFrom).toBe(4);
     expect(result.targetTimelineTo).toBe(4);
