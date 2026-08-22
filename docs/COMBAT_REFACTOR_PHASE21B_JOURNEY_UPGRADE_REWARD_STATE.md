@@ -1,14 +1,14 @@
 # Combat Refactor Phase 21b — Journey Upgrade Reward State
 
-STATUS = IMPLEMENTATION_CONTRACT
+STATUS = CI_VERIFIED
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
 ## Objective
 
-Phase 21b adds the pure Journey-owned reward state that turns the Phase 21 milestone policy into a claim-once progression flow. It still stops before Phaser reward-choice UI wiring.
+Phase 21b adds the pure Journey-owned reward state that turns the Phase 21 milestone policy into a claim-once progression flow. It stops before Phaser reward-choice UI wiring; Phase 21c owns that production integration.
 
-Combat remains a consumer of an explicit owned-upgrade list through `createEncounterBattleBootstrap()`. Combat does not mutate run progression.
+Combat remains a consumer of the owned-upgrade list through `createEncounterBattleBootstrap()`. Combat does not mutate run progression.
 
 ## State
 
@@ -48,9 +48,9 @@ At most three upgrades can be owned through canonical Area 01 progression becaus
 
 ## Boundaries
 
-This phase may add pure progression-state helpers and unit tests.
+This phase adds pure progression-state helpers and unit tests only.
 
-This phase does not:
+It does not:
 
 - modify Phaser scenes;
 - write to the registry;
@@ -63,7 +63,7 @@ This phase does not:
 
 ## Verification
 
-Automated evidence must cover:
+Automated evidence covers:
 
 - fresh normalized state;
 - first milestone exposes five upgrades;
@@ -73,5 +73,6 @@ Automated evidence must cover:
 - replay cannot reopen claimed reward;
 - duplicate/unknown input handling;
 - invalid selection rejection;
-- base input arrays remain detached/immutable;
-- build/test pass.
+- base input arrays remain detached/immutable.
+
+CI run 503 passed `npm run build` and `npm test`.
