@@ -68,7 +68,7 @@ export const RAIL_HALT_STAGE_PROFILE: BattleStageProfile = {
 export const FOUR_PLAYER_FORMATION_SLOTS: readonly FormationSlot[] = [
   { xRatio: 0.16, depthBandIndex: 0 },
   { xRatio: 0.68, depthBandIndex: 1 },
-  { xRatio: 0.05, depthBandIndex: 2 },
+  { xRatio: 0.08, depthBandIndex: 2 },
   { xRatio: 0.76, depthBandIndex: 3 },
 ];
 
