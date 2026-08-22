@@ -57,6 +57,8 @@ STATUS = AUTHORITATIVE_INDEX
 49. `COMBAT_REFACTOR_PHASE12_FORMATION_HAND_CHOREOGRAPHY.md`：4v4 上二／下二雙排隊形、完整卡牌下緣 PEEK、選牌抽出、執行退場、enemy overhead 與 responsive QA 的 presentation 重構契約；本批禁止生成資產。
 50. `DEMO_ASSET_REQUIREMENTS_V1.md`：Area 01 七節點 Demo 的完整資產母表；區分現有可用、runtime trial、規格錯誤、必須補作、程序化與禁止生成項目，並定義五張 card-family illustration plate 的正確規格。
 51. `HANDOFF_2026-08-22_COMBAT_DEMO_ASSETS.md`：2026-08-22 新戰鬥、七節點、隊形／手牌重構、Demo 資產判定、驗證限制與下一批工作的當前交接紀錄。
+52. `COMBAT_REFACTOR_PHASE13_ACTION_DATA_CONTRACT.md`：Phase 13 行動資料契約；統一 player/enemy action 語意欄位，保留 Clash、Boss phase、multi-hit／AoE 與 presentation profile 的資料槽位，先不改 runtime resolver。
+53. `COMBAT_REFACTOR_PHASE14_CLASH_CORE.md`：Phase 14 Clash 純 core 契約；定義 eligibility、score breakdown 與 player-win／draw／enemy-win，要求 Preview／Execute 共用同一計算且不恢復 legacy clashPower。
 
 ## combat-refactor-v1 分支規則
 
