@@ -65,6 +65,7 @@ STATUS = AUTHORITATIVE_INDEX
 57. `COMBAT_REFACTOR_PHASE15_NORMAL_ENEMY_ACTION_MIGRATION.md`：Phase 15 Normal enemy migration 契約；六種 Area 01 普通敵人改用 authored ActionDefinition、正式 HP／resilience 與 deterministic cyclic Intent，保留目前 Intent runtime boundary。
 58. `COMBAT_REFACTOR_PHASE16_ELITE_RAIN_WARRIOR_MIGRATION.md`：Phase 16 Elite rain-warrior migration 契約；正式 HP 120／resilience 1，採踏込→崩し→居合 deterministic cadence，Boss 尚未遷移。
 59. `COMBAT_REFACTOR_PHASE17_BOSS_ACTION_PHASE_POLICY.md`：Phase 17 Boss 資料／phase policy 契約；正式 HP 240／resilience 1，author `雨斬／山影連刃／驟雨橫掃／壓雨／終雨` 與 deterministic phase/cooldown policy，multi-hit／AoE runtime cutover 留待下一批。
+60. `COMBAT_REFACTOR_PHASE17B_BOSS_MULTI_TARGET_MULTI_HIT_RESOLUTION.md`：Phase 17b Boss runtime resolution 契約；保留 `damage × hitCount`、全體公開目標與整個 Intent 一次 Guard，並把 production rain-boss 切到 authored phase/cooldown action provider。
 
 ## combat-refactor-v1 分支規則
 
