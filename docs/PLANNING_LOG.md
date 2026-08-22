@@ -1001,3 +1001,9 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Replaced Scene-local card text offsets with one scalable `CardContentLayout`: family badge and title occupy the header, family visual is clipped to the art slot, effect copy occupies the lower text panel, and family／Delay share the footer.
 - Removed target-candidate body circles. Legal candidates now use only a restrained overhead-HUD border; a confirmed target uses one small diamond marker. Active-actor focus uses a shallow underfoot ellipse instead of a character-enclosing circle.
 - Runtime composite review confirms the four simultaneous enemy circles are gone and selected-card text no longer collides with the art or footer. Enemy intent copy above the overhead panel remains a separate HUD-anatomy follow-up.
+
+## 2026-08-22 — Phase 12 enemy overhead anatomy
+
+- Extracted `EnemyOverheadLayoutPolicy` so enemy name, intent pill, HP bar, HP value and selected-target marker share one 148×48 actor-anchored module instead of independent Scene offsets.
+- Dead enemies now leave their immutable formation slot empty: the actor and overhead module stop rendering, while surviving enemies keep their original encounter-slot indices and never compact.
+- 4-enemy desktop and 844×390 runtime composites show no overhead-to-overhead collisions and no floating intent copy. A remaining cross-component collision was identified: the centered selected card overlaps the innermost front-enemy overhead; selected-card／Preview／Confirm focus-group placement remains the next layout batch.

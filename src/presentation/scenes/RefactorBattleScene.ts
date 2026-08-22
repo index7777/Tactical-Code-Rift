@@ -40,6 +40,7 @@ import {
   cardSelectionPresentation,
 } from '../battle/refactor/CardMasterPresentation';
 import { cardContentLayout } from '../battle/refactor/CardContentLayout';
+import { enemyOverheadLayout } from '../battle/refactor/EnemyOverheadLayoutPolicy';
 import {
   handLayoutMetrics,
   type RefactorHandLayoutMetrics,
@@ -257,7 +258,8 @@ export class RefactorBattleScene extends Phaser.Scene {
       const enemyPosition = enemyStagePosition(index, enemyIds.length);
       const { x, y, perspectiveScale } = enemyPosition;
       const vitals = view.vitalsByActorId[enemyId];
-      const alive = Boolean(vitals && vitals.hp > 0);
+      if (!vitals || vitals.hp <= 0) return;
+      const alive = true;
       const isTargetable = targetable.has(enemyId);
       const affordance = targetAffordance(alive, isTargetable, selectedTargetId === enemyId);
       const textureKey = actorBattleTextureKey(enemyId);
@@ -273,21 +275,22 @@ export class RefactorBattleScene extends Phaser.Scene {
         }
       }
 
-      const overheadY = y - 92 * perspectiveScale;
+      const overhead = enemyOverheadLayout(x, y, perspectiveScale);
       const intent = view.enemyIntents.find((candidate) => candidate.enemyId === enemyId);
       const overheadDepth = 2000 + Math.round(y);
       const overheadStroke = affordance === 'SELECTED' ? 0xe1c371 : affordance === 'CANDIDATE' ? 0xc87984 : 0xb65d69;
       const overheadStrokeAlpha = affordance === 'SELECTED' ? 1 : affordance === 'CANDIDATE' ? 0.86 : 0.7;
-      this.addToWorld(this.add.rectangle(x, overheadY, 132, 42, 0x100b10, 0.82).setStrokeStyle(affordance === 'SELECTED' ? 2 : 1, overheadStroke, overheadStrokeAlpha).setDepth(overheadDepth));
+      this.addToWorld(this.add.rectangle(overhead.x, overhead.y, overhead.width, overhead.height, 0x100b10, 0.86).setStrokeStyle(affordance === 'SELECTED' ? 2 : 1, overheadStroke, overheadStrokeAlpha).setDepth(overheadDepth));
       if (affordance === 'SELECTED') {
-        this.addText(x, overheadY - 29, '◆', '14px', '#f0d477', 0.5, 'world').setDepth(overheadDepth + 2);
+        this.addText(overhead.targetMarker.x, overhead.targetMarker.y, '◆', '13px', '#f0d477', 0.5, 'world').setDepth(overheadDepth + 2);
       }
-      this.addText(x - 60, overheadY - 15, actorDisplayName(enemyId), '9px', '#f0dddd', 0, 'world').setDepth(overheadDepth + 1);
-      this.addText(x + 60, overheadY - 15, intent?.name ?? '—', '8px', '#e1b6aa', 1, 'world').setDepth(overheadDepth + 1);
-      this.addToWorld(this.add.rectangle(x, overheadY + 4, 116, 7, 0x2b1b20, 1).setDepth(overheadDepth + 1));
+      this.addText(overhead.name.x, overhead.name.y, actorDisplayName(enemyId), '9px', '#f0dddd', 0, 'world').setDepth(overheadDepth + 1);
+      this.addToWorld(this.add.rectangle(overhead.intent.x, overhead.intent.y, overhead.intent.width, overhead.intent.height, 0x391b23, 0.92).setStrokeStyle(1, 0xa44f5e, 0.55).setDepth(overheadDepth + 1));
+      this.addText(overhead.intent.x, overhead.intent.y, intent?.name ?? '—', '8px', '#f0c7bd', 0.5, 'world').setDepth(overheadDepth + 2);
+      this.addToWorld(this.add.rectangle(overhead.hpBar.x, overhead.hpBar.y, overhead.hpBar.width, overhead.hpBar.height, 0x2b1b20, 1).setDepth(overheadDepth + 1));
       const hpRatio = vitals ? Math.max(0, vitals.hp / vitals.maxHp) : 0;
-      this.addToWorld(this.add.rectangle(x - 58, overheadY + 4, 116 * hpRatio, 7, 0xd45168, 1).setOrigin(0, 0.5).setDepth(overheadDepth + 2));
-      this.addText(x, overheadY + 15, vitals ? `${vitals.hp}/${vitals.maxHp}` : '--', '8px', '#f2dfe1', 0.5, 'world').setDepth(overheadDepth + 2);
+      this.addToWorld(this.add.rectangle(overhead.hpBar.x - overhead.hpBar.width / 2, overhead.hpBar.y, overhead.hpBar.width * hpRatio, overhead.hpBar.height, 0xd45168, 1).setOrigin(0, 0.5).setDepth(overheadDepth + 2));
+      this.addText(overhead.hpValue.x, overhead.hpValue.y, `${vitals.hp}/${vitals.maxHp}`, '8px', '#f2dfe1', 0.5, 'world').setDepth(overheadDepth + 2);
     });
     this.worldContent?.sort('depth');
 
