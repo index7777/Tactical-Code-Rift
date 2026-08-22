@@ -7,6 +7,7 @@ import {
 } from './application/battle/createRefactorBattleBootstrap';
 import { resolveCombatEntry } from './application/battle/CombatEntryPolicy';
 import { RefactorBattleRuntime } from './presentation/battle/refactor/RefactorBattleRuntime';
+import { refactorViewportScaleMode } from './presentation/battle/refactor/RefactorBattleViewportPolicy';
 import { BootScene } from './presentation/scenes/BootScene';
 import { JourneyScene } from './presentation/scenes/JourneyScene';
 import { RefactorBattleScene } from './presentation/scenes/RefactorBattleScene';
@@ -19,6 +20,9 @@ const combatEntry = resolveCombatEntry(window.location.search);
 const refactorBattleRuntime = combatEntry.attachRefactorRuntime
   ? new RefactorBattleRuntime(createRefactorBattleBootstrap(), createRefactorQaEnemyIntent)
   : undefined;
+const viewportScaleMode = combatEntry.mode === 'refactor'
+  ? refactorViewportScaleMode(window.innerWidth, window.innerHeight)
+  : 'FIT';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -26,7 +30,7 @@ const config: Phaser.Types.Core.GameConfig = {
   backgroundColor: '#090c18',
   render: { antialias: true, pixelArt: false, roundPixels: false },
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: viewportScaleMode === 'COVER' ? Phaser.Scale.ENVELOP : Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
     width: 1280,
     height: 720,
