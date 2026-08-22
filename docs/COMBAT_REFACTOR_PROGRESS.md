@@ -1,7 +1,7 @@
 # 戰鬥重構進度
 
 BRANCH = combat-refactor-v1
-DATE = 2026-08-22
+DATE = 2026-08-23
 
 本文件只記錄 `COMBAT_REFACTOR_V1.md`、`COMBAT_REFACTOR_IMPLEMENTATION_PLAN.md` 與各 Phase contract 的實作進度，不取代規格。
 
@@ -325,7 +325,7 @@ CI：run 343 首次 build 因三個 animation-plan 測試 fixture 尚未補 `eff
 - 未修改 BG binary / framing、Phase 10l card master、camera 1.05 focus、ACTION target-relative approach 或 combat rules。
 - 新增／更新 stage regression：formation identity independence、compact monotonic depth、水平分離、enemy zone / visual multiplier。
 
-CI：run 353 build 通過，但 Phase 10j 遺留 `max player x <= 500` assertion 與本批刻意增加水平展開衝突；更新舊 assertion 為 Phase 10m boundary 後，run 354 build + test 全部通過。
+CI：run 353 build 通過，但 Phase 10j 遺留 `max player x <= 500` assertion 與本批刻意增加水平展開衝突；更新舊 assertion 為 Phase 10m boundary 後，run 354 build / test 全部通過。
 
 ## Deployment / Browser QA Gate
 
@@ -432,3 +432,84 @@ CI：run 415 build / test 通過。
 - 沒有新增 Clash UI／動畫／FX，也沒有生成資產。
 
 CI：run 422 build / test 通過。
+
+## Phase 15 — Normal Enemy Action Migration
+
+狀態：`CI_VERIFIED`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE15_NORMAL_ENEMY_ACTION_MIGRATION.md`
+
+- 六種 Area 01 普通敵人改用 authored `ActionDefinition` catalog 與正式 HP／resilience。
+- runtime 仍透過既有 `IntentState` boundary 執行，不把資料 migration 與 resolver rewrite 綁在一起。
+- Normal actions 暫不 opt in production Clash。
+
+CI：run 430 build / test 通過。
+
+## Phase 16 — Elite rain-warrior Migration
+
+狀態：`CI_VERIFIED`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE16_ELITE_RAIN_WARRIOR_MIGRATION.md`
+
+- rain-warrior 改為 HP 120 / resilience 1。
+- deterministic cadence：踏込 → 崩し → 居合；居合不得連發。
+- Elite authored presentation profile 已保留，production Clash 暫不啟用。
+
+CI：run 436 build / test 通過。
+
+## Phase 17 / 17b — Boss Action Data + Multi-hit/AoE Runtime
+
+狀態：`CI_VERIFIED`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE17_BOSS_ACTION_PHASE_POLICY.md`、`docs/COMBAT_REFACTOR_PHASE17B_BOSS_MULTI_TARGET_MULTI_HIT_RESOLUTION.md`
+
+- rain-boss 改為 HP 240 / resilience 1，三階段 deterministic policy。
+- authored 雨斬／山影連刃／驟雨橫掃／壓雨／終雨。
+- `山影連刃` 保留 6×2；`驟雨橫掃` 使用 explicit living-player target list；resolver 只提交一次 action resolution。
+- Boss production provider 使用 authored phase/cooldown policy，不讀 legacy clashPower/tempo。
+
+CI：Phase 17 run 442、Phase 17b run 451 build / test 通過。
+
+## Phase 18 / 18b / 18c — Action Presentation Sequencer
+
+狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE18_ACTION_PRESENTATION_SEQUENCER.md`、`docs/COMBAT_REFACTOR_PHASE18B_SEQUENCER_SCENE_WIRING.md`、`docs/COMBAT_REFACTOR_PHASE18C_ENEMY_PROFILE_MULTI_HIT_AOE_PRESENTATION.md`
+
+- 建立 quick/heavy/guard/disruption/break/enemy-light/enemy-heavy/boss-signature 八種 reusable profile。
+- Scene 已改由 profile 驅動 anticipation/approach/strike/impact/recovery/return。
+- enemy authored profile、hitCount、explicit targetIds 已接入 presentation；multi-hit 視覺接觸不重複 resolver，AoE 只對 authoritative targetIds 播放 reaction。
+- 沒有生成新資產。
+
+CI：Phase 18a run 457、18b run 463、18c 最終 run 474 build / test 通過。
+
+## Phase 19 — Clash Presentation
+
+狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE19_CLASH_PRESENTATION.md`
+
+- Target Preview / animation plan 只消費 authoritative Clash result，不重新判分。
+- Scene 已實作雙方同步 approach → anticipation → strike → contact → hit-stop → result branch → recovery → return。
+- Clash contact 只呼叫一次 `resolveConfirmedPlayerAction()`，不另外呼叫 enemy resolver。
+- Story encounter production Clash 仍未啟用；本批只建立 presentation 能力。
+
+CI：Phase 19a run 481、Phase 19b run 486 build / test 通過。
+
+## Phase 20 — Selection / Targeting Zoom Presentation
+
+狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE20_SELECTION_TARGETING_ZOOM_PRESENTATION.md`
+
+- 新增 pure `DecisionCameraPolicy`：PEEK 1.05、FOCUS 1.08、TARGETING 1.12、DISPATCH 1.00、HIDDEN 不擁有 camera。
+- FOCUS 從 active actor 偏向 neutral action-zone anchor，不猜 target；TARGETING 只使用 Preview 已提供 selected target 的 actor/target midpoint。
+- Scene 在 actor sprites 佈置後套用 decision camera；action/Clash 執行時仍由 Phase 18/19 接管 camera。
+- 一般選牌／瞄準維持 battlefield-first，不使用常態 portrait/cut-in。
+- 沒有修改 combat math，也沒有生成資產。
+
+CI：pure policy run 489、Scene wiring run 490 build / test 通過。
+
+Browser QA：待 1280×720 / 844×390 驗證 PEEK→FOCUS→TARGETING 轉場、target relationship 可讀性，以及與 Phase 18/19 camera ownership 無衝突。
+
+流程紀錄：Phase 15–20 期間 `COMBAT_REFACTOR_PROGRESS.md` 同步落後於 source/CI；本次已補齊實際完成狀態，但不把補登視為原始 docs-first 流程證據。
