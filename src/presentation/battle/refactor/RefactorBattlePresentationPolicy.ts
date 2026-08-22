@@ -5,7 +5,7 @@ const ACTOR_LABELS: Readonly<Record<string, string>> = {
   chikage: '千景',
   oboro: '朧',
   mo: '紅葉',
-  'ghost-fire': '鬼火',
+  'ghost-fire': '提燈童子',
 };
 
 const CATEGORY_LABELS: Readonly<Record<string, string>> = {
