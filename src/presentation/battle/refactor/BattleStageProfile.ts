@@ -49,29 +49,29 @@ export interface BackgroundFrame {
 export const RAIL_HALT_STAGE_PROFILE: BattleStageProfile = {
   width: 1280,
   height: 720,
-  playerZone: { x: 310, y: 350, width: 300, height: 120 },
-  enemyZone: { x: 830, y: 360, width: 200, height: 120 },
-  actionZone: { x: 550, y: 365, width: 300, height: 120 },
+  playerZone: { x: 280, y: 382, width: 330, height: 120 },
+  enemyZone: { x: 830, y: 390, width: 200, height: 100 },
+  actionZone: { x: 550, y: 395, width: 300, height: 115 },
   depthBands: [
-    { y: 370, scale: 0.9 },
-    { y: 390, scale: 0.96 },
-    { y: 425, scale: 1.03 },
-    { y: 445, scale: 1.08 },
+    { y: 392, scale: 0.88 },
+    { y: 420, scale: 0.96 },
+    { y: 462, scale: 1.07 },
+    { y: 492, scale: 1.16 },
   ],
   enemyVisualScaleMultiplier: 1.14,
   backgroundFocalPoint: { x: 0.51, y: 0.53 },
   hudSafeTop: 112,
   hudSafeBottom: 584,
-  cameraSafeBounds: { x: 270, y: 260, width: 740, height: 290 },
+  cameraSafeBounds: { x: 270, y: 280, width: 740, height: 280 },
   occlusionLeft: 250,
   occlusionRight: 1160,
 };
 
 export const FOUR_PLAYER_FORMATION_SLOTS: readonly FormationSlot[] = [
-  { xRatio: 0.1, depthBandIndex: 0 },
-  { xRatio: 0.63, depthBandIndex: 1 },
+  { xRatio: 0.08, depthBandIndex: 0 },
+  { xRatio: 0.68, depthBandIndex: 1 },
   { xRatio: 0.24, depthBandIndex: 2 },
-  { xRatio: 0.78, depthBandIndex: 3 },
+  { xRatio: 0.84, depthBandIndex: 3 },
 ];
 
 export const DEFAULT_PLAYER_ACTOR_ORDER = ['rin', 'chikage', 'oboro', 'mo'] as const;
