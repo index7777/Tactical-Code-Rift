@@ -96,6 +96,19 @@ describe('RefactorBattleRuntime Phase 9d', () => {
     expect(view.targetableActorIds).toEqual(['ghost-fire']);
   });
 
+  it('limits non-Chikage any-ally guard presentation candidates to self', () => {
+    const controller = new BattleTurnController(
+      state('rin'),
+      createRefactorDeck(cards({ category: 'guard', delay: 4, targetRule: 'any-ally', effect: { guardRatio: 0.5, guardCap: 8 } }), 1),
+    );
+    const runtime = new RefactorBattleRuntime(controller);
+    runtime.startNextActor();
+    const cardId = runtime.view().hand[0]!.instanceId;
+    const view = runtime.selectCard(cardId);
+    expect(view.targetableActorIds).toEqual(['rin']);
+    expect(() => runtime.previewTarget('chikage')).toThrow('actor is not a legal presentation target: chikage');
+  });
+
   it('lets Chikage any-ally guard target living player actors', () => {
     const controller = new BattleTurnController(
       state('chikage'),
