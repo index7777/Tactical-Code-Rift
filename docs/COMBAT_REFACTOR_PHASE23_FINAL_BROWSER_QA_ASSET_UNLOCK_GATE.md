@@ -1,6 +1,6 @@
 # Combat Refactor Phase 23 — Final Browser QA / Asset Unlock Gate
 
-STATUS = AUTOMATED_RUNTIME_EVIDENCE_HARNESS_ADDED_REVIEW_PENDING
+STATUS = AUTOMATED_ROUTE_DECISION_QA_PASS_MANUAL_PROFILE_REVIEW_PENDING
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -119,7 +119,7 @@ Autoplay-policy warnings before user input are not treated as application failur
 
 ## Automated evidence harness
 
-Phase 23 now includes `tools/phase23_browser_qa.mjs` plus `.github/workflows/phase23-browser-qa.yml`.
+Phase 23 includes `tools/phase23_browser_qa.mjs` plus `.github/workflows/phase23-browser-qa.yml`.
 
 The harness launches a production Vite preview in headless Chromium and runs both canonical viewport sizes. It physically clicks the route map, battle result CTA, family-upgrade reward choices, one card, one authoritative target, and the confirm CTA. It records PNG evidence plus JSON reports under `artifacts/phase23-browser-qa`.
 
@@ -130,6 +130,8 @@ The automated path checks:
 - exactly three upgrades before Boss and Area 01 clear after Boss victory;
 - PEEK → FOCUS → TARGETING → action handoff / return on a legal player turn;
 - application console/page errors as workflow failures.
+
+The harness uses the inherited Phaser scene key `JourneyScene` for `DemoProgressionJourneyScene`, allows up to 30 seconds for battle-scene preload on CI, runs both viewports even if one fails, and writes `summary.json` before surfacing a combined failure. These behaviors keep runtime failures distinguishable from harness timing/key errors.
 
 This harness does not replace manual visual judgment for rhythm, silhouette clarity, camera feel, Clash outcome readability, Boss multi-hit/AoE readability, or overlap quality. Those remain the final asset-unlock review.
 
@@ -144,6 +146,18 @@ Because the Browser-QA workflow runs from a branch push while the normal CI chec
 
 The bridge is observability only. It does not alter the browser assertions, gameplay, presentation, or the asset-unlock criteria.
 
+## Current evidence / blocker
+
+- Phase 22 CI run 515 passed build/test for both route branches, upgrade handoff, Boss entry, and viewport policy regression.
+- The first Phase 23 Browser-QA run (`32592527157`) failed because the harness expected a non-existent Phaser scene key `DemoProgressionJourneyScene`; the subclass inherits `JourneyScene`. This was a harness defect, not a runtime failure.
+- The second Browser-QA run (`32592809366`) passed the corrected journey-key check but exposed that a 12-second active-scene wait was too short for the CI route-transition plus battle preload; no page or console error was recorded.
+- Commit `1663565b95a659e01babe3d1599324580ae92d2d` hardened scene waits to 30 seconds and guarantees per-viewport reports / `summary.json` on failure.
+- Browser-QA run `32593020524` passed the complete automated route/progression + normal decision path at both `1280×720` and `844×390`; the uploaded artifact contains both viewport reports and screenshots.
+- Normal CI run 533 passed `npm ci`, `npm run build`, and `npm test` on the same commit.
+- Manual review of the automated PEEK / FOCUS / TARGETING / HIDDEN screenshots confirms the normal decision hierarchy is visible at both viewports, with FIT side bars expected on compact landscape and no obvious selected-card / enemy-overhead collision in the captured path.
+- The remaining blocker is the manual/deterministic presentation evidence for all eight action profiles, eligible Clash choreography/outcomes, Boss multi-hit/AoE/signature readability, dead-slot behavior, and overlap quality. These are required by this gate but are not exercised by the current automated route/decision harness.
+- Asset generation remains locked. No generated asset is produced by this phase.
+
 ## Asset unlock condition
 
 Only after all required checks above pass may the next phase begin generated family-plate production.
@@ -156,10 +170,3 @@ The first asset phase is deliberately one-file-at-a-time:
 4. generated output starts as candidate and is never auto-approved.
 
 The governing plate specification remains `DEMO_ASSET_REQUIREMENTS_V1.md`: opaque full-bleed ~1.44:1 illustration plate, no card frame, card text, numbers, character identity, target icon, Delay badge, or HUD baked into the image.
-
-## Current evidence / blocker
-
-- Phase 22 CI run 515 passed build/test for both route branches, upgrade handoff, Boss entry, and viewport policy regression.
-- Phase 23 browser-QA harness commits compile under the normal CI path; CI run 528 passed `npm ci`, `npm run build`, and `npm test` on the workflow/harness head.
-- Browser-QA screenshot artifacts still require workflow-result inspection and visual review before this gate can be marked passed.
-- No generated asset is produced by this phase.
