@@ -5,6 +5,7 @@ import type { BattleResolutionState } from '../../core/resolution/BattleResoluti
 import { createControlResilience } from '../../core/status/ControlResilience';
 import { createBattleTimeline } from '../../core/timeline/BattleTimeline';
 import { BattleTurnController } from './BattleTurnController';
+import { createRefactorQaClashCatalog } from './createRefactorQaClashCatalog';
 
 export const REFACTOR_QA_CARD_DEFINITIONS: readonly RefactorCardDefinition[] = [
   { id: 'qa-quick-cut', name: '迅切', category: 'quick', delay: 3, targetRule: 'enemy', effect: { damage: 8 } },
@@ -64,6 +65,9 @@ export function createRefactorQaBattleState(): BattleResolutionState {
 
 export function createRefactorBattleBootstrap(seed = 20260822): BattleTurnController {
   const battle = createRefactorQaBattleState();
+  const intent = battle.intentByEnemyId['ghost-fire'];
+  if (!intent) throw new Error('refactor QA battle requires ghost-fire Intent');
   const deck = createRefactorDeck([...REFACTOR_QA_CARD_DEFINITIONS], seed);
-  return new BattleTurnController(battle, deck);
+  const clashCatalog = createRefactorQaClashCatalog(REFACTOR_QA_CARD_DEFINITIONS, [intent]);
+  return new BattleTurnController(battle, deck, clashCatalog);
 }
