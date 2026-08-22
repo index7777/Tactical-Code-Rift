@@ -1,6 +1,0 @@
-import { AREA01_RAIL_HALT_HD2D_Q60_PART_1 } from './area01RailHaltHd2dQ60.part1';
-import { AREA01_RAIL_HALT_HD2D_Q60_PART_2 } from './area01RailHaltHd2dQ60.part2';
-import { AREA01_RAIL_HALT_HD2D_Q60_PART_3 } from './area01RailHaltHd2dQ60.part3';
-import { AREA01_RAIL_HALT_HD2D_Q60_PART_4 } from './area01RailHaltHd2dQ60.part4';
-
-export const AREA01_RAIL_HALT_HD2D_Q60_DATA_URI = `data:image/jpeg;base64,${AREA01_RAIL_HALT_HD2D_Q60_PART_1}${AREA01_RAIL_HALT_HD2D_Q60_PART_2}${AREA01_RAIL_HALT_HD2D_Q60_PART_3}${AREA01_RAIL_HALT_HD2D_Q60_PART_4}`;
