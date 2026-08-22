@@ -5,6 +5,7 @@ import {
   cardTargetDisplayName,
   categoryDisplayName,
   phaseDisplayName,
+  shouldShowActorRing,
   targetAffordance,
   targetRuleDisplayName,
 } from './RefactorBattlePresentationPolicy';
@@ -42,6 +43,14 @@ describe('RefactorBattlePresentationPolicy', () => {
     expect(targetAffordance(true, true, true)).toBe('SELECTED');
     expect(targetAffordance(true, false, false)).toBe('DEFAULT');
     expect(targetAffordance(false, true, true)).toBe('DISABLED');
+  });
+
+  it('shows actor rings only for focus or target interaction feedback', () => {
+    expect(shouldShowActorRing('DEFAULT', false)).toBe(false);
+    expect(shouldShowActorRing('DISABLED', false)).toBe(false);
+    expect(shouldShowActorRing('DEFAULT', true)).toBe(true);
+    expect(shouldShowActorRing('CANDIDATE', false)).toBe(true);
+    expect(shouldShowActorRing('SELECTED', false)).toBe(true);
   });
 
   it('auto-advances only non-player-decision states', () => {
