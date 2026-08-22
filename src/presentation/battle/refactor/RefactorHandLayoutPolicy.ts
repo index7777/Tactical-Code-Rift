@@ -12,6 +12,10 @@ export interface RefactorHandLayoutMetrics {
   previewY: number;
   actionPrimaryY: number;
   actionSecondaryY: number;
+  utilityX: number;
+  utilityY: number;
+  utilityWidth: number;
+  utilityHeight: number;
 }
 
 const EXPANDED_PHASES: ReadonlySet<BattleTurnPhase> = new Set([
@@ -34,26 +38,34 @@ export function handLayoutMetrics(
   if (state === 'EXPANDED') {
     return {
       state,
-      labelY: 558,
-      cardY: 642,
-      cardWidth: 124,
-      cardHeight: 116,
-      cardGap: 148,
-      previewY: 536,
-      actionPrimaryY: 630,
-      actionSecondaryY: 682,
+      labelY: 548,
+      cardY: 635,
+      cardWidth: 142,
+      cardHeight: 150,
+      cardGap: 152,
+      previewY: 522,
+      actionPrimaryY: 626,
+      actionSecondaryY: 676,
+      utilityX: 1110,
+      utilityY: 635,
+      utilityWidth: 132,
+      utilityHeight: 150,
     };
   }
 
   return {
     state,
-    labelY: 598,
-    cardY: 660,
-    cardWidth: 124,
-    cardHeight: 82,
+    labelY: 586,
+    cardY: 651,
+    cardWidth: 136,
+    cardHeight: 116,
     cardGap: 148,
-    previewY: 574,
-    actionPrimaryY: 646,
-    actionSecondaryY: 688,
+    previewY: 558,
+    actionPrimaryY: 640,
+    actionSecondaryY: 684,
+    utilityX: 1110,
+    utilityY: 651,
+    utilityWidth: 132,
+    utilityHeight: 116,
   };
 }
