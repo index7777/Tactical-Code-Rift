@@ -25,6 +25,7 @@ import { storyEncounter } from '../../core/route/EncounterCatalog';
 import { createControlResilience } from '../../core/status/ControlResilience';
 import { createBattleTimeline } from '../../core/timeline/BattleTimeline';
 import { BattleTurnController } from './BattleTurnController';
+import { consumeDemoCardUpgradeEncounterHandoff } from './DemoCardUpgradeEncounterHandoff';
 import { REFACTOR_QA_CARD_DEFINITIONS } from './createRefactorBattleBootstrap';
 
 const PLAYER_IDS = ['rin', 'chikage', 'oboro', 'mo'] as const;
@@ -144,11 +145,12 @@ export interface EncounterBattleBootstrap {
 export function createEncounterBattleBootstrap(
   journeyNodeId: string,
   seed = 20260822,
-  ownedUpgradeIds: readonly DemoCardUpgradeId[] = [],
+  ownedUpgradeIds?: readonly DemoCardUpgradeId[],
 ): EncounterBattleBootstrap {
   const encounter = storyEncounter(journeyNodeId);
   if (!encounter) throw new Error(`unknown story encounter: ${journeyNodeId}`);
 
+  const resolvedUpgradeIds = ownedUpgradeIds ?? consumeDemoCardUpgradeEncounterHandoff();
   const vitalsByActorId: BattleResolutionState['vitalsByActorId'] = {};
   for (const playerId of PLAYER_IDS) {
     vitalsByActorId[playerId] = { actorId: playerId, hp: PLAYER_HP[playerId], maxHp: PLAYER_HP[playerId] };
@@ -221,7 +223,7 @@ export function createEncounterBattleBootstrap(
     return createEncounterEnemyIntent(enemyId, sequence);
   };
 
-  const deckDefinitions = applyDemoCardUpgrades(REFACTOR_QA_CARD_DEFINITIONS, ownedUpgradeIds);
+  const deckDefinitions = applyDemoCardUpgrades(REFACTOR_QA_CARD_DEFINITIONS, resolvedUpgradeIds);
   return {
     controller: new BattleTurnController(state, createRefactorDeck(deckDefinitions, seed)),
     enemyIntentProvider: nextIntent,
