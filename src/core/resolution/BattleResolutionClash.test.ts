@@ -85,10 +85,10 @@ describe('BattleResolutionResolver Clash integration', () => {
       enemyId: 'enemy',
       kind: 'hard-stagger',
       name: '硬直',
-      damage: undefined,
       targetIds: [],
       delay: 5,
     });
+    expect(result.state.intentByEnemyId.enemy?.damage).toBeUndefined();
   });
 
   it('commits draw as half player damage and half enemy Intent without status effects', () => {
