@@ -1,6 +1,11 @@
 import { enemyArchetypePools } from '../../core/battle/EnemySkills';
 import type { EnemyArchetype } from '../../core/battle/BattleTypes';
 import { createRefactorDeck } from '../../core/cards/RefactorDeck';
+import {
+  RAIN_WARRIOR_BASE_RESILIENCE,
+  RAIN_WARRIOR_HP,
+  rainWarriorActionAt,
+} from '../../core/enemy/EliteEnemyActionCatalog';
 import { intentStateFromEnemyAction } from '../../core/enemy/EnemyActionIntentAdapter';
 import {
   isNormalEnemyArchetype,
@@ -30,11 +35,11 @@ const LEGACY_ENEMY_HP: Readonly<Record<Exclude<EnemyArchetype,
   | 'mountain-hound'
   | 'noose-ghost'
   | 'lost-monk'
-  | 'wayfarer-umbrella'>, number>> = {
+  | 'wayfarer-umbrella'
+  | 'rain-warrior'>, number>> = {
   swift: 34,
   crusher: 54,
   hexer: 38,
-  'rain-warrior': 72,
   'rain-boss': 128,
 };
 
@@ -44,13 +49,14 @@ function targetFor(enemyIndex: number): (typeof PLAYER_IDS)[number] {
 
 function enemyHp(archetype: EnemyArchetype): number {
   if (isNormalEnemyArchetype(archetype)) return NORMAL_ENEMY_HP[archetype];
+  if (archetype === 'rain-warrior') return RAIN_WARRIOR_HP;
   return LEGACY_ENEMY_HP[archetype];
 }
 
 function enemyBaseResilience(archetype: EnemyArchetype): number {
-  return isNormalEnemyArchetype(archetype)
-    ? NORMAL_ENEMY_BASE_RESILIENCE[archetype]
-    : 0;
+  if (isNormalEnemyArchetype(archetype)) return NORMAL_ENEMY_BASE_RESILIENCE[archetype];
+  if (archetype === 'rain-warrior') return RAIN_WARRIOR_BASE_RESILIENCE;
+  return 0;
 }
 
 export function createEncounterEnemyIntent(enemyId: string, sequence = 0): IntentState {
@@ -59,6 +65,15 @@ export function createEncounterEnemyIntent(enemyId: string, sequence = 0): Inten
   if (isNormalEnemyArchetype(archetype)) {
     return intentStateFromEnemyAction(
       normalEnemyActionAt(archetype, sequence),
+      enemyId,
+      targetFor(sequence),
+      sequence,
+    );
+  }
+
+  if (archetype === 'rain-warrior') {
+    return intentStateFromEnemyAction(
+      rainWarriorActionAt(sequence),
       enemyId,
       targetFor(sequence),
       sequence,
