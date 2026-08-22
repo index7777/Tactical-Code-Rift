@@ -311,15 +311,33 @@ Browser QA：使用者實機截圖確認 stage / hand 空間比前版乾淨，�
 
 CI：run 343 首次 build 因三個 animation-plan 測試 fixture 尚未補 `effect/effectLines` 而失敗；修正 fixture 後 run 344 build + test 全部通過。
 
+## Phase 10m — Stage Formation / Scale Calibration
+
+狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE10M_STAGE_FORMATION_SCALE_CALIBRATION.md`
+
+已實作：
+
+- rail-halt player zone 擴大水平可用寬度；四個 formation slot 保持 identity-independent，但改用更大的 x 分離。
+- player depth center-y 收斂為 370 / 390 / 425 / 445，總跨度由 124 logical px 降為 75；scale 收斂為 0.90 / 0.96 / 1.03 / 1.08。
+- enemy zone 向中央 action zone 收近；enemy 視覺倍率由 Scene 隱含常數改成 profile-owned `enemyVisualScaleMultiplier = 1.14`。
+- 未修改 BG binary / framing、Phase 10l card master、camera 1.05 focus、ACTION target-relative approach 或 combat rules。
+- 新增／更新 stage regression：formation identity independence、compact monotonic depth、水平分離、enemy zone / visual multiplier。
+
+CI：run 353 build 通過，但 Phase 10j 遺留 `max player x <= 500` assertion 與本批刻意增加水平展開衝突；更新舊 assertion 為 Phase 10m boundary 後，run 354 build + test 全部通過。
+
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10L_BROWSER_QA_PENDING`
+狀態：`PHASE10M_BROWSER_QA_PENDING`
 
-- Phase 10l CI run 344 已通過。
-- Pages 下一個必要證據：五張牌是否第一眼像同一套 card family、Delay footer 是否可快速橫掃、selected 上浮／glow 是否足夠明確、調度與確認控制是否不再像第六張卡。
-- 同時回歸 Phase 10k：1280×720 / 844×390 的角色腳點、collapsed/expanded hand 與 camera focus 不得因 card master 增高而退化。
+- Phase 10m CI run 354 已通過。
+- Pages 下一個必要證據：1280×720 四名玩家是否讀成同一地面上的兩層斜列；凜不再浮高、千景／朧 silhouette 分離、紅葉不壓手牌。
+- QA enemy 應比前一版更有視覺重量並略靠近 action zone，但不得碰 Intent panel。
+- 同時回歸 Phase 10l card master、Phase 10i camera focus / 前踏、ACTION 接敵與回 HOME。
+- 844×390 必須維持 Timeline、Intent、hand 與 formation 可讀。
 - Legacy combat removal 仍 blocked。
 
 ## 下一批
 
-先完成 Phase 10l browser QA；若 card anatomy / interaction 層級通過，再獨立處理正式 audio policy 與 QA enemy canonical asset/portrait mapping。是否接 `public/assets/battle/cards/` 中的 frame/icon/art，必須以實際母版缺口決定，不做批量接入。
+先完成 Phase 10m browser QA。畫面構圖通過後，再獨立處理正式 audio policy 與 QA enemy canonical asset/portrait mapping；不因資產存在就批量接入。
