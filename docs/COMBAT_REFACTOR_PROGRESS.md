@@ -271,7 +271,7 @@ CI：run 266 build / test 通過。仍需 GitHub Pages 實機確認接敵距離�
 
 ## Phase 10k — Adaptive Battle Stage / Hand Layout
 
-狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
+狀態：`CI_VERIFIED_BROWSER_QA_FOUND_CARD_MASTER_GAP`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10K_ADAPTIVE_BATTLE_STAGE_HAND_LAYOUT.md`
 
@@ -289,15 +289,37 @@ CI：run 266 build / test 通過。仍需 GitHub Pages 實機確認接敵距離�
 
 CI：run 333 build 通過、test 因 Phase 10j 舊 `x >= 320` layout assertion 與新 slot 第一版 `x=312.5` 衝突而失敗；調整 slot 回到 legacy safe bound 後，run 334 build / test 全部通過。
 
+Browser QA：使用者實機截圖確認 stage / hand 空間比前版乾淨，但指出 hand 只是縮小舊 rectangle，沒有落實既定戰鬥 UI 母版的 card anatomy / family identity / selected hierarchy；因此 Phase 10k 的空間架構保留，卡牌 presentation 由 Phase 10l 接手。
+
+## Phase 10l — Shared Hand / Card Master Presentation
+
+狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE10L_CARD_MASTER_PRESENTATION.md`
+
+已實作：
+
+- 新增 pure presentation `CardMasterPresentation.ts`，五個 category 固定 quick 冷藍、heavy 朱紅、guard 青綠、disruption 紫、break 金橙 family style。
+- `HandPresenter` 現在提供 effect snapshot + 最多兩行 player-facing effect summary；Scene 不再用 target-rule enum 當卡面主資訊。
+- 卡牌重構為 family header / mark、卡名、family label、effect zone、獨立 `Delay N` footer。
+- selected skill 上浮 14px、略放大並加 family glow；其他卡在已有 selected skill 時降低 alpha。
+- dispatch-selected 使用較弱的調度標記，不冒充技能 selected glow。
+- `調度` 改為獨立 utility panel，顯示 `交換 0–2 張 / Delay 3`；selected/preview 階段使用獨立 action command panel 顯示目前卡名、選擇目標／目標已確認、確認執行／取消。
+- Phase 10k 的 collapsed/expanded hand 概念保留，但 card master metrics 改為 collapsed 136×116、expanded 142×150，使 anatomy 可讀且 selected card 仍留在 720 logical stage 內。
+- 未接入新的 card art / frame / icon 資產；先以程式化 master 驗證 anatomy 與互動，避免因資產存在就全部塞入。
+- BG、角色站位、combat domain、audio、enemy roster 均未在本批更動。
+
+CI：run 343 首次 build 因三個 animation-plan 測試 fixture 尚未補 `effect/effectLines` 而失敗；修正 fixture 後 run 344 build + test 全部通過。
+
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10K_BROWSER_QA_PENDING`
+狀態：`PHASE10L_BROWSER_QA_PENDING`
 
-- Phase 10k CI run 334 已通過。
-- 下一個必要證據是 Pages 1280×720 / 844×390：角色腳點與景深是否像站在同一地面、collapsed hand 是否真的讓出戰場、expanded hand/preview 是否仍可操作、camera focus 是否不裁地面與角色。
-- 後續不同 BG 只應新增／選擇 stage profile，不再回到 Scene 內逐角色手調座標。
+- Phase 10l CI run 344 已通過。
+- Pages 下一個必要證據：五張牌是否第一眼像同一套 card family、Delay footer 是否可快速橫掃、selected 上浮／glow 是否足夠明確、調度與確認控制是否不再像第六張卡。
+- 同時回歸 Phase 10k：1280×720 / 844×390 的角色腳點、collapsed/expanded hand 與 camera focus 不得因 card master 增高而退化。
 - Legacy combat removal 仍 blocked。
 
 ## 下一批
 
-先做 Phase 10k browser QA；通過後再獨立處理正式 audio policy 與 QA enemy canonical asset/portrait mapping。資產庫是可選來源，不因存在就全部接入。
+先完成 Phase 10l browser QA；若 card anatomy / interaction 層級通過，再獨立處理正式 audio policy 與 QA enemy canonical asset/portrait mapping。是否接 `public/assets/battle/cards/` 中的 frame/icon/art，必須以實際母版缺口決定，不做批量接入。
