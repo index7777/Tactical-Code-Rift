@@ -1,6 +1,6 @@
 # Phase 10b — 新戰鬥資產重新接入契約
 
-STATUS = IMPLEMENTATION_CONTRACT
+STATUS = IMPLEMENTED_PENDING_CI
 BRANCH = combat-refactor-v1
 DATE = 2026-08-22
 
@@ -18,39 +18,48 @@ DATE = 2026-08-22
 - 新版站位：`BattleActorPresenter`
 - 新版資料流：`BattleTurnController -> RefactorBattleRuntime -> presenters -> RefactorBattleScene`
 
-## 本批要做
+## 已實作
 
 ### 1. 新版獨立 preload
 
-`RefactorBattleScene.preload()` 只透過新版 asset helper 載入：
+`RefactorBattleScene.preload()` 透過 `RefactorBattleAssets.ts` 載入：
 
 - 四名隊友 pose / portrait（沿用 `queuePlayerAssets()`）
 - World 01 rooftop candidate 背景
-- QA 敵人顯示圖
-- 目前可重用的基礎 slash FX
+- QA 敵人 yokai 顯示圖
+- 基礎 slash FX
 
-禁止呼叫或依賴 `BootScene.preload()`。
+不呼叫也不依賴 `BootScene.preload()`。
 
 ### 2. 角色本體
 
-- `rin` / `chikage` / `oboro` / `mo` 以 manifest 的角色 pose key 顯示。
+- `rin` / `chikage` / `oboro` / `mo` 以 manifest 的 `idle-a` texture 顯示。
 - HOME 位置仍由 `PLAYER_HOME_POSITIONS` 決定。
 - 生命值、targetable ring 與玩家輸入仍由新版 Scene / Runtime 控制。
-- 若個別 texture 不存在，保留安全 fallback，不讓整場 Scene 因單一資產缺失而無法操作。
+- texture 不存在時保留 ring fallback，避免單一資產失效讓 Scene 無法操作。
 
 ### 3. Timeline portrait
 
-單一 Timeline 節點優先顯示角色 timeline portrait；文字名稱與 `nextActionAt` 繼續保留。
+單一 Timeline 的玩家節點優先顯示 manifest timeline portrait；角色名與 `nextActionAt` 保留。
 
-Enemy 若沒有對應 portrait，使用 QA enemy texture / fallback，不回復舊雙 Timeline renderer。
+`ghost-fire` 以 QA enemy texture 顯示；其他未知 enemy 仍可 fallback 文字。
 
 ### 4. 戰場背景
 
-新版 battlefield 區域使用既有 World 01 rooftop runtime candidate 作為背景，裁切／縮放在新版 battlefield 區域內，不覆蓋 Timeline 與 shared hand。
+新版 battlefield 區域使用既有 World 01 rooftop runtime candidate；party rail、Intent panel 與 hand 仍由新版 layout 疊在上層。
 
 ### 5. QA enemy
 
-`ghost-fire` 仍是 Phase 9c deterministic QA enemy 的 internal id。本批只為它提供現有 yokai runtime visual 作 QA 顯示，不宣稱該圖是 `ghost-fire` 的正式 identity master。
+`ghost-fire` 仍是 Phase 9c deterministic QA enemy 的 internal id。現有 `kamaitachi.png` 只作 QA visual，不宣稱是 `ghost-fire` 的正式 identity master。
+
+## 測試
+
+新增 `RefactorBattleAssets.test.ts`：
+
+- 四角色 manifest mapping
+- pose key / timeline portrait key
+- `ghost-fire` QA visual mapping
+- 未知 enemy 不假造 texture key
 
 ## 明確不做
 
