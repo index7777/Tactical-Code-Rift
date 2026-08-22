@@ -36,6 +36,7 @@ const PHASE_LABELS: Readonly<Record<BattleTurnPhase, string>> = {
 };
 
 export type RefactorAutoAdvanceAction = 'START_NEXT_ACTOR' | 'RESOLVE_ENEMY' | 'NONE';
+export type RefactorTargetAffordance = 'SELECTED' | 'CANDIDATE' | 'DEFAULT' | 'DISABLED';
 
 export function actorDisplayName(actorId: string): string {
   return ACTOR_LABELS[actorId] ?? actorId;
@@ -51,6 +52,17 @@ export function targetRuleDisplayName(targetRule: string): string {
 
 export function phaseDisplayName(phase: BattleTurnPhase): string {
   return PHASE_LABELS[phase];
+}
+
+export function targetAffordance(
+  alive: boolean,
+  isTargetable: boolean,
+  isSelectedTarget: boolean,
+): RefactorTargetAffordance {
+  if (!alive) return 'DISABLED';
+  if (isSelectedTarget) return 'SELECTED';
+  if (isTargetable) return 'CANDIDATE';
+  return 'DEFAULT';
 }
 
 export function autoAdvanceAction(
