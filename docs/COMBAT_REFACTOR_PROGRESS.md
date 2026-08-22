@@ -405,13 +405,30 @@ CI：run 401 build / test 通過。
 
 ## Phase 14c — Clash Authoritative Resolution
 
-狀態：`CI_FIX_PENDING`
+狀態：`CI_VERIFIED`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE14C_CLASH_AUTHORITATIVE_RESOLUTION.md`
 
-- `BattlePreviewWithClash` 已開始真正套用 consequence：player full/half/none、enemy Intent cancel/half/full。
-- draw：玩家 integer damage floor half；Guard ratio/cap half；Delay/Interrupt/Break creation suppressed；enemy integer damage floor half 並移除 status effects。
+- `BattlePreviewWithClash` 真正套用 consequence：player full/half/none、enemy Intent cancel/half/full。
+- draw：正常 Preview 先算 Break／specialization 等 player damage，再對 final damage `floor × 0.5`；Guard ratio/cap half；Delay/Interrupt/Break creation suppressed；enemy integer damage floor half 並移除 status effects。
 - player-win：contested Intent 使用現有 hard-stagger semantic；enemy-win：玩家效果 suppressed、Intent 保留 full。
 - `BattleResolutionResolver` 接受 explicit `contestedEnemyId`，提交同一份 Clash-adjusted Preview；guard-intercept 可 target ally 並另外修改 contested enemy Intent。
 - current production cards/enemy actions 尚未 opt in Clash，因此正常無 Clash 路徑保持原結果。
-- CI run 406：build 通過；test 333 中 331 通過，2 個失敗都只是 hard-stagger 物件「欄位不存在」與測試期待 `damage: undefined` 的 shape 差異，非規則錯誤；已提交測試修正，等待下一個 CI。
+
+CI：run 415 build / test 通過。
+
+## Phase 14d — Clash Application Wiring
+
+狀態：`CI_VERIFIED_QA_BOOTSTRAP_ONLY`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE14D_CLASH_APPLICATION_WIRING.md`
+
+- 新增 application-level `ClashApplicationPlanner`，只讀 explicit card target、public Intent、Timeline 與 authored Phase 13 ActionDefinition；不讀 Phaser、legacy `clashPower` 或 `tempo`。
+- direct Clash 只 contest 明確 target enemy；guard-intercept 依被保護 ally 的 public enemy Intents 選 Timeline 最早合法敵人。
+- timing v1 = `clamp(enemy.nextActionAt - activePlayer.nextActionAt - playerAction.actionDelay, -2, +2)`；Rin quick direct +1、Chikage guard-intercept +1 specialization。
+- `BattleTurnController` 的 target Preview 現在可攜帶 Clash-adjusted Preview；confirm 保存同一 Clash resolution，Execute 直接交給 Phase 14c authoritative resolver，不重算勝負。
+- `createRefactorBattleBootstrap()` 提供 explicit QA Clash catalog：quick／heavy direct、護持 guard-intercept、ghost-fire-rush direct。
+- `createEncounterBattleBootstrap()` 本批不提供 Clash catalog，Area 01 七個 story encounters 戰鬥行為維持不變；等後續正式 enemy action data migration 再 opt in。
+- 沒有新增 Clash UI／動畫／FX，也沒有生成資產。
+
+CI：run 422 build / test 通過。
