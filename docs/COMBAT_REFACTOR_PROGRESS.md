@@ -174,6 +174,13 @@ CI：run 155 build / test 全數通過，因此 Phase 7 升為 VERIFIED。
 - Preview 回傳 `specializationBonusDamage`、`oboroBonusApplied`、`createdGuardReaction`；Execute 直接提交同一份 Preview 結果。
 - Enemy resolver 真正消耗 guard、回傳 guard reduction、套用承勢並重置朧 cycle。
 
+CI 記錄：
+
+- run 164：`npm run build` 通過，但 `npm test` 有 3 個舊基線斷言失敗。
+- 三個失敗都來自舊測試仍期待凜 quick 只造成 base 8 傷害；Phase 8 正確規則應觸發凜專精 `+3`，因此實際傷害為 11，39 HP 應降到 28。
+- 已把 Preview / Resolution / Controller 三層舊斷言改成明確驗證 `specializationBonusDamage = 3`、`finalDamage = 11` 與 HP 28；沒有修改 Phase 8 runtime 規則來迎合舊測試。
+- 等待新的 CI 驗證後才可把 Phase 8 升為 `VERIFIED`。
+
 目前刻意不做：
 
 - redirect / 掩護換目標。
@@ -184,4 +191,4 @@ CI：run 155 build / test 全數通過，因此 Phase 7 升為 VERIFIED。
 
 ## 下一批
 
-先讓 Phase 8 CI 通過。通過後進新的 presentation path：先建立 `src/presentation/battle/refactor/` 的 Timeline / Hand / Target Preview / Actor / Intent presenters 與 `RefactorBattleScene` 骨架，仍不沿用舊雙列 Timeline 與整輪規劃 HUD。
+先讓 Phase 8 修正後的 CI 通過。通過後進新的 presentation path：先建立 `src/presentation/battle/refactor/` 的 Timeline / Hand / Target Preview / Actor / Intent presenters 與 `RefactorBattleScene` 骨架，仍不沿用舊雙列 Timeline 與整輪規劃 HUD。
