@@ -28,12 +28,17 @@ import {
   focusedActorPosition,
   focusedPlayerActorId,
 } from '../battle/refactor/RefactorBattleFocusPolicy';
-import { handLayoutMetrics } from '../battle/refactor/RefactorHandLayoutPolicy';
+import {
+  cardFamilyStyle,
+  cardSelectionPresentation,
+} from '../battle/refactor/CardMasterPresentation';
+import {
+  handLayoutMetrics,
+  type RefactorHandLayoutMetrics,
+} from '../battle/refactor/RefactorHandLayoutPolicy';
 import {
   actorDisplayName,
   autoAdvanceAction,
-  cardTargetDisplayName,
-  categoryDisplayName,
   phaseDisplayName,
   shouldShowActorRing,
   targetAffordance,
@@ -299,81 +304,163 @@ export class RefactorBattleScene extends Phaser.Scene {
       );
     }
 
-    this.addText(24, handLayout.labelY, this.dispatchMode ? `調度選牌 ${this.dispatchSelection.size}/2` : '共享手牌', '10px', '#9fc5cd');
+    this.drawSharedHand(view, handLayout);
+
+    this.updateActiveActorFocus(focusActorId, enteringFocus);
+    this.scheduleAutoAdvance(view);
+  }
+
+  private drawSharedHand(view: RefactorBattleView, handLayout: RefactorHandLayoutMetrics): void {
+    const anySkillSelected = view.hand.some((card) => card.selected);
+    this.addText(
+      24,
+      handLayout.labelY,
+      this.dispatchMode ? `調度選牌 ${this.dispatchSelection.size}/2` : '共享手牌',
+      '10px',
+      '#9fc5cd',
+    );
+
     view.hand.forEach((card, index) => {
-      const x = 258 + index * handLayout.cardGap;
-      const y = handLayout.cardY;
+      const x = 248 + index * handLayout.cardGap;
       const dispatchSelected = this.dispatchSelection.has(card.instanceId);
-      const highlighted = card.selected || dispatchSelected;
-      const rectangle = this.add.rectangle(
+      const family = cardFamilyStyle(card.category);
+      const presentation = cardSelectionPresentation(card.selected, dispatchSelected, anySkillSelected);
+      const width = handLayout.cardWidth * presentation.scale;
+      const height = handLayout.cardHeight * presentation.scale;
+      const y = handLayout.cardY + presentation.yOffset;
+
+      if (card.selected) {
+        this.addToHud(
+          this.add.rectangle(x, y, width + 10, height + 10, family.accent, 0.045)
+            .setStrokeStyle(2, family.accent, presentation.glowAlpha * 0.72),
+        );
+      }
+
+      const cardRect = this.add.rectangle(x, y, width, height, family.fill, presentation.alpha)
+        .setStrokeStyle(presentation.strokeWidth, family.stroke, presentation.glowAlpha);
+      this.addToHud(cardRect);
+
+      const accentBar = this.add.rectangle(
         x,
-        y,
-        handLayout.cardWidth,
-        handLayout.cardHeight,
-        highlighted ? 0x243b43 : 0x12222c,
-        highlighted ? 0.96 : 0.88,
-      ).setStrokeStyle(
-        highlighted ? 2 : 1,
-        dispatchSelected ? 0xe1c371 : card.selected ? 0xd7bd78 : 0x8aa4ad,
-        highlighted ? 0.95 : 0.44,
+        y - height / 2 + 4,
+        width - 8,
+        6,
+        family.accent,
+        card.selected ? 0.95 : 0.62,
       );
-      this.addToHud(rectangle);
-      this.addText(x, y - handLayout.cardHeight * 0.28, card.name, '11px', '#edf3f2', 0.5);
-      this.addText(x, y - handLayout.cardHeight * 0.02, `延遲 ${card.delay}`, '12px', '#e4c579', 0.5);
-      this.addText(x, y + handLayout.cardHeight * 0.21, categoryDisplayName(card.category), '9px', '#9fc5cd', 0.5);
-      this.addText(x, y + handLayout.cardHeight * 0.37, cardTargetDisplayName(card.targetRule, card.category, view.activeActorId), '9px', '#aebfc2', 0.5);
+      this.addToHud(accentBar);
+
+      const markY = y - height * 0.28;
+      const mark = this.add.rectangle(x, markY, 22, 22, family.accent, card.selected ? 0.24 : 0.12)
+        .setRotation(Math.PI / 4)
+        .setStrokeStyle(1, family.accent, card.selected ? 0.9 : 0.55);
+      this.addToHud(mark);
+      this.addText(x, markY, family.label.slice(0, 1), '8px', family.text, 0.5);
+      this.addText(x, y - height * 0.10, card.name, card.selected ? '13px' : '12px', '#f4f5f2', 0.5);
+      this.addText(x, y + height * 0.015, family.label, '8px', family.text, 0.5);
+
+      const effectLines = handLayout.state === 'EXPANDED' ? card.effectLines : card.effectLines.slice(0, 1);
+      effectLines.forEach((line, lineIndex) => {
+        this.addText(
+          x,
+          y + height * 0.15 + lineIndex * 16,
+          line,
+          '9px',
+          card.selected ? '#edf1ef' : '#b8c7c8',
+          0.5,
+        );
+      });
+
+      const footerY = y + height / 2 - 14;
+      const footer = this.add.rectangle(x, footerY, width - 12, 22, 0x070c12, 0.9)
+        .setStrokeStyle(1, family.stroke, card.selected ? 0.86 : 0.42);
+      this.addToHud(footer);
+      this.addText(x, footerY, `Delay ${card.delay}`, card.selected ? '11px' : '10px', '#f1d687', 0.5);
+
+      if (dispatchSelected) {
+        this.addText(x + width / 2 - 7, y - height / 2 + 13, '調度', '8px', '#f4d98b', 1);
+      }
 
       if (this.dispatchMode && view.canDispatch) {
-        rectangle.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+        cardRect.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
           if (dispatchSelected) this.dispatchSelection.delete(card.instanceId);
           else if (this.dispatchSelection.size < 2) this.dispatchSelection.add(card.instanceId);
           this.render();
         });
       } else if (view.phase === 'PLAYER_IDLE' || view.phase === 'CARD_SELECTED' || view.phase === 'TARGET_PREVIEW') {
-        rectangle.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+        cardRect.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
           this.runtime?.selectCard(card.instanceId);
           this.render();
         });
       }
     });
 
-    if (view.canDispatch && !this.dispatchMode) {
-      this.drawButton(1110, handLayout.actionPrimaryY, 144, 40, '調度', () => {
-        this.dispatchMode = true;
-        this.dispatchSelection.clear();
-        this.render();
-      });
-    }
+    this.drawHandUtility(view, handLayout);
+  }
+
+  private drawHandUtility(view: RefactorBattleView, handLayout: RefactorHandLayoutMetrics): void {
+    const x = handLayout.utilityX;
+    const y = handLayout.utilityY;
+    const width = handLayout.utilityWidth;
+    const height = handLayout.utilityHeight;
 
     if (this.dispatchMode && view.canDispatch) {
-      this.drawButton(1110, handLayout.actionPrimaryY, 144, 40, `提交調度 ${this.dispatchSelection.size} 張`, () => {
+      this.addToHud(
+        this.add.rectangle(x, y, width, height, 0x201b13, 0.92)
+          .setStrokeStyle(2, 0xc4a361, 0.82),
+      );
+      this.addText(x, y - height * 0.31, '調度', '14px', '#f0d69d', 0.5);
+      this.addText(x, y - height * 0.12, `已選 ${this.dispatchSelection.size}/2`, '10px', '#d9c58d', 0.5);
+      this.addText(x, y + height * 0.02, '交換手牌', '9px', '#aebfc2', 0.5);
+      this.drawButton(x, handLayout.actionPrimaryY, width - 12, 34, '提交調度', () => {
         this.runtime?.dispatch([...this.dispatchSelection]);
         this.dispatchSelection.clear();
         this.dispatchMode = false;
         this.render();
       });
-      this.drawButton(1110, handLayout.actionSecondaryY, 144, 32, '取消調度', () => {
+      this.drawButton(x, handLayout.actionSecondaryY, width - 12, 28, '取消', () => {
         this.dispatchSelection.clear();
         this.dispatchMode = false;
         this.render();
       });
+      return;
     }
 
-    if (view.canConfirm) {
-      this.drawButton(1110, handLayout.actionPrimaryY, 144, 40, '確認執行', () => {
-        this.playPlayerAction(view);
-      });
-    }
-
-    if (!this.dispatchMode && (view.phase === 'CARD_SELECTED' || view.phase === 'TARGET_PREVIEW')) {
-      this.drawButton(1110, handLayout.actionSecondaryY, 144, 32, '取消', () => {
+    if (view.phase === 'CARD_SELECTED' || view.phase === 'TARGET_PREVIEW') {
+      const selected = view.hand.find((card) => card.selected);
+      this.addToHud(
+        this.add.rectangle(x, y, width, height, 0x1c1528, 0.92)
+          .setStrokeStyle(2, 0x9c72c9, 0.78),
+      );
+      this.addText(x, y - height * 0.31, '行動', '12px', '#dec8ef', 0.5);
+      this.addText(x, y - height * 0.14, selected?.name ?? '—', '11px', '#f0e7f5', 0.5);
+      this.addText(x, y + height * 0.01, view.canConfirm ? '目標已確認' : '選擇目標', '9px', '#bda9ca', 0.5);
+      if (view.canConfirm) {
+        this.drawButton(x, handLayout.actionPrimaryY, width - 12, 34, '確認執行', () => {
+          this.playPlayerAction(view);
+        });
+      }
+      this.drawButton(x, handLayout.actionSecondaryY, width - 12, 28, '取消', () => {
         this.runtime?.cancel();
         this.render();
       });
+      return;
     }
 
-    this.updateActiveActorFocus(focusActorId, enteringFocus);
-    this.scheduleAutoAdvance(view);
+    if (view.canDispatch) {
+      const panel = this.add.rectangle(x, y, width, height, 0x191a18, 0.9)
+        .setStrokeStyle(1, 0x8d8065, 0.62)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => {
+          this.dispatchMode = true;
+          this.dispatchSelection.clear();
+          this.render();
+        });
+      this.addToHud(panel);
+      this.addText(x, y - height * 0.26, '調度', '13px', '#e6d4aa', 0.5);
+      this.addText(x, y - height * 0.02, '交換 0–2 張', '9px', '#aebfc2', 0.5);
+      this.addText(x, y + height * 0.18, 'Delay 3', '10px', '#d9bd77', 0.5);
+    }
   }
 
   private renderPartyStatus(view: RefactorBattleView): void {
