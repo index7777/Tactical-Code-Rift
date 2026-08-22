@@ -218,7 +218,7 @@ CI：run 247 build / test 通過。仍需 GitHub Pages 1280×720 / 844×390 實�
 
 ## Phase 10d — Action / Reaction Presentation Sequencing
 
-狀態：`CI_VERIFIED_BROWSER_QA_PENDING`
+狀態：`CI_VERIFIED_BROWSER_QA_FOUND_ISSUES`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE10D_ACTION_PRESENTATION.md`
 
@@ -232,17 +232,35 @@ CI：run 247 build / test 通過。仍需 GitHub Pages 1280×720 / 844×390 實�
 - 演出期間停用 input、清除 auto-advance timer；Scene shutdown / destroy 會清 presentation timer / tween，避免離場後重複提交。
 - 新增 plan tests，覆蓋一般攻擊、千景 guard、無目標卡與 enemy Intent target。
 
-CI：run 254 build / test 通過。仍需 GitHub Pages 實機檢查動作位移、角色 pivot、target reaction、敵方 lunge 與 input lock。
+CI：run 254 build / test 通過。
+
+GitHub Pages 實機回饋：
+
+- 玩家 ACTION 前衝過短，沒有到敵人面前，固定 `actionPosition` 不適合有 explicit target 的近身演出。
+- 千景「護持」選牌時所有合法友軍同時亮強黃圈，雖然規則仍是單體 target，但 affordance 容易誤讀為全隊 Guard。
+
+## Phase 10e — Action Reach / Single-target Affordance
+
+狀態：`IMPLEMENTATION_PENDING`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE10E_ACTION_REACH_TARGET_AFFORDANCE.md`
+
+目標：
+
+- 有 explicit target 的 ACTION 由 actor / target runtime 位置與顯示尺寸推導接敵目的地，不再停在固定中央 action point。
+- 左右方向可鏡像；角色應停在敵人前方而非與目標重疊。
+- `targetableActorIds` 仍表示所有合法單體候選，不改 Guard 規則。
+- 合法但未選定的目標使用弱提示；只有 `preview.targetId` 使用強黃圈，避免「護持」看起來像全隊生效。
 
 ## Deployment / Browser QA Gate
 
-狀態：`PHASE10C_AND_10D_BROWSER_QA_PENDING`
+狀態：`PHASE10E_IMPLEMENTATION_PENDING`
 
-- Phase 10 CI 已通過；default-entry / legacy rollback browser regression仍待確認。
-- Phase 10c CI run 247 已通過；full-canvas / 新 BG / 新 monster / perspective layout 仍需 Pages 實機 QA。
-- Phase 10d CI run 254 已通過；player / enemy action sequencing 仍需 Pages 實機 QA。
-- browser gate 未完成前不做 legacy removal。
+- Phase 10 CI 已通過；default-entry / legacy rollback browser regression 仍待確認。
+- Phase 10c CI run 247 已通過；full-canvas / 新 BG / 新 monster / perspective layout 持續由 Pages 實機 QA。
+- Phase 10d CI run 254 已通過，但 browser QA 找到 ACTION 接敵距離與單體 target affordance 問題。
+- Phase 10e 修正完成並通過 CI / Pages 前不做 legacy removal。
 
 ## 下一批
 
-等待 GitHub Pages current-head deployment 後，一次驗 Phase 10c + 10d：1280×720 / 844×390 的 BG、透視、站位、Timeline / Preview、玩家 ACTION / REACTION、敵方 lunge、hit reaction 與 input lock。依實機問題再拆 pivot/scale 微調、down/death、hit-stop / FX polish；legacy removal 仍後置。
+實作 Phase 10e：把有目標的玩家 ACTION 改為接近實際 target 的 presentation destination，並把所有合法候選的弱提示與目前單一 preview target 的黃圈強提示分離。之後再回 GitHub Pages 驗證攻擊接敵距離與千景「護持」單體選取視覺。
