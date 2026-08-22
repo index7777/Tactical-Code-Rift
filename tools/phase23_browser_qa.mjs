@@ -180,7 +180,7 @@ async function runPlayerProfileCase(page, dir, definitionId, expectedProfile, ca
   return { definitionId, category: card.category, expectedProfile, finalPhase: final.qaPhase };
 }
 
-async function forceEnemyPresentation(page, { battleId, enemyId, intent, deadActorId, captureDelayMs, name }) {
+async function forceEnemyPresentation(page, dir, { battleId, enemyId, intent, deadActorId, captureDelayMs, name }) {
   await openBattle(page, battleId);
   const prepared = await page.evaluate(({ requestedEnemyId, qaIntent, deadId }) => {
     const scene = window.__TACTICAL_RIFT_GAME__?.scene.getScene('RefactorBattleScene');
@@ -351,7 +351,7 @@ async function runActionProfiles(page, dir, report) {
     results.push(await runPlayerProfileCase(page, dir, definitionId, profileId, captureDelayMs));
   }
 
-  const enemyLight = await forceEnemyPresentation(page, {
+  const enemyLight = await forceEnemyPresentation(page, dir, {
     battleId: 'battle-1',
     enemyId: 'wet-corpse',
     intent: undefined,
@@ -367,7 +367,7 @@ async function runActionProfiles(page, dir, report) {
     damage: 12, delay: 5, canDelay: true, canInterrupt: true, canGuard: true, canRedirect: true,
     statusEffects: [], presentationProfile: 'enemy-heavy',
   };
-  const enemyHeavy = await forceEnemyPresentation(page, {
+  const enemyHeavy = await forceEnemyPresentation(page, dir, {
     battleId: 'boss-1', enemyId: 'rain-boss', intent: heavyIntent, captureDelayMs: 470, name: 'profile-enemy-heavy',
   });
   if (enemyHeavy.profileId !== 'enemy-heavy') throw new Error(`Boss heavy profile mismatch: ${enemyHeavy.profileId}`);
@@ -377,7 +377,7 @@ async function runActionProfiles(page, dir, report) {
     damage: 18, delay: 8, canDelay: true, canInterrupt: true, canGuard: true, canRedirect: true,
     statusEffects: [], presentationProfile: 'boss-signature',
   };
-  const bossSignature = await forceEnemyPresentation(page, {
+  const bossSignature = await forceEnemyPresentation(page, dir, {
     battleId: 'boss-1', enemyId: 'rain-boss', intent: signatureIntent, captureDelayMs: 650, name: 'profile-boss-signature',
   });
   if (bossSignature.profileId !== 'boss-signature') throw new Error(`Boss signature profile mismatch: ${bossSignature.profileId}`);
@@ -413,7 +413,7 @@ async function runClashOutcomes(page, dir, report) {
 }
 
 async function runBossPresentationChecks(page, dir, report) {
-  const doubleHit = await forceEnemyPresentation(page, {
+  const doubleHit = await forceEnemyPresentation(page, dir, {
     battleId: 'boss-1', enemyId: 'rain-boss', captureDelayMs: 520, name: 'boss-mountain-shadow-double-hit',
     intent: {
       id: 'phase23:mountain-shadow-blades', enemyId: 'rain-boss', kind: 'normal', name: '山影連刃', targetIds: ['rin'],
@@ -424,7 +424,7 @@ async function runBossPresentationChecks(page, dir, report) {
   if (doubleHit.contactCount !== 2) throw new Error(`山影連刃 expected 2 visual contacts; got ${doubleHit.contactCount}`);
 
   const aoeTargets = ['rin', 'chikage', 'mo'];
-  const aoe = await forceEnemyPresentation(page, {
+  const aoe = await forceEnemyPresentation(page, dir, {
     battleId: 'boss-1', enemyId: 'rain-boss', deadActorId: 'oboro', captureDelayMs: 500, name: 'boss-downpour-aoe',
     intent: {
       id: 'phase23:downpour-sweep', enemyId: 'rain-boss', kind: 'normal', name: '驟雨橫掃', targetIds: aoeTargets,
