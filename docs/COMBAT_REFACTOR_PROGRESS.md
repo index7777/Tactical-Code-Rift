@@ -120,44 +120,54 @@ CI：run 164 暴露 3 個舊凜 quick 基線斷言；修正舊測試後 run 168 
 - `RefactorBattleScene` 為平行 Scene；`BootScene` 仍是預設 runtime。
 - Battlefield 高度 388px，超過 1280×720 畫面的 50%。
 
-CI：run 179 build / test 全數通過，因此 Phase 9 升為 `VERIFIED`。
+CI：run 179 build / test 全數通過。
 
 ## Phase 9b — Controller / Presentation Wiring
 
-狀態：`IMPLEMENTED_PENDING_CI`
+狀態：`VERIFIED`
 
 先行文件：`docs/COMBAT_REFACTOR_PHASE9B_PRESENTATION_WIRING.md`
 
+- `RefactorBattleRuntime` 是 Controller -> Presenter 唯一 adapter，不保存第二份 mutable combat state。
+- Scene 的 start / select / target preview / cancel / confirm / player resolve / dispatch 全部呼叫 runtime methods。
+- Scene 顯示的 Timeline / Hand / Intent / vitals / Preview 全部來自 Controller snapshots 與 presenters。
+- 沒有 registry runtime 時 Scene 保持 dormant，不建立 mock battle state。
+
+CI：run 185 build / test 全數通過，因此 Phase 9b 升為 `VERIFIED`。
+
+## Phase 9c — Feature Flag Bootstrap
+
+狀態：`IMPLEMENTED_PENDING_CI`
+
+先行文件：`docs/COMBAT_REFACTOR_PHASE9C_FEATURE_FLAG_BOOTSTRAP.md`
+
 新增：
 
-- `src/presentation/battle/refactor/RefactorBattleRuntime.ts`
-- `src/presentation/battle/refactor/RefactorBattleRuntime.test.ts`
+- `src/application/battle/createRefactorBattleBootstrap.ts`
+- `src/application/battle/createRefactorBattleBootstrap.test.ts`
 
 已更新：
 
-- `src/presentation/scenes/RefactorBattleScene.ts`
+- `src/main.ts`
 
 已實作：
 
-- `RefactorBattleRuntime` 只持有 `BattleTurnController` reference，不建立第二份 mutable combat state。
-- `view()` 即時讀 `turn()` / `battle()` / `deck()` / `preview()`，再交給 Phase 9 presenters 建立 Timeline / Hand / Intent / Preview view model。
-- view model 暴露 phase、active actor、vitals、canConfirm、canDispatch；不暴露 authoritative mutable reference。
-- UI interaction methods 已接 Controller：start actor、select card、preview target、cancel、confirm、resolve player action、dispatch。
-- `RefactorBattleScene` 從 registry `refactor-battle-runtime` 取得 runtime；沒有 runtime 時只顯示 dormant diagnostic，不建立 mock battle state。
-- Scene 的卡片、敵方 target、確認、取消、調度 0 張與開始下一角色按鈕都只呼叫 runtime methods。
-- Scene 顯示的 Preview 數值直接來自 `BattlePreviewResult` presenter mapping，不重算 damage / Delay / specialization。
-- 預設 runtime 仍未切換；`BootScene` 不動。
+- `?combat-refactor=1` 才把 `RefactorBattleScene` 排成第一啟動 Scene；沒有 flag 時仍由 `BootScene` 啟動。
+- application bootstrap 建立 deterministic QA `BattleResolutionState` + shared deck + `BattleTurnController`，不 import Phaser / presentation。
+- QA state 同時包含 `rin / chikage / oboro / mo` 與 `ghost-fire`，使用單一 mixed Timeline。
+- QA deck 含 quick / heavy / guard / disruption / break，初始 shared hand 仍為 5。
+- `main.ts` 作 composition root，把 controller 包成 `RefactorBattleRuntime`，並在 Phaser `preBoot` 注入 registry key `refactor-battle-runtime`。
+- `BootScene` 沒有被改成新版戰鬥容器。
+- QA bootstrap 不是正式 20 張 production deck，也不代表正式 encounter balance。
 
 測試覆蓋：
 
-- Controller snapshots -> Timeline / Hand / Intent / vitals view。
-- selected card state。
-- Rin quick authoritative Preview：base 8 + specialization 3 = 11，39 HP -> 28。
-- confirm 前不改 HP；resolve 後 view 反映 committed HP / Timeline。
-- cancel 清 preview。
-- view defensive isolation。
-- dispatch 走 Controller Delay 3。
+- 四名我方 + 一名敵人存在。
+- shared hand = 5。
+- 五種新版 card category 都存在於 QA deck。
+- timeline-front `rin` 可由 controller 正常開始。
+- 相同 seed bootstrap deterministic。
 
 ## 下一批
 
-先讓 Phase 9b CI 通過。通過後才進 feature-flag runtime switch（`?combat-refactor=1`），建立真正 encounter bootstrap / controller injection；預設仍先保持 legacy runtime，直到 flag QA 完成。
+先讓 Phase 9c CI 通過。通過後以 `?combat-refactor=1` 做實際 browser/runtime QA；確認新版 Scene 可啟動、Timeline / Shared Hand / Target Preview 可操作後，再處理 enemy runtime interaction 與 feature-flag QA 缺陷，不切 production 預設入口。
