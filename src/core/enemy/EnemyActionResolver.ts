@@ -78,6 +78,10 @@ function validateNextIntent(enemyId: string, nextIntent: IntentState): void {
   }
 }
 
+function intentTotalDamage(intent: IntentState): number {
+  return (intent.damage ?? 0) * (intent.hitCount ?? 1);
+}
+
 export function resolveEnemyAction(input: EnemyActionInput): EnemyActionResult {
   const source = cloneState(input.state);
   const active = nextTimelineActor(source.timeline);
@@ -101,7 +105,7 @@ export function resolveEnemyAction(input: EnemyActionInput): EnemyActionResult {
   let chengshiTriggered = false;
 
   if (successfulAction) {
-    const incomingDamage = currentIntent.damage ?? 0;
+    const incomingDamage = intentTotalDamage(currentIntent);
     for (const targetId of currentIntent.targetIds) {
       const vitals = next.vitalsByActorId[targetId];
       if (!vitals || vitals.hp <= 0) continue;
