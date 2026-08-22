@@ -66,10 +66,8 @@ export class RefactorBattleScene extends Phaser.Scene {
 
     this.addToContent(this.add.rectangle(640, 360, layout.width, layout.height, 0x07101a, 1));
     this.drawBattlefieldBackground();
-    this.drawOverlayPanel(layout.timeline, 0x07131d, 0x7896a3, 0.76);
     this.drawOverlayPanel(layout.partyRail, 0x08151d, 0x739aa2, 0.72);
     this.drawOverlayPanel(layout.intentPanel, 0x121820, 0xb28f65, 0.76);
-    this.drawOverlayPanel(layout.hand, 0x061019, 0x708b94, 0.8);
 
     if (!this.runtime) {
       this.addText(640, 336, '新版戰鬥執行環境未連接', '18px', '#e5c98d', 0.5);
@@ -562,7 +560,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       layout.x + layout.width / 2,
       layout.y + layout.height / 2,
       REFACTOR_BATTLE_BACKGROUND_KEY,
-    ).setDisplaySize(layout.width, layout.height).setAlpha(0.86);
+    ).setDisplaySize(layout.width, layout.height);
     this.addToContent(background);
   }
 
