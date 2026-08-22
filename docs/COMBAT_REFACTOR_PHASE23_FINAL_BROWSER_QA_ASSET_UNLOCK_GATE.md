@@ -1,6 +1,6 @@
 # Combat Refactor Phase 23 — Final Browser QA / Asset Unlock Gate
 
-STATUS = AUTOMATED_ROUTE_DECISION_QA_PASS_MANUAL_PROFILE_REVIEW_PENDING
+STATUS = AUTOMATED_ROUTE_DECISION_QA_PASS_PRESENTATION_HARNESS_RERUN_PENDING
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -129,11 +129,15 @@ The automated path checks:
 - reward after battle-1 / battle-3 / elite and no reward after battle-2 / boss;
 - exactly three upgrades before Boss and Area 01 clear after Boss victory;
 - PEEK → FOCUS → TARGETING → action handoff / return on a legal player turn;
+- all five player action presentation profiles plus enemy-light / enemy-heavy / boss-signature;
+- deterministic player-win / draw / enemy-win Clash presentation cases;
+- Boss `山影連刃` two-contact presentation, `驟雨橫掃` explicit living-target reactions, and boss-signature profile selection;
+- immutable enemy formation slots after a forced death;
 - application console/page errors as workflow failures.
 
 The harness uses the inherited Phaser scene key `JourneyScene` for `DemoProgressionJourneyScene`, allows up to 30 seconds for battle-scene preload on CI, runs both viewports even if one fails, and writes `summary.json` before surfacing a combined failure. These behaviors keep runtime failures distinguishable from harness timing/key errors.
 
-This harness does not replace manual visual judgment for rhythm, silhouette clarity, camera feel, Clash outcome readability, Boss multi-hit/AoE readability, or overlap quality. Those remain the final asset-unlock review.
+Automated screenshots support review but do not replace human judgment for motion feel, silhouette clarity, contact readability, and overlap quality. The asset-unlock decision must still distinguish deterministic semantic evidence from subjective visual acceptance.
 
 ## Workflow result bridge
 
@@ -152,10 +156,11 @@ The bridge is observability only. It does not alter the browser assertions, game
 - The first Phase 23 Browser-QA run (`32592527157`) failed because the harness expected a non-existent Phaser scene key `DemoProgressionJourneyScene`; the subclass inherits `JourneyScene`. This was a harness defect, not a runtime failure.
 - The second Browser-QA run (`32592809366`) passed the corrected journey-key check but exposed that a 12-second active-scene wait was too short for the CI route-transition plus battle preload; no page or console error was recorded.
 - Commit `1663565b95a659e01babe3d1599324580ae92d2d` hardened scene waits to 30 seconds and guarantees per-viewport reports / `summary.json` on failure.
-- Browser-QA run `32593020524` passed the complete automated route/progression + normal decision path at both `1280×720` and `844×390`; the uploaded artifact contains both viewport reports and screenshots.
-- Normal CI run 533 passed `npm ci`, `npm run build`, and `npm test` on the same commit.
+- Browser-QA run `32593020524` passed the complete automated route/progression + normal decision path at both `1280×720` and `844×390`; later route/decision reruns also remained green.
 - Manual review of the automated PEEK / FOCUS / TARGETING / HIDDEN screenshots confirms the normal decision hierarchy is visible at both viewports, with FIT side bars expected on compact landscape and no obvious selected-card / enemy-overhead collision in the captured path.
-- The remaining blocker is the manual/deterministic presentation evidence for all eight action profiles, eligible Clash choreography/outcomes, Boss multi-hit/AoE/signature readability, dead-slot behavior, and overlap quality. These are required by this gate but are not exercised by the current automated route/decision harness.
+- The harness was then extended to exercise all eight presentation profiles, deterministic Clash outcomes, Boss multi-hit/AoE, and dead-slot preservation. Browser-QA run `32593707854` reached that extended section but failed in the harness with `ReferenceError: dir is not defined` inside `forceEnemyPresentation`; build/preload and the earlier route/decision stages succeeded. The failure is test-harness plumbing, not evidence of a combat/runtime defect.
+- Commit `72db61d971e38a8611602464a3647039568a4882` threads the viewport evidence directory into every `forceEnemyPresentation` call. Normal CI run 537 passed `npm ci`, `npm run build`, and `npm test` on this fix.
+- A fresh Phase 23 Browser-QA run on the fixed harness is now the blocking automated evidence. After it passes, the remaining task is manual review of the generated profile/Clash/Boss/dead-slot screenshots for readability and overlap quality.
 - Asset generation remains locked. No generated asset is produced by this phase.
 
 ## Asset unlock condition
