@@ -8,6 +8,7 @@ import {
 } from '../battle/refactor/BattleActorPresenter';
 import {
   REFACTOR_BATTLE_BACKGROUND_KEY,
+  REFACTOR_BATTLE_MUSIC_KEY,
   REFACTOR_SLASH_FX_KEY,
   actorBattleTextureKey,
   actorTimelineTextureKey,
@@ -27,10 +28,10 @@ import {
 import {
   actorDisplayName,
   autoAdvanceAction,
+  cardTargetDisplayName,
   categoryDisplayName,
   phaseDisplayName,
   targetAffordance,
-  targetRuleDisplayName,
 } from '../battle/refactor/RefactorBattlePresentationPolicy';
 import type { RefactorBattleRuntime, RefactorBattleView } from '../battle/refactor/RefactorBattleRuntime';
 
@@ -47,6 +48,7 @@ export class RefactorBattleScene extends Phaser.Scene {
   private worldContent?: Phaser.GameObjects.Container;
   private hudContent?: Phaser.GameObjects.Container;
   private hudCamera?: Phaser.Cameras.Scene2D.Camera;
+  private battleMusic?: Phaser.Sound.BaseSound;
   private dispatchMode = false;
   private readonly dispatchSelection = new Set<string>();
   private autoAdvanceTimer?: Phaser.Time.TimerEvent;
@@ -67,8 +69,10 @@ export class RefactorBattleScene extends Phaser.Scene {
   create(): void {
     this.runtime = this.registry.get(RUNTIME_REGISTRY_KEY) as RefactorBattleRuntime | undefined;
     this.configureCameras();
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.clearPresentationMotion());
-    this.events.once(Phaser.Scenes.Events.DESTROY, () => this.clearPresentationMotion());
+    this.ensureBattleMusic();
+    this.input.once('pointerdown', () => this.ensureBattleMusic());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanupScenePresentation());
+    this.events.once(Phaser.Scenes.Events.DESTROY, () => this.cleanupScenePresentation());
     this.render();
   }
 
@@ -304,7 +308,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       this.addText(x, y - 34, card.name, '12px', '#edf3f2', 0.5);
       this.addText(x, y - 8, categoryDisplayName(card.category), '10px', '#9fc5cd', 0.5);
       this.addText(x, y + 20, `延遲 ${card.delay}`, '12px', '#e4c579', 0.5);
-      this.addText(x, y + 43, targetRuleDisplayName(card.targetRule), '10px', '#aebfc2', 0.5);
+      this.addText(x, y + 43, cardTargetDisplayName(card.targetRule, card.category, view.activeActorId), '10px', '#aebfc2', 0.5);
 
       if (this.dispatchMode && view.canDispatch) {
         rectangle.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
@@ -456,6 +460,7 @@ export class RefactorBattleScene extends Phaser.Scene {
           if (plan.useAttackPose) this.setPlayerPose(plan.actorId, 'attack-b');
           this.queuePresentationDelay(90, () => {
             if (plan.useSlashFx) this.playSlashFx(plan.targetId);
+            if (plan.targetId) this.playImpactFx(plan.targetId, false);
             if (plan.motion !== 'REACTION') this.playTargetReaction(plan.targetId);
             this.runtime?.resolveConfirmedPlayerAction();
             this.queuePresentationDelay(120, () => {
@@ -517,6 +522,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       ease: 'Sine.easeOut',
       onComplete: () => {
         if (plan.useSlashFx) this.playSlashFx(plan.targetId);
+        if (plan.targetId) this.playImpactFx(plan.targetId, true);
         this.playTargetReaction(plan.targetId);
         this.runtime?.resolveActiveEnemyAction();
         this.queuePresentationDelay(140, () => {
@@ -557,6 +563,10 @@ export class RefactorBattleScene extends Phaser.Scene {
           height: target.displayHeight,
         },
       );
+    }
+
+    if (plan.motion === 'REACTION' && actor && (!target || plan.targetId === plan.actorId)) {
+      return { x: actor.x, y: actor.y };
     }
 
     if (plan.motion === 'REACTION' && target) {
@@ -623,6 +633,59 @@ export class RefactorBattleScene extends Phaser.Scene {
     });
   }
 
+  private playImpactFx(targetId: string, enemyImpact: boolean): void {
+    const target = this.actorSprites.get(targetId);
+    if (!target) return;
+    const color = enemyImpact ? 0xff7b62 : 0xf0d27d;
+    const ring = this.add.circle(target.x, target.y, 26, color, 0.2)
+      .setStrokeStyle(4, color, 0.95)
+      .setScale(0.62);
+    this.addToWorld(ring);
+    this.tweens.add({
+      targets: ring,
+      alpha: 0,
+      scaleX: 1.7,
+      scaleY: 1.7,
+      duration: 170,
+      ease: 'Quad.easeOut',
+      onComplete: () => ring.destroy(),
+    });
+    this.playImpactSfx(enemyImpact);
+  }
+
+  private ensureBattleMusic(): void {
+    if (!this.cache.audio.exists(REFACTOR_BATTLE_MUSIC_KEY)) return;
+    if (!this.battleMusic) {
+      this.battleMusic = this.sound.add(REFACTOR_BATTLE_MUSIC_KEY, { loop: true, volume: 0.3 });
+    }
+    if (!this.battleMusic.isPlaying) {
+      try {
+        this.battleMusic.play();
+      } catch {
+        // Browser autoplay may remain locked until the first pointer interaction.
+      }
+    }
+  }
+
+  private playImpactSfx(enemyImpact: boolean): void {
+    const manager = this.sound as Phaser.Sound.WebAudioSoundManager;
+    const context = manager.context;
+    if (!context || context.state !== 'running') return;
+
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const now = context.currentTime;
+    oscillator.type = enemyImpact ? 'sawtooth' : 'square';
+    oscillator.frequency.setValueAtTime(enemyImpact ? 105 : 165, now);
+    oscillator.frequency.exponentialRampToValueAtTime(enemyImpact ? 58 : 92, now + 0.075);
+    gain.gain.setValueAtTime(enemyImpact ? 0.085 : 0.065, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.09);
+  }
+
   private beginPresentationMotion(): void {
     this.clearAutoAdvance();
     this.animationBusy = true;
@@ -643,6 +706,13 @@ export class RefactorBattleScene extends Phaser.Scene {
     this.resetWorldCamera(0);
     this.animationBusy = false;
     if (this.input) this.input.enabled = true;
+  }
+
+  private cleanupScenePresentation(): void {
+    this.clearPresentationMotion();
+    this.battleMusic?.stop();
+    this.battleMusic?.destroy();
+    this.battleMusic = undefined;
   }
 
   private queuePresentationDelay(delay: number, callback: () => void): void {
