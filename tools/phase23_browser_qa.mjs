@@ -67,7 +67,7 @@ function rewardFirstChoiceX(choiceCount) {
 
 async function runProgressionPath(page, dir, report) {
   await page.goto(`${baseUrl}/?qa-outcome=victory`, { waitUntil: 'domcontentloaded' });
-  await waitForScene(page, 'DemoProgressionJourneyScene');
+  await waitForScene(page, 'JourneyScene');
   await sleep(500);
   await screenshot(page, dir, '01-route-depart');
 
@@ -96,7 +96,7 @@ async function runProgressionPath(page, dir, report) {
     await screenshot(page, dir, `battle-result-${node.id}`);
 
     await clickLogical(page, 640, 390);
-    await waitForScene(page, 'DemoProgressionJourneyScene');
+    await waitForScene(page, 'JourneyScene');
     await sleep(250);
     const returned = await hostDataset(page);
 
