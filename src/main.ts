@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import './styles.css';
 import './input-lock.css';
+import { createRefactorBattleBootstrap } from './application/battle/createRefactorBattleBootstrap';
+import { RefactorBattleRuntime } from './presentation/battle/refactor/RefactorBattleRuntime';
 import { BootScene } from './presentation/scenes/BootScene';
 import { JourneyScene } from './presentation/scenes/JourneyScene';
 import { RefactorBattleScene } from './presentation/scenes/RefactorBattleScene';
@@ -8,6 +10,11 @@ import { RefactorBattleScene } from './presentation/scenes/RefactorBattleScene';
 for (const eventName of ['contextmenu', 'dragstart', 'selectstart'] as const) {
   document.addEventListener(eventName, (event) => event.preventDefault(), { capture: true });
 }
+
+const refactorBattleEnabled = new URLSearchParams(window.location.search).get('combat-refactor') === '1';
+const refactorBattleRuntime = refactorBattleEnabled
+  ? new RefactorBattleRuntime(createRefactorBattleBootstrap())
+  : undefined;
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -21,7 +28,16 @@ const config: Phaser.Types.Core.GameConfig = {
     height: 720,
   },
   input: { activePointers: 3 },
-  scene: [BootScene, JourneyScene, RefactorBattleScene],
+  callbacks: {
+    preBoot: (game) => {
+      if (refactorBattleRuntime) {
+        game.registry.set('refactor-battle-runtime', refactorBattleRuntime);
+      }
+    },
+  },
+  scene: refactorBattleEnabled
+    ? [RefactorBattleScene, BootScene, JourneyScene]
+    : [BootScene, JourneyScene, RefactorBattleScene],
 };
 
 const game = new Phaser.Game(config);
