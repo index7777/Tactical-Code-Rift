@@ -3,6 +3,7 @@ import {
   beginResolving,
   cancelPlayerStep,
   confirmPlayerAction,
+  endBattle,
   finishResolution,
   previewTarget,
   selectAction,
@@ -275,7 +276,14 @@ export class BattleTurnController {
 
     this.clearPendingAction();
     this.clearPreview();
-    this.turnState = finishResolution();
+    const livingTeams = new Set(
+      this.battleState.timeline.entries
+        .filter((entry) => (this.battleState.vitalsByActorId[entry.actorId]?.hp ?? 0) > 0)
+        .map((entry) => entry.team),
+    );
+    this.turnState = livingTeams.has('player') && livingTeams.has('enemy')
+      ? finishResolution()
+      : endBattle(this.turnState);
     return this.battle();
   }
 

@@ -16,7 +16,7 @@ describe('RefactorBattlePresentationPolicy', () => {
     expect(actorDisplayName('chikage')).toBe('千景');
     expect(actorDisplayName('oboro')).toBe('朧');
     expect(actorDisplayName('mo')).toBe('紅葉');
-    expect(actorDisplayName('ghost-fire')).toBe('提燈童子');
+    expect(actorDisplayName('lantern-child')).toBe('提燈童');
     expect(actorDisplayName('unknown-id')).toBe('unknown-id');
   });
 

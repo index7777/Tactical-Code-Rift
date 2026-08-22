@@ -1,14 +1,7 @@
 import Phaser from 'phaser';
 import './styles.css';
 import './input-lock.css';
-import {
-  createRefactorBattleBootstrap,
-  createRefactorQaEnemyIntent,
-} from './application/battle/createRefactorBattleBootstrap';
-import { resolveCombatEntry } from './application/battle/CombatEntryPolicy';
-import { RefactorBattleRuntime } from './presentation/battle/refactor/RefactorBattleRuntime';
 import { refactorViewportScaleMode } from './presentation/battle/refactor/RefactorBattleViewportPolicy';
-import { BootScene } from './presentation/scenes/BootScene';
 import { JourneyScene } from './presentation/scenes/JourneyScene';
 import { RefactorBattleScene } from './presentation/scenes/RefactorBattleScene';
 
@@ -16,13 +9,8 @@ for (const eventName of ['contextmenu', 'dragstart', 'selectstart'] as const) {
   document.addEventListener(eventName, (event) => event.preventDefault(), { capture: true });
 }
 
-const combatEntry = resolveCombatEntry(window.location.search);
-const refactorBattleRuntime = combatEntry.attachRefactorRuntime
-  ? new RefactorBattleRuntime(createRefactorBattleBootstrap(), createRefactorQaEnemyIntent)
-  : undefined;
-const viewportScaleMode = combatEntry.mode === 'refactor'
-  ? refactorViewportScaleMode(window.innerWidth, window.innerHeight)
-  : 'FIT';
+const viewportScaleMode = refactorViewportScaleMode(window.innerWidth, window.innerHeight);
+const qaBattleNodeId = new URLSearchParams(window.location.search).get('qa-battle');
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -36,16 +24,9 @@ const config: Phaser.Types.Core.GameConfig = {
     height: 720,
   },
   input: { activePointers: 3 },
-  callbacks: {
-    preBoot: (game) => {
-      if (refactorBattleRuntime) {
-        game.registry.set('refactor-battle-runtime', refactorBattleRuntime);
-      }
-    },
-  },
-  scene: combatEntry.mode === 'legacy'
-    ? [BootScene, JourneyScene, RefactorBattleScene]
-    : [RefactorBattleScene, BootScene, JourneyScene],
+  scene: qaBattleNodeId
+    ? [RefactorBattleScene, JourneyScene]
+    : [JourneyScene, RefactorBattleScene],
 };
 
 const game = new Phaser.Game(config);

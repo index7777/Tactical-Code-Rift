@@ -5,7 +5,14 @@ const ACTOR_LABELS: Readonly<Record<string, string>> = {
   chikage: '千景',
   oboro: '朧',
   mo: '紅葉',
-  'ghost-fire': '提燈童子',
+  'wet-corpse': '濡骸',
+  'lantern-child': '提燈童',
+  'mountain-hound': '山犬',
+  'wayfarer-umbrella': '辻傘',
+  'noose-ghost': '縊鬼',
+  'lost-monk': '迷途僧',
+  'rain-warrior': '雨夜武者',
+  'rain-boss': '站守',
 };
 
 const CATEGORY_LABELS: Readonly<Record<string, string>> = {

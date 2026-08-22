@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { createEncounterBattleBootstrap } from '../../application/battle/createEncounterBattleBootstrap';
+import { storyEncounter, type EncounterBattlefield } from '../../core/route/EncounterCatalog';
 import {
   PLAYER_HOME_POSITIONS,
   REFACTOR_BATTLE_LAYOUT,
@@ -10,9 +12,11 @@ import {
   enemyStagePosition,
 } from '../battle/refactor/BattleStageProfile';
 import {
-  REFACTOR_BATTLE_BACKGROUND_KEY,
+  REFACTOR_BATTLE_BACKGROUND_KEYS,
+  REFACTOR_BOSS_MUSIC_KEY,
   REFACTOR_BATTLE_MUSIC_KEY,
-  REFACTOR_SLASH_FX_KEY,
+  REFACTOR_IMPACT_SFX_KEY,
+  REFACTOR_SWISH_SFX_KEY,
   actorBattleTextureKey,
   actorTimelineTextureKey,
   playerPoseTextureKey,
@@ -43,9 +47,8 @@ import {
   shouldShowActorRing,
   targetAffordance,
 } from '../battle/refactor/RefactorBattlePresentationPolicy';
-import type { RefactorBattleRuntime, RefactorBattleView } from '../battle/refactor/RefactorBattleRuntime';
+import { RefactorBattleRuntime, type RefactorBattleView } from '../battle/refactor/RefactorBattleRuntime';
 
-const RUNTIME_REGISTRY_KEY = 'refactor-battle-runtime';
 const NEXT_ACTOR_DELAY_MS = 420;
 const ENEMY_ACTION_DELAY_MS = 720;
 const ACTIVE_FOCUS_DURATION_MS = 220;
@@ -67,9 +70,27 @@ export class RefactorBattleScene extends Phaser.Scene {
   private readonly presentationTimers: Phaser.Time.TimerEvent[] = [];
   private focusedActorId?: string;
   private animationBusy = false;
+  private journeyNodeId = 'battle-1';
+  private battlefield: EncounterBattlefield = 'rail-halt';
+  private selectedMusicKey = REFACTOR_BATTLE_MUSIC_KEY;
+  private resultShown = false;
 
   constructor() {
     super('RefactorBattleScene');
+  }
+
+  init(data?: { journeyNodeId?: string }): void {
+    const qaBattleNodeId = new URLSearchParams(window.location.search).get('qa-battle') ?? undefined;
+    this.journeyNodeId = data?.journeyNodeId ?? qaBattleNodeId ?? 'battle-1';
+    const encounter = storyEncounter(this.journeyNodeId);
+    if (!encounter) throw new Error(`unknown battle node: ${this.journeyNodeId}`);
+    this.battlefield = encounter.battlefield;
+    this.selectedMusicKey = this.journeyNodeId.startsWith('boss-')
+      ? REFACTOR_BOSS_MUSIC_KEY
+      : REFACTOR_BATTLE_MUSIC_KEY;
+    const bootstrap = createEncounterBattleBootstrap(this.journeyNodeId);
+    this.runtime = new RefactorBattleRuntime(bootstrap.controller, bootstrap.enemyIntentProvider);
+    this.resultShown = false;
   }
 
   preload(): void {
@@ -77,7 +98,6 @@ export class RefactorBattleScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.runtime = this.registry.get(RUNTIME_REGISTRY_KEY) as RefactorBattleRuntime | undefined;
     this.configureCameras();
     this.ensureBattleMusic();
     this.input.once('pointerdown', () => this.ensureBattleMusic());
@@ -126,6 +146,11 @@ export class RefactorBattleScene extends Phaser.Scene {
       this.dispatchSelection.clear();
     }
     const handLayout = handLayoutMetrics(view.phase, this.dispatchMode);
+
+    if (view.outcome) {
+      this.showBattleResult(view.outcome);
+      return;
+    }
 
     const focusActorId = focusedPlayerActorId(view.phase, view.activeActorId, view.timeline);
     const enteringFocus = Boolean(focusActorId && focusActorId !== this.focusedActorId);
@@ -716,17 +741,18 @@ export class RefactorBattleScene extends Phaser.Scene {
   }
 
   private playSlashFx(targetId?: string): void {
-    if (!this.textures.exists(REFACTOR_SLASH_FX_KEY)) return;
     const target = targetId ? this.actorSprites.get(targetId) : undefined;
     const x = target?.x ?? REFACTOR_BATTLE_LAYOUT.actionPosition.x + 70;
     const y = target?.y ?? REFACTOR_BATTLE_LAYOUT.actionPosition.y;
-    const fx = this.addFittedImage(x, y, REFACTOR_SLASH_FX_KEY, 128, 96, 0.92, 'world')
-      .setRotation(-0.2);
+    const fx = this.add.graphics();
+    fx.lineStyle(8, 0xf4e6b5, 0.9).beginPath().arc(x, y, 54, -0.9, 0.55).strokePath();
+    this.addToWorld(fx);
+    this.sound.play(REFACTOR_SWISH_SFX_KEY, { volume: 0.28 });
     this.tweens.add({
       targets: fx,
       alpha: 0,
-      scaleX: fx.scaleX * 1.18,
-      scaleY: fx.scaleY * 1.18,
+      scaleX: 1.18,
+      scaleY: 1.18,
       duration: 180,
       ease: 'Quad.easeOut',
       onComplete: () => fx.destroy(),
@@ -754,9 +780,9 @@ export class RefactorBattleScene extends Phaser.Scene {
   }
 
   private ensureBattleMusic(): void {
-    if (!this.cache.audio.exists(REFACTOR_BATTLE_MUSIC_KEY)) return;
+    if (!this.cache.audio.exists(this.selectedMusicKey)) return;
     if (!this.battleMusic) {
-      this.battleMusic = this.sound.add(REFACTOR_BATTLE_MUSIC_KEY, { loop: true, volume: 0.3 });
+      this.battleMusic = this.sound.add(this.selectedMusicKey, { loop: true, volume: 0.3 });
     }
     if (!this.battleMusic.isPlaying) {
       try {
@@ -768,22 +794,7 @@ export class RefactorBattleScene extends Phaser.Scene {
   }
 
   private playImpactSfx(enemyImpact: boolean): void {
-    const manager = this.sound as Phaser.Sound.WebAudioSoundManager;
-    const context = manager.context;
-    if (!context || context.state !== 'running') return;
-
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    const now = context.currentTime;
-    oscillator.type = enemyImpact ? 'sawtooth' : 'square';
-    oscillator.frequency.setValueAtTime(enemyImpact ? 105 : 165, now);
-    oscillator.frequency.exponentialRampToValueAtTime(enemyImpact ? 58 : 92, now + 0.075);
-    gain.gain.setValueAtTime(enemyImpact ? 0.085 : 0.065, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start(now);
-    oscillator.stop(now + 0.09);
+    this.sound.play(REFACTOR_IMPACT_SFX_KEY, { volume: enemyImpact ? 0.34 : 0.28 });
   }
 
   private beginPresentationMotion(): void {
@@ -821,11 +832,37 @@ export class RefactorBattleScene extends Phaser.Scene {
   }
 
   private drawBattlefieldBackground(): void {
-    if (!this.textures.exists(REFACTOR_BATTLE_BACKGROUND_KEY)) return;
-    const background = this.add.image(640, 360, REFACTOR_BATTLE_BACKGROUND_KEY);
+    const backgroundKey = REFACTOR_BATTLE_BACKGROUND_KEYS[
+      this.battlefield === 'mountain-cut'
+        ? 'mountain-cut'
+        : this.battlefield === 'forest-path'
+          ? 'forest-path'
+          : this.battlefield === 'terminal-platform'
+            ? 'terminal-platform'
+            : 'rail-halt'
+    ];
+    if (!this.textures.exists(backgroundKey)) return;
+    const background = this.add.image(640, 360, backgroundKey);
     const frame = backgroundFrame(background.width, background.height);
     background.setPosition(frame.x, frame.y).setDisplaySize(frame.displayWidth, frame.displayHeight);
     this.addToWorld(background);
+  }
+
+  private showBattleResult(outcome: 'victory' | 'defeat'): void {
+    if (this.resultShown) return;
+    this.resultShown = true;
+    this.clearAutoAdvance();
+    const victory = outcome === 'victory';
+    this.addToHud(this.add.rectangle(640, 360, 1280, 720, 0x03070b, 0.72));
+    this.addText(640, 320, victory ? '戰鬥勝利' : '戰鬥敗北', '34px', victory ? '#f1d58b' : '#e28d87', 0.5);
+    this.drawButton(640, 390, 220, 44, victory ? '返回路線' : '重新挑戰', () => {
+      if (victory) {
+        if (this.journeyNodeId === 'boss-1') this.registry.set('journey-area01-cleared', true);
+        this.scene.start('JourneyScene');
+      } else {
+        this.scene.restart({ journeyNodeId: this.journeyNodeId });
+      }
+    });
   }
 
   private addFittedImage(
