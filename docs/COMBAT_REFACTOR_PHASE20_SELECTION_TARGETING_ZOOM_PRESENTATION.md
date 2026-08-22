@@ -1,6 +1,6 @@
 # Combat Refactor Phase 20 — Selection / Targeting Zoom Presentation
 
-STATUS = IMPLEMENTATION_CONTRACT
+STATUS = CI_VERIFIED_BROWSER_QA_PENDING
 BRANCH = combat-refactor-v1
 DATE = 2026-08-23
 
@@ -18,11 +18,11 @@ The normal decision path uses three camera states:
 - `FOCUS`: selected-card intent. Increase battlefield emphasis modestly and bias the camera from the active actor toward the action zone. No target is invented.
 - `TARGETING`: explicit relationship. Frame the active actor and the authoritative selected target together, using their midpoint and a stronger but still tactical zoom.
 
-Normal selection must remain battlefield-first. Portrait/cut-in presentation is forbidden for routine card selection and targeting; those remain reserved for specialization, special Clash/counter, Break finisher, Boss phase/signature, or equivalent high-value events.
+Normal selection remains battlefield-first. Portrait/cut-in presentation is forbidden for routine card selection and targeting; those remain reserved for specialization, special Clash/counter, Break finisher, Boss phase/signature, or equivalent high-value events.
 
 ## Pure policy boundary
 
-Add a pure `DecisionCameraPolicy` that consumes only presentation-safe inputs:
+Implemented `DecisionCameraPolicy` consumes only presentation-safe inputs:
 
 - hand presentation state (`PEEK | FOCUS | TARGETING | HIDDEN | DISPATCH`);
 - active actor world point when available;
@@ -35,7 +35,7 @@ It returns only camera presentation data:
 - transition duration;
 - semantic mode.
 
-The policy must not import controller, resolver, card definitions, Intent resolution, Clash resolution, or Phaser.
+The policy does not import controller, resolver, card definitions, Intent resolution, Clash resolution, or Phaser.
 
 ## Camera rules v1
 
@@ -45,38 +45,42 @@ The policy must not import controller, resolver, card definitions, Intent resolu
 - `HIDDEN`: no decision-camera ownership; action sequencer / Clash choreography owns the world camera.
 - `DISPATCH`: neutral battlefield framing (`1.00`) so hand utility does not impersonate a combat action.
 
-All requested centers must pass through the existing stage camera clamp.
+All requested centers pass through the existing stage camera clamp.
 
-## Scene ownership
+## Scene wiring
 
-`RefactorBattleScene` may:
+`RefactorBattleScene` now:
 
-- keep the existing active actor step/ring cue;
-- ask the pure policy for the decision camera target after actor sprites have been placed;
-- tween/pan only the world camera;
-- leave HUD in screen-space.
+- keeps the existing active actor step/ring cue for normal decision states;
+- disables actor focus stepping while `DISPATCH` owns the hand;
+- asks `DecisionCameraPolicy` for the world-camera target after actor sprites are placed;
+- uses the selected target sprite only when Preview already exposes an authoritative target id;
+- falls back from `TARGETING` to `FOCUS` when the selected target sprite is unavailable;
+- hands camera ownership back to Phase 18/19 action or Clash choreography once the hand becomes `HIDDEN` / execution starts;
+- leaves HUD in screen-space.
 
-It must not derive target legality or infer targets from actor proximity.
-
-When `TARGET_PREVIEW` has no selected target sprite (for example after a death/render edge), fall back to the `FOCUS` camera rather than inventing a point.
+The Scene does not derive target legality or infer targets from proximity.
 
 ## Transition behavior
 
-- entering a new decision mode uses a short `Sine.easeOut` transition;
-- repeated renders in the same state snap only when already effectively at the requested zoom/center, avoiding stacked camera tweens;
+- decision-camera transitions use `180ms` `Sine.easeOut`;
+- repeated renders only start a pan/zoom when current center or zoom materially differs from the requested target;
 - action confirmation still hands camera ownership to Phase 18/19 choreography before movement starts;
 - after action return, the next actor's legal decision state reacquires decision-camera ownership.
 
 ## Verification
 
-Automated evidence must cover:
+Automated evidence covers:
 
 - PEEK / FOCUS / TARGETING / DISPATCH camera outputs;
 - TARGETING midpoint framing;
 - target-missing fallback to FOCUS;
 - camera clamp behavior;
 - no decision camera for HIDDEN;
-- build/test pass.
+- `npm run build`;
+- `npm run test`.
+
+CI run 489 verified the pure policy/tests. CI run 490 verified the Scene wiring plus the full build/test suite.
 
 Browser QA remains required at 1280×720 and 844×390 for battlefield readability, target relationship clarity, and absence of camera fighting with action/Clash choreography.
 
