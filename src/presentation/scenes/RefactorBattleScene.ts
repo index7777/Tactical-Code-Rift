@@ -30,6 +30,7 @@ import {
   buildPlayerActionAnimationPlan,
   type RefactorBattleAnimationPlan,
 } from '../battle/refactor/RefactorBattleAnimationPlan';
+import { actionPresentationProfile } from '../battle/refactor/ActionPresentationSequencer';
 import {
   focusCameraTarget,
   focusedActorPosition,
@@ -575,36 +576,50 @@ export class RefactorBattleScene extends Phaser.Scene {
       return;
     }
 
+    const profile = actionPresentationProfile(plan.profileId);
     this.beginPresentationMotion();
     this.runtime.confirmCard();
 
     const home = homePositionFor(plan.actorId as 'rin' | 'chikage' | 'oboro' | 'mo');
     const destination = this.presentationDestination(plan);
+    const originScaleX = actor.scaleX;
+    const originScaleY = actor.scaleY;
     this.setPlayerPose(plan.actorId, 'ready');
+    this.cameras.main.zoomTo(profile.cameraZoom, profile.anticipationMs, 'Sine.easeOut');
 
-    this.tweens.add({
-      targets: actor,
-      x: destination.x,
-      y: destination.y,
-      duration: 180,
-      ease: 'Sine.easeOut',
-      onComplete: () => {
-        if (plan.useAttackPose) this.setPlayerPose(plan.actorId, 'attack-a');
-        this.queuePresentationDelay(70, () => {
-          if (plan.useAttackPose) this.setPlayerPose(plan.actorId, 'attack-b');
-          this.queuePresentationDelay(90, () => {
+    this.queuePresentationDelay(profile.anticipationMs, () => {
+      this.tweens.add({
+        targets: actor,
+        x: destination.x,
+        y: destination.y,
+        scaleX: originScaleX * profile.actorScale,
+        scaleY: originScaleY * profile.actorScale,
+        duration: profile.approachMs,
+        ease: 'Sine.easeOut',
+        onComplete: () => {
+          if (plan.useAttackPose) this.setPlayerPose(plan.actorId, 'attack-a');
+          if (plan.useAttackPose && profile.strikeMs > 1) {
+            this.queuePresentationDelay(Math.max(1, Math.floor(profile.strikeMs / 2)), () => {
+              this.setPlayerPose(plan.actorId, 'attack-b');
+            });
+          }
+          this.queuePresentationDelay(profile.strikeMs, () => {
             if (plan.useSlashFx) this.playSlashFx(plan.targetId);
             if (plan.targetId) this.playImpactFx(plan.targetId, false);
-            if (plan.motion !== 'REACTION') this.playTargetReaction(plan.targetId);
+            if (plan.motion !== 'REACTION' && plan.profileId !== 'disruption') {
+              this.playTargetReaction(plan.targetId);
+            }
             this.runtime?.resolveConfirmedPlayerAction();
-            this.queuePresentationDelay(120, () => {
+            this.queuePresentationDelay(profile.impactHoldMs + profile.recoveryMs, () => {
               this.focusedActorId = undefined;
-              this.resetWorldCamera(210);
+              this.resetWorldCamera(profile.returnMs);
               this.tweens.add({
                 targets: actor,
                 x: home.x,
                 y: home.y,
-                duration: 210,
+                scaleX: originScaleX,
+                scaleY: originScaleY,
+                duration: profile.returnMs,
                 ease: 'Sine.easeInOut',
                 onComplete: () => {
                   this.setPlayerPose(plan.actorId, 'idle-a');
@@ -614,8 +629,8 @@ export class RefactorBattleScene extends Phaser.Scene {
               });
             });
           });
-        });
-      },
+        },
+      });
     });
   }
 
@@ -637,6 +652,7 @@ export class RefactorBattleScene extends Phaser.Scene {
       return;
     }
 
+    const profile = actionPresentationProfile(plan.profileId);
     this.beginPresentationMotion();
     const originX = actor.x;
     const originY = actor.y;
@@ -645,42 +661,56 @@ export class RefactorBattleScene extends Phaser.Scene {
     const target = plan.targetId ? this.actorSprites.get(plan.targetId) : undefined;
     const destinationX = target ? Math.max(610, target.x + 165) : Math.max(640, originX - 150);
     const destinationY = target ? target.y : originY;
+    this.cameras.main.zoomTo(profile.cameraZoom, profile.anticipationMs, 'Sine.easeOut');
 
-    this.tweens.add({
-      targets: actor,
-      x: destinationX,
-      y: destinationY,
-      scaleX: originScaleX * 1.04,
-      scaleY: originScaleY * 1.04,
-      duration: 190,
-      ease: 'Sine.easeOut',
-      onComplete: () => {
-        if (plan.useSlashFx) this.playSlashFx(plan.targetId);
-        if (plan.targetId) this.playImpactFx(plan.targetId, true);
-        this.playTargetReaction(plan.targetId);
-        this.runtime?.resolveActiveEnemyAction();
-        this.queuePresentationDelay(140, () => {
-          this.tweens.add({
-            targets: actor,
-            x: originX,
-            y: originY,
-            scaleX: originScaleX,
-            scaleY: originScaleY,
-            duration: 220,
-            ease: 'Sine.easeInOut',
-            onComplete: () => {
-              this.finishPresentationMotion();
-              this.render();
-            },
+    this.queuePresentationDelay(profile.anticipationMs, () => {
+      this.tweens.add({
+        targets: actor,
+        x: destinationX,
+        y: destinationY,
+        scaleX: originScaleX * profile.actorScale,
+        scaleY: originScaleY * profile.actorScale,
+        duration: profile.approachMs,
+        ease: 'Sine.easeOut',
+        onComplete: () => {
+          this.queuePresentationDelay(profile.strikeMs, () => {
+            if (plan.useSlashFx) this.playSlashFx(plan.targetId);
+            if (plan.targetId) this.playImpactFx(plan.targetId, true);
+            this.playTargetReaction(plan.targetId);
+            this.runtime?.resolveActiveEnemyAction();
+            this.queuePresentationDelay(profile.impactHoldMs + profile.recoveryMs, () => {
+              this.resetWorldCamera(profile.returnMs);
+              this.tweens.add({
+                targets: actor,
+                x: originX,
+                y: originY,
+                scaleX: originScaleX,
+                scaleY: originScaleY,
+                duration: profile.returnMs,
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                  this.finishPresentationMotion();
+                  this.render();
+                },
+              });
+            });
           });
-        });
-      },
+        },
+      });
     });
   }
 
   private presentationDestination(plan: RefactorBattleAnimationPlan): { x: number; y: number } {
     const actor = this.actorSprites.get(plan.actorId);
     const target = plan.targetId ? this.actorSprites.get(plan.targetId) : undefined;
+
+    if (plan.profileId === 'disruption' && actor && target) {
+      const direction = Math.sign(target.x - actor.x) || 1;
+      return {
+        x: actor.x + direction * Math.min(56, Math.abs(target.x - actor.x) * 0.25),
+        y: actor.y,
+      };
+    }
 
     if (plan.motion === 'ACTION' && actor && target) {
       return actionApproachPosition(
