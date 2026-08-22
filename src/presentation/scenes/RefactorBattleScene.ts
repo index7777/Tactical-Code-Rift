@@ -31,6 +31,7 @@ import {
   type RefactorBattleAnimationPlan,
 } from '../battle/refactor/RefactorBattleAnimationPlan';
 import { actionPresentationProfile } from '../battle/refactor/ActionPresentationSequencer';
+import { enemyVisualContactSchedule } from '../battle/refactor/EnemyActionPresentationContacts';
 import {
   focusCameraTarget,
   focusedActorPosition,
@@ -653,6 +654,8 @@ export class RefactorBattleScene extends Phaser.Scene {
     }
 
     const profile = actionPresentationProfile(plan.profileId);
+    const impactRecoveryWindowMs = profile.impactHoldMs + profile.recoveryMs;
+    const contactSchedule = enemyVisualContactSchedule(plan.hitCount, impactRecoveryWindowMs);
     this.beginPresentationMotion();
     const originX = actor.x;
     const originY = actor.y;
@@ -674,11 +677,12 @@ export class RefactorBattleScene extends Phaser.Scene {
         ease: 'Sine.easeOut',
         onComplete: () => {
           this.queuePresentationDelay(profile.strikeMs, () => {
-            if (plan.useSlashFx) this.playSlashFx(plan.targetId);
-            if (plan.targetId) this.playImpactFx(plan.targetId, true);
-            this.playTargetReaction(plan.targetId);
+            this.playEnemyVisualContact(plan);
             this.runtime?.resolveActiveEnemyAction();
-            this.queuePresentationDelay(profile.impactHoldMs + profile.recoveryMs, () => {
+            for (const offsetMs of contactSchedule.additionalOffsetsMs) {
+              this.queuePresentationDelay(offsetMs, () => this.playEnemyVisualContact(plan));
+            }
+            this.queuePresentationDelay(impactRecoveryWindowMs, () => {
               this.resetWorldCamera(profile.returnMs);
               this.tweens.add({
                 targets: actor,
@@ -698,6 +702,14 @@ export class RefactorBattleScene extends Phaser.Scene {
         },
       });
     });
+  }
+
+  private playEnemyVisualContact(plan: RefactorBattleAnimationPlan): void {
+    if (plan.useSlashFx) this.playSlashFx(plan.targetId);
+    for (const targetId of plan.targetIds) {
+      this.playImpactFx(targetId, true);
+      this.playTargetReaction(targetId);
+    }
   }
 
   private presentationDestination(plan: RefactorBattleAnimationPlan): { x: number; y: number } {
