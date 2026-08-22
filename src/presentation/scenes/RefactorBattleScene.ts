@@ -158,10 +158,6 @@ export class RefactorBattleScene extends Phaser.Scene {
           this.render();
         });
       }
-
-      const labelX = position.x + 54 * position.perspectiveScale;
-      this.addText(labelX, position.y - 17, actorDisplayName(position.actorId), '11px', '#eef5f3');
-      this.addText(labelX, position.y + 4, vitals ? `生命 ${vitals.hp}/${vitals.maxHp}` : '--', '10px', alive ? '#bcd9d7' : '#727c80');
     }
 
     this.renderPartyStatus(view);
