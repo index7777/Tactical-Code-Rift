@@ -49,7 +49,7 @@ export interface BackgroundFrame {
 export const RAIL_HALT_STAGE_PROFILE: BattleStageProfile = {
   width: 1280,
   height: 720,
-  playerZone: { x: 280, y: 382, width: 330, height: 120 },
+  playerZone: { x: 300, y: 382, width: 300, height: 120 },
   enemyZone: { x: 830, y: 390, width: 200, height: 100 },
   actionZone: { x: 550, y: 395, width: 300, height: 115 },
   depthBands: [
