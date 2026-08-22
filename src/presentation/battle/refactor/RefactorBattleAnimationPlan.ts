@@ -34,13 +34,14 @@ export function buildPlayerActionAnimationPlan(
     };
   }
 
+  const controlPresentation = selected.category === 'disruption';
   return {
     actorId: view.activeActorId,
     targetId,
     motion: 'ACTION',
     profileId: actionPresentationProfileForCardCategory(selected.category),
-    useAttackPose: true,
-    useSlashFx: Boolean(targetId),
+    useAttackPose: !controlPresentation,
+    useSlashFx: Boolean(targetId) && !controlPresentation,
   };
 }
 
