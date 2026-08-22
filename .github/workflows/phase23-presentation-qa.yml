@@ -37,7 +37,7 @@ jobs:
           cat /tmp/phase23-presentation-vite.log
           exit 1
       - name: Run Phase 23 presentation QA
-        run: node tools/phase23_presentation_qa.mjs
+        run: node tools/phase23_presentation_qa_runner.mjs
       - name: Upload presentation QA evidence
         if: always()
         uses: actions/upload-artifact@v4
