@@ -80,8 +80,15 @@ describe('encounter battle bootstrap', () => {
     expect(battle.resilienceByEnemyId['rain-warrior']).toMatchObject({ base: 1, temporary: 0 });
   });
 
-  it('keeps Boss on the existing fallback until its dedicated migration phase', () => {
-    expect(createEncounterEnemyIntent('rain-boss', 0).enemyId).toBe('rain-boss');
+  it('uses the approved Boss HP and base resilience while keeping the existing Intent fallback', () => {
+    const { controller } = createEncounterBattleBootstrap('boss-1');
+    const battle = controller.battle();
+
+    expect(battle.vitalsByActorId['rain-boss']).toMatchObject({ hp: 240, maxHp: 240 });
+    expect(battle.resilienceByEnemyId['rain-boss']).toMatchObject({ base: 1, temporary: 0 });
+
+    const fallbackIntent = createEncounterEnemyIntent('rain-boss', 0);
+    expect(fallbackIntent).toMatchObject({ enemyId: 'rain-boss', targetIds: ['rin'] });
   });
 
   it('rejects non-battle route nodes', () => {
