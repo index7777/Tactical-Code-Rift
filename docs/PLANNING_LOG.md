@@ -1014,3 +1014,10 @@ Sim 尚未重跑：需要另外對 `CombatSimulation.simulateOne` 跑一次 5000
 - Removed every redundant procedural border layered over that asset: selected purple outline, fallback stroke when the PNG exists, top accent strip, category diamond and runtime footer frame.
 - Runtime text now follows the authored slots: family label + card name in the central band, effect copy in the lower panel, and Delay in the native footer. Selection relies on extraction/scale plus dimmed sibling cards rather than another frame.
 - Desktop Chrome composite confirms the supplied PNG is the only visible card boundary; tests and production build pass without application Console errors.
+
+## 2026-08-22 — Demo asset requirements replanning
+
+- Replanned the Area 01 seven-node demo as one bounded asset set: one route map, four battle backgrounds, four players, eight enemies, one neutral card frame, five family illustration plates, up to three conditional key-feedback cues and the existing audio mapping.
+- Classified Timeline, Party HUD, enemy overhead, targeting, route lines, loading-train travel and control states as runtime/procedural; they must not expand into generated character-specific or state-specific skins.
+- Runtime evidence established that the five 1254×1254 transparent family cutouts use the wrong production scope for the neutral frame's approximately 1.44:1, mostly transparent illustration window. `DEMO_ASSET_REQUIREMENTS_V1.md` replaces the cutout assumption with five fully opaque full-bleed illustration plates, produced and reviewed one family at a time.
+- This batch changes authoritative asset planning only. It generates no image and does not promote any runtime-trial asset.

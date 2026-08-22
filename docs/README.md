@@ -55,6 +55,7 @@ STATUS = AUTHORITATIVE_INDEX
 47. `LEGACY_COMBAT_ARCHIVE.md`：舊戰鬥的歷史封存點與取回規則；不得作為 runtime 入口。
 48. `COMBAT_REFACTOR_PHASE11_ROUTE_CUTOVER.md`：新版戰鬥取代正式 runtime、七節點接線、音訊對齊與舊版封存契約。
 49. `COMBAT_REFACTOR_PHASE12_FORMATION_HAND_CHOREOGRAPHY.md`：4v4 上二／下二雙排隊形、完整卡牌下緣 PEEK、選牌抽出、執行退場、enemy overhead 與 responsive QA 的 presentation 重構契約；本批禁止生成資產。
+50. `DEMO_ASSET_REQUIREMENTS_V1.md`：Area 01 七節點 Demo 的完整資產母表；區分現有可用、runtime trial、規格錯誤、必須補作、程序化與禁止生成項目，並定義五張 card-family illustration plate 的正確規格。
 
 ## combat-refactor-v1 分支規則
 

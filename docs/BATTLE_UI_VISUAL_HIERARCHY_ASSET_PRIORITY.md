@@ -97,14 +97,11 @@ DATE = 2026-08-22
 
 #### Card Master
 
-目前已產生：
+目前資產狀態：
 
-- neutral card frame ×1
-- quick family visual ×1
-- heavy family visual ×1
-- guard family visual ×1
-- disruption family visual ×1
-- break family visual ×1
+- neutral card frame ×1：保留作 runtime trial。
+- quick / heavy / guard / disruption / break family visual 各 ×1：現有 1254×1254 透明去背圖規格不合格，退回 `NEEDS_REWORK`，不得計入可用 Card Master。
+- 正確 family visual 是符合 neutral frame 圖窗比例的 1.44:1 全滿版不透明 illustration plate；完整尺寸、構圖與驗收規格以 `DEMO_ASSET_REQUIREMENTS_V1.md` 為準。
 
 生產原則：
 
@@ -207,8 +204,8 @@ DATE = 2026-08-22
 
 ## 目前資產生產順序
 
-1. **Card Master：已生成 6 個核心資產；先停止擴張卡牌素材數量。**
-2. **Key Combat Feedback：下一個值得規劃的生成領域。** 優先判斷 Break / Guard / Delay 三種是否需要獨立通用 cue。
+1. **Card Master：保留 1 個 neutral frame，重作 5 個 family illustration plates。** 一次只生產並實機驗證一個 family，先從 quick 開始。
+2. **Key Combat Feedback：待 Card Master 完成後再判斷。** 優先確認 Break / Guard / Delay 三種是否真的需要獨立通用 cue。
 3. Enemy overhead / Confirm：只有在功能 layout 確認後，才考慮各生成 1 個極簡 skin。
 4. Timeline / Party HUD：暫不生成華麗 skin；先維持程序化 / 極簡方向。
 
@@ -216,7 +213,7 @@ DATE = 2026-08-22
 
 從本文件起，不再以「把所有 UI 都各生成一張」作目標。
 
-- Card Master 已使用 6 個核心 generated assets。
+- Card Master 現有可保留 1 個 neutral frame；五張透明 family cutout 不列入可用資產，重作預算為 5 個 illustration plates。
 - 下一批 key combat feedback 預算：0–3 個。
 - Enemy overhead / Confirm 若真的需要材質 skin：0–2 個。
 - Timeline / Party HUD：預設 0 個 generated skin。

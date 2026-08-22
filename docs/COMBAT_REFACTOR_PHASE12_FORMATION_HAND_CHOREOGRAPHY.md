@@ -127,25 +127,27 @@ Boss encounter 可讓 Boss 使用一個主 slot 和較大的 canonical asset sca
 
 ### Existing Card Master source pack
 
+> 2026-08-22 correction: the table below records the source pack that Phase 12 received, not an approval of all six files. Runtime evidence later rejected the five square transparent family visuals. Keep only the neutral frame; replacement family illustration plates must follow `DEMO_ASSET_REQUIREMENTS_V1.md`.
+
 使用者指定來源：`D:/Tactical-Code-Rift/tactical-code-rift-card-assets-v1/`
 
 | Logical slot | Source file | Source size | Runtime role |
 |---|---|---:|---|
 | neutral frame/body | `card-frame-neutral.png` | 1024×1536 RGBA | 所有 family 共用的 2:3 卡身、框線與內部分區 |
-| quick visual | `card-family-quick.png` | 1254×1254 RGBA | quick family art zone |
-| heavy visual | `card-family-heavy.png` | 1254×1254 RGBA | heavy family art zone |
-| guard visual | `card-family-guard.png` | 1254×1254 RGBA | guard family art zone |
-| disruption visual | `card-family-disruption.png` | 1254×1254 RGBA | disruption family art zone |
-| break visual | `card-family-break.png` | 1254×1254 RGBA | break family art zone |
+| quick visual | `card-family-quick.png` | 1254×1254 RGBA | `REJECTED_SPEC`; negative reference only |
+| heavy visual | `card-family-heavy.png` | 1254×1254 RGBA | `REJECTED_SPEC`; negative reference only |
+| guard visual | `card-family-guard.png` | 1254×1254 RGBA | `REJECTED_SPEC`; negative reference only |
+| disruption visual | `card-family-disruption.png` | 1254×1254 RGBA | `REJECTED_SPEC`; negative reference only |
+| break visual | `card-family-break.png` | 1254×1254 RGBA | `REJECTED_SPEC`; negative reference only |
 
 接入規則：
 
-- 一張 runtime card = family visual clipped into upper art zone + neutral frame/body + runtime text/data。
-- family visual 不可拉伸成 2:3；使用 cover/crop 並保留主 silhouette。
+- 一張 runtime card = 1.44:1 全滿版不透明 family illustration plate + neutral frame/body + runtime text/data。
+- illustration plate 依 upper art zone cover/crop；不得用透明去背圖，也不可拉伸成 2:3。
 - 卡名、Delay、效果、target、數值與 selected glow 不烘進 PNG。
-- neutral frame 自身包含深色卡身，不當成透明空窗 frame；合成順序必須用實機確認圖案不被卡身遮住。
-- 六張來源先維持 source/candidate gate；正式複製到 `public/assets` 前要補 provenance、alpha/crop validation 與 runtime-trial assignment，不因資料夾存在就自動標為 approved。
-- 本 Phase 不再生成新的卡框、family visual 或 selected state 圖片。
+- neutral frame 保留為唯一卡牌邊界；圖窗必須由不透明 plate 先填滿，再疊 frame 與 runtime text。
+- neutral frame 維持 runtime-trial gate；五張舊 family 圖已退回，不因已複製到 `public/assets` 就自動標為 approved。
+- selected state 仍不得生成獨立圖片；五張 replacement plates 的生成批次由 `DEMO_ASSET_REQUIREMENTS_V1.md` 管理。
 
 ### `PEEK`
 
@@ -213,8 +215,8 @@ Boss encounter 可讓 Boss 使用一個主 slot 和較大的 canonical asset sca
 
 - 以新五態取代 `COLLAPSED／EXPANDED`。
 - 完整卡牌 PEEK、selected 抽出、其他牌下沉、DISPATCH、HIDDEN metrics 都由純 policy 計算。
-- 保留既有 Card Master family/anatomy，不新增資產。
-- 建立 `tactical-code-rift-card-assets-v1` composite：neutral frame/body、family art clip、runtime header／Delay／effect text 分層。
+- 保留 neutral Card Master anatomy，不保留已拒絕的透明 family cutout 規格。
+- 建立 composite：opaque family illustration plate、neutral frame/body、runtime header／Delay／effect text 分層。
 
 ### W6 — Scene choreography
 

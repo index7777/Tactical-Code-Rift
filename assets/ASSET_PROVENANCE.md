@@ -125,10 +125,12 @@ User-provided `route_map_runtime_assets_split_v1` is archived intact at `assets/
 
 | Runtime files | Work | Author | License | Source |
 |---|---|---|---|---|
-| `public/assets/battle/cards/master-v1/card-frame-neutral.png`, `card-family-{quick,heavy,guard,disruption,break}.png` | Phase 12 runtime card frame/body and five family visuals | User-provided project asset | Provenance/license pending; runtime trial only | `D:/Tactical-Code-Rift/tactical-code-rift-card-assets-v1/` |
+| `public/assets/battle/cards/master-v1/card-frame-neutral.png` | Phase 12 neutral runtime card frame | User-provided project asset | Provenance/license pending; runtime trial only | `D:/Tactical-Code-Rift/tactical-code-rift-card-assets-v1/` |
+| `public/assets/battle/cards/master-v1/card-family-{quick,heavy,guard,disruption,break}.png` | Rejected 1:1 transparent card-family cutouts; negative reference only, runtime assignment to be removed | User-provided project asset | `REJECTED_SPEC`: wrong aspect/full-bleed contract; provenance/license pending | `D:/Tactical-Code-Rift/tactical-code-rift-card-assets-v1/` |
 
-- Files are byte-preserved copies used for runtime composition; no image generation or cleanup was performed.
-- Integration does not imply release approval. Ownership/distribution rights and final Art Director approval remain open gates.
+- Files are byte-preserved copies; no image generation or cleanup was performed.
+- The neutral frame remains a runtime trial. The five square transparent family images are rejected as illustration inputs because they expose the battlefield through the frame window and use the wrong aspect/composition contract.
+- Integration does not imply release approval. The rejected family files must lose runtime assignment in the next implementation batch; ownership/distribution rights and final Art Director approval remain open gates.
 
 | `public/assets/battle/weapon-slash-cc0/classic-slash-sheet.png` | bevouliin | CC0 | [OpenGameArt Weapon Slash - Effect](https://opengameart.org/content/weapon-slash-effect) | Candidate integrated for prototype review; not Art-Director approved. |
 
