@@ -57,7 +57,7 @@ export function buildPlayerActionAnimationPlan(
       profileId: 'guard',
       useAttackPose: false,
       useSlashFx: false,
-      clash,
+      ...(clash ? { clash } : {}),
     };
   }
 
@@ -71,7 +71,7 @@ export function buildPlayerActionAnimationPlan(
     profileId: actionPresentationProfileForCardCategory(selected.category),
     useAttackPose: !controlPresentation,
     useSlashFx: Boolean(targetId) && !controlPresentation,
-    clash,
+    ...(clash ? { clash } : {}),
   };
 }
 
