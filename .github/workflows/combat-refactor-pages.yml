@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - combat-refactor-v1
+      - codex/combat-refactor-integration
   workflow_dispatch:
 
 permissions:
