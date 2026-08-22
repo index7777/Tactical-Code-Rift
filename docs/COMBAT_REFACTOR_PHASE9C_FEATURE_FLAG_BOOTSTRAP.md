@@ -19,7 +19,7 @@ Phase 9c 讓新版戰鬥可以透過明確 query flag 啟動，但在沒有 flag
 - 沒有 flag：`BootScene` 仍是第一個啟動 Scene。
 - 有 `combat-refactor=1`：`RefactorBattleScene` 成為第一個啟動 Scene。
 - 新版 Scene 必須在 create 前取得真正的 `RefactorBattleRuntime`。
-- Runtime 由 application bootstrap 建立並注入 Phaser registry：
+- Runtime 在 app entry 組裝後注入 Phaser registry：
 
 ```text
 refactor-battle-runtime
@@ -50,20 +50,23 @@ QA encounter 必須：
 src/application/battle/createRefactorBattleBootstrap.ts
 ```
 
-它負責：
+application factory 只建立：
 
 ```text
 BattleResolutionState
 + RefactorDeckState
 → BattleTurnController
-→ RefactorBattleRuntime
 ```
 
-`main.ts` 只負責：
+它不得 import presentation 或 Phaser。
+
+`main.ts` 作為 composition root 才負責：
 
 1. 讀 query flag。
 2. 決定 Scene 啟動順序。
-3. 在 Phaser `preBoot` 階段把 runtime 放入 registry。
+3. 取得 application factory 建立的 `BattleTurnController`。
+4. 包裝成 `RefactorBattleRuntime`。
+5. 在 Phaser `preBoot` 階段把 runtime 放入 registry。
 
 `main.ts` 不包含卡牌規則、Intent 規則或 Timeline 計算。
 
@@ -76,7 +79,7 @@ BattleResolutionState
 3. Timeline 第一節點可由 controller 正常開始。
 4. QA deck 同時含 quick / heavy / guard / disruption / break。
 5. bootstrap 建立兩次結果 deterministic。
-6. source state 不依賴 Phaser。
+6. application bootstrap 不依賴 Phaser / presentation。
 7. 無 flag 時 Scene 順序仍以 `BootScene` 開頭。
 8. 有 `?combat-refactor=1` 時 Scene 順序以 `RefactorBattleScene` 開頭，且 registry 已有 runtime。
 
