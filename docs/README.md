@@ -23,21 +23,22 @@ STATUS = AUTHORITATIVE_INDEX
 15. `COMBAT_REFACTOR_PHASE9B_PRESENTATION_WIRING.md`：Phase 9b Controller / Presentation wiring 契約；定義 `RefactorBattleRuntime`、Scene registry 注入與互動邊界。
 16. `COMBAT_REFACTOR_PHASE9C_FEATURE_FLAG_BOOTSTRAP.md`：Phase 9c feature-flag bootstrap 契約；定義 `?combat-refactor=1`、deterministic QA controller bootstrap、composition-root runtime 注入與 legacy-default 保留條件。
 17. `COMBAT_REFACTOR_PHASE9D_FLAG_QA_INTERACTIONS.md`：Phase 9d feature-flag QA 互動完成契約；補齊 enemy resolution、合法目標 routing 與調度 0～2 張 UI path。
-18. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／阻塞狀態；目前 deployment/browser QA 受 Vercel build rate limit 阻塞，只記進度，不取代規格與實作計畫。
-19. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-20. `art-bible.md`：角色、怪物、背景與透明素材規範。
-21. `characters/README.md`：角色母版與 runtime 對照。
-22. `areas/README.md`：區域背景與 runtime 狀態。
-23. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-24. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-25. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+18. `COMBAT_REFACTOR_PHASE9E_GITHUB_PAGES_QA.md`：Phase 9e GitHub Pages QA hosting 契約；把 current-head feature-flag QA deployment 從受 Vercel rate limit 阻塞的 preview 改由 GitHub Pages 提供。
+19. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／deployment gate 狀態；只記進度，不取代規格與實作計畫。
+20. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+21. `art-bible.md`：角色、怪物、背景與透明素材規範。
+22. `characters/README.md`：角色母版與 runtime 對照。
+23. `areas/README.md`：區域背景與 runtime 狀態。
+24. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+25. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+26. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 
 ## combat-refactor-v1 分支規則
 
 在 `combat-refactor-v1`：
 
 - 新戰鬥設計只讀 `COMBAT_REFACTOR_V1.md`、`COMBAT_REFACTOR_IMPLEMENTATION_PLAN.md`、目前 Phase contract 與仍適用的架構／資產文件。
-- `COMBAT_REFACTOR_PROGRESS.md` 用來判斷目前做到哪一批、哪一批仍待 CI／runtime 證據，以及外部 deployment gate 是否阻塞。
+- `COMBAT_REFACTOR_PROGRESS.md` 用來判斷目前做到哪一批、哪一批仍待 CI／runtime 證據，以及 external deployment gate 狀態。
 - `CURRENT_COMBAT_SPEC.md`、`COMBAT_ACCEPTANCE_CHECKLIST.md`、`NEXT_WORK.md` 中描述舊 round planning、雙列 timeline、殺生線主導、下一回合提交等內容，只用來識別要被替換的 legacy runtime。
 - 不從 `docs/archive/` 恢復任何舊玩法。
 - 每一批新實作都必須先在重構規格／實作計畫／對應 Phase contract 中有明確契約，並同步更新 progress，再進 source/tests。
