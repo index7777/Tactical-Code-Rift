@@ -31,14 +31,15 @@ STATUS = AUTHORITATIVE_INDEX
 23. `COMBAT_REFACTOR_PHASE10D_ACTION_PRESENTATION.md`：Phase 10d 行動／反應演出接線契約；把既有 player pose、ACTION／REACTION 位移、target reaction 與 enemy lunge 接到新版 runtime flow，不重算 combat 規則。
 24. `COMBAT_REFACTOR_PHASE10E_ACTION_REACH_TARGET_AFFORDANCE.md`：Phase 10e 實機修正契約；讓有目標的 ACTION 真正接敵，並把「合法候選」與「已選單體目標」的 highlight 分開。
 25. `COMBAT_REFACTOR_PHASE10F_CLOSE_CONTACT_TARGET_CLEANUP.md`：Phase 10f 實機修正契約；縮短透明邊界造成的假接敵距離、讓非千景守勢只提示 self，並移除 battlefield 我方重複姓名／HP。
-26. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／deployment gate 狀態；只記進度，不取代規格與實作計畫。
-27. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
-28. `art-bible.md`：角色、怪物、背景與透明素材規範。
-29. `characters/README.md`：角色母版與 runtime 對照。
-30. `areas/README.md`：區域背景與 runtime 狀態。
-31. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
-32. `PLANNING_LOG.md`：採用決策與驗證紀錄。
-33. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
+26. `COMBAT_REFACTOR_PHASE10G_FLOATING_HUD_FRAME_REMOVAL.md`：Phase 10g floating HUD 契約；移除上方 Timeline 與下方 Shared Hand 的 full-width 大背板，保留 node／card 自身資訊元件，讓完整 BG 成為戰場主體。
+27. `COMBAT_REFACTOR_PROGRESS.md`：重構分支目前完成／待驗證／deployment gate 狀態；只記進度，不取代規格與實作計畫。
+28. `COMBAT_ACCEPTANCE_CHECKLIST.md`：現行戰鬥驗收條件；重構期間需逐批建立對應的新驗收項目，不可直接把舊交鋒／整輪規劃條件視為新系統完成標準。
+29. `art-bible.md`：角色、怪物、背景與透明素材規範。
+30. `characters/README.md`：角色母版與 runtime 對照。
+31. `areas/README.md`：區域背景與 runtime 狀態。
+32. `RELEASE_ASSET_AUDIT.md`：發布授權閘門。
+33. `PLANNING_LOG.md`：採用決策與驗證紀錄。
+34. `NEXT_WORK.md`：`main` 現行產品線的執行順序；`combat-refactor-v1` 不得把其中的舊戰鬥 UI／整輪規劃事項當成新玩法約束。
 
 ## combat-refactor-v1 分支規則
 
