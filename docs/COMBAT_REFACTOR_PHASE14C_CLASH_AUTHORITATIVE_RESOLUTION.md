@@ -46,28 +46,31 @@ The contested enemy is separate from the card target because `guard-intercept` t
 
 ## Player consequence application
 
-`playerEffectMode` is applied by deriving a detached card definition and then running the existing `resolveBattlePreview()`.
+`playerEffectMode` is applied through the existing `resolveBattlePreview()` path. Clash does not reimplement specialization, Break, lethal, Timeline, or HP arithmetic.
 
 ### `full`
 
-Use the authored card effect unchanged.
+Use the authored card effect and current damage modifiers unchanged.
 
 ### `half`
 
 For Phase 14c:
 
-- integer damage = `floor(damage / 2)`;
+- first compute the normal player damage result, including existing Break and actor-specialization damage bonuses;
+- final integer damage = `floor(normalFinalDamage / 2)`;
 - Guard ratio = `ratio / 2`;
 - Guard cap = `floor(cap / 2)` when present;
 - target Delay is suppressed;
 - Interrupt is suppressed;
 - Break-window creation is suppressed.
 
+Existing Break-window consumption may still contribute to the damage calculation on a draw because the player action partially connects. The final combined damage is halved afterward.
+
 This is intentionally conservative: non-damage control effects are not granted on a draw unless a later design contract explicitly authorizes them.
 
 ### `none`
 
-Suppress damage, target Delay, Guard, Interrupt and Break-window creation. The action still pays its authored action Delay because the card was committed and time was spent attempting the Clash.
+Suppress damage, target Delay, Guard, Interrupt and Break-window creation. Existing Break windows are not consumed. The action still pays its authored action Delay because the card was committed and time was spent attempting the Clash.
 
 ## Enemy Intent consequence application
 
@@ -114,7 +117,7 @@ No Clash input must preserve the existing `resolveBattleAction()` result.
 Required tests:
 
 - player win keeps full player damage and converts contested Intent to hard stagger;
-- draw floors player damage to half, suppresses control effects, and halves enemy damage while removing status effects;
+- draw floors the final player damage after current damage modifiers, suppresses control effects, and halves enemy damage while removing status effects;
 - enemy win suppresses player damage/effects and preserves enemy Intent;
 - action Delay is still paid on draw/enemy win;
 - guard-intercept can target an ally while mutating a separate contested enemy Intent;
